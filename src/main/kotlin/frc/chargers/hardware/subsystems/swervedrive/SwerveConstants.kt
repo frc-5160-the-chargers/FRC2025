@@ -1,4 +1,3 @@
-@file:Suppress("unused")
 package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.quantities.*
@@ -6,13 +5,17 @@ import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.util.PIDConstants
-import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 
 private val DEFAULT_MAX_MODULE_SPEED = 4.5.ofUnit(meters / seconds)
 
-val MK4i_WHEEL_DIAMETER = 4.inches
+object Mk4i {
+    const val L2_DRIVE_RATIO = 6.75
+    const val L3_DRIVE_RATIO = 6.12
+    const val TURN_RATIO = 150.0 / 7.0
+    val WHEEL_DIAMETER = 4.inches
+}
 
 data class SwerveConstants(
     val trackWidth: Distance,
@@ -20,8 +23,6 @@ data class SwerveConstants(
     val wheelDiameter: Distance,
     val robotRotationPID: PIDConstants = PIDConstants(6.0,0.0,0.0), // rotation of the entire robot; for pathplanner
     val robotTranslationPID: PIDConstants = PIDConstants(4.0,0.0,0.0), // translation of the entire robot; for pathplanner
-    val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
-    val odometryUpdateRate: Time = 0.02.seconds,
     val couplingRatio: Double? = null,
     val driveMotorMaxSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
 

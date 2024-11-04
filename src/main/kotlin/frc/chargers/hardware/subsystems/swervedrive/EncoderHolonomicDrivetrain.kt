@@ -33,7 +33,6 @@ import frc.chargers.hardware.encoders.PositionEncoder
 import frc.chargers.hardware.imu.HeadingProvider
 import frc.chargers.hardware.imu.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
-import frc.chargers.utils.epsilonEquals
 import frc.chargers.utils.units.frequencyToPeriod
 import frc.chargers.wpilibextensions.*
 import frc.chargers.wpilibextensions.kinematics.*
@@ -43,7 +42,6 @@ import kotlin.jvm.optionals.getOrNull
 private fun ensureFour(type: String, list: List<*>) {
     require(list.size == 4){ "You must have four ${type}s." }
 }
-private var autoBuilderConfigured = false
 
 /**
  * An implementation of Swerve drive, with encoders, to be used in future robot code.
@@ -65,9 +63,11 @@ open class EncoderHolonomicDrivetrain(
         ensureFour("turn encoder", turnEncoders)
         ensureFour("drive motor", driveMotors)
     }
+    private val modNames = listOf("Top Left Module", "Top Right Module", "Bottom Left Module", "Bottom Right Module")
     // note: don't change this to list, as monologue can't traverse through lists
     private val swerveModules = Array(4){ index ->
         SwerveModule(
+            modNames[index],
             turnMotors[index],
             turnEncoders[index],
             driveMotors[index],
@@ -88,7 +88,7 @@ open class EncoderHolonomicDrivetrain(
         CLOSED_LOOP, // Represents closed-loop control with feedforward & PID: this is far more accurate than open loop in terms of velocity
         NONE // Represents no control at all; this mode should be set when the drivetrain is not calling one of the drive functions.
     }
-    private var currentControlMode = ControlMode.NONE
+    @Log private var currentControlMode = ControlMode.NONE
     @Log private val field = Field2d()
     private val robotWidget = field.getObject(name)
     private val poseEstimator = SwerveDrivePoseEstimator(
@@ -131,9 +131,9 @@ open class EncoderHolonomicDrivetrain(
     private fun logTrajectory(trajectory: Trajectory<SwerveSample>, isStart: Boolean) {
         if (isStart) {
             val traj = if (isRedAlliance) trajectory.flipped() else trajectory
-            log("Choreo/AutoTrajectory", traj.poses)
+            log("choreo/autoTrajectory", traj.poses)
         } else {
-            log("Choreo/AutoTrajectory", emptyArray<Pose2d>())
+            log("choreo/autoTrajectory", emptyArray<Pose2d>())
         }
     }
 
@@ -208,8 +208,8 @@ open class EncoderHolonomicDrivetrain(
     /**
      * The current robot pose of the drivetrain.
      */
-    override val robotPose: Pose2d
-        get() = poseEstimator.estimatedPosition
+    @get:Log(key = "pose")
+    override val robotPose: Pose2d get() = poseEstimator.estimatedPosition
 
     /**
      * Resets the drivetrain's pose.
@@ -254,6 +254,7 @@ open class EncoderHolonomicDrivetrain(
     /**
      * The current overall velocity of the robot.
      */
+    @get:Log(key = "velocity(MPS)")
     val velocity: Velocity
         get(){
             val speeds = currentSpeeds
@@ -335,8 +336,8 @@ open class EncoderHolonomicDrivetrain(
      * This value can be changed with the [fieldRelative] parameter.
      */
     fun swerveDrive(xPower: Double, yPower: Double, rotationPower: Double, fieldRelative: Boolean = defaultFieldRelative){
-        if (xPower epsilonEquals 0.0 && yPower epsilonEquals 0.0 && rotationPower epsilonEquals 0.0) {
-            this.stop()
+        if (kotlin.math.abs(xPower) < 0.01 && kotlin.math.abs(yPower) < 0.01 && kotlin.math.abs(rotationPower) < 0.01) {
+            stop()
             return
         }
         currentControlMode = ControlMode.OPEN_LOOP
@@ -451,13 +452,11 @@ open class EncoderHolonomicDrivetrain(
         if (!customOdometryUpdateRateSet) updateOdometry()
         super.periodic()
         robotWidget.pose = this.robotPose
-        log("OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
-        log("RequestedControlMode", currentControlMode)
+        swerveModules.forEach { it.periodic() }
         log("ModuleStates/Desired", desiredStates)
         log("ModuleStates/Measured", moduleStates.toTypedArray())
         log("ChassisSpeeds/Desired", goal)
         log("ChassisSpeeds/Measured", currentSpeeds)
-        log("Pose2d", poseEstimator.estimatedPosition)
 
         if (isDisabled()) {
             stop()
@@ -479,7 +478,6 @@ open class EncoderHolonomicDrivetrain(
             }
         }
         swerveModules.forEachIndexed { index, module ->
-            module.periodic()
             when (currentControlMode){
                 ControlMode.OPEN_LOOP -> module.setDesiredStateOpenLoop(desiredStates[index])
                 ControlMode.CLOSED_LOOP -> module.setDesiredStateClosedLoop(desiredStates[index])

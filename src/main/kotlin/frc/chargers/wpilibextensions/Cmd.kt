@@ -239,25 +239,6 @@ object Cmd {
         return DeferredCommand(supplier, requirements)
     }
 
-    /**
-     * Constructs a command that schedules the command returned from the supplier when initialized,
-     * and ends when it is no longer scheduled. The supplier is called when the command is
-     * initialized.
-     *
-     * @param supplier the command supplier
-     * @return the command
-     * @see ProxyCommand
-     */
-    @Deprecated(
-        """The ProxyCommand supplier constructor has been deprecated in favor of directly
-        proxying a {@link DeferredCommand}, see ProxyCommand documentation for more details. As a
-        replacement, consider using `defer(supplier).asProxy()`.
-    """
-    )
-    fun deferredProxy(supplier: Supplier<Command>): Command {
-        return ProxyCommand(supplier)
-    }
-
     // Command Groups
     /**
      * Runs a group of commands in series, one after the other.

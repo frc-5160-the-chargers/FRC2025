@@ -3,7 +3,6 @@ package frc.chargers.hardware.motorcontrol
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
-import edu.wpi.first.hal.HAL
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N2
@@ -11,6 +10,7 @@ import edu.wpi.first.math.system.LinearSystem
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.math.system.plant.LinearSystemId
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.controls.constants
 import frc.chargers.hardware.encoders.Encoder
 import kotlin.math.PI
@@ -19,7 +19,7 @@ class MotorSim(
     linearSystem: LinearSystem<N2, N1, N2>,
     motorType: DCMotor,
     vararg measurementStdDevs: Double
-): Motor {
+): Motor, SubsystemBase() {
     companion object {
         fun regular(
             motorType: DCMotor, gearRatio: Double, moi: MomentOfInertia,
@@ -56,8 +56,8 @@ class MotorSim(
     private var positionPIDConfigured = false
     private var velocityPIDConfigured = false
 
-    init {
-        HAL.registerSimPeriodicBeforeCallback { base.update(0.02) }
+    override fun simulationPeriodic() {
+        base.update(0.02)
     }
 
     override val encoder: Encoder = SimEncoder()

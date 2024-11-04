@@ -11,20 +11,21 @@ import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.encoders.PositionEncoder
-import frc.chargers.utils.units.periodToFrequency
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
+import monologue.Annotations.Log
 import monologue.Logged
 import kotlin.math.abs
 import kotlin.math.cos
 
 
 class SwerveModule(
+    @Log private val name: String,
     private val turnMotor: Motor,
     // turn encoders are optional in sim
     private val turnEncoder: PositionEncoder? = null,
     private val driveMotor: Motor,
-    private val constants: SwerveConstants
+    private val constants: SwerveConstants,
 ): Logged {
     private val startingDirection: Angle? = if (turnEncoder != null) turnEncoder.angularPosition % 360.degrees else null
     private val wheelRadius = constants.wheelDiameter / 2
@@ -45,29 +46,26 @@ class SwerveModule(
         turnMotor.configure(
             currentPosition = startingDirection,
             positionPID = constants.azimuthPID,
-            continuousInput = true,
-            positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
+            continuousInput = true
         )
         driveMotor.configure(
             currentPosition = 0.degrees,
-            velocityPID = constants.velocityPID,
-            positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
+            velocityPID = constants.velocityPID
         )
-        log("UsingCouplingRatio", constants.couplingRatio != null)
     }
 
     fun periodic() {
         if (constants.couplingRatio != null){
             couplingOffset -= constants.couplingRatio * (direction - 180.degrees)
-            log("CouplingOffset(Deg)", couplingOffset.inUnit(degrees))
+            log("couplingOffset(Deg)", couplingOffset.inUnit(degrees))
         }
-        if (turnEncoder != null) log("AbsoluteEncoderReading(Deg)", turnEncoder.angularPosition.inUnit(degrees))
-        log("Direction(Deg)", direction.inUnit(degrees))
-        log("DriveVel(MPS)", driveLinearVelocity.inUnit(meters / seconds))
-        log("WheelTravel(M)", wheelTravel.inUnit(meters))
-        log("TurnMotorCurrent", turnMotor.statorCurrent.inUnit(amps))
-        log("DriveMotorCurrent", driveMotor.statorCurrent.inUnit(amps))
-        log("TurnVel(DegPerSec)", turnMotor.encoder.angularVelocity.inUnit(degrees / seconds))
+        if (turnEncoder != null) log("absoluteEncoderReading(Deg)", turnEncoder.angularPosition.inUnit(degrees))
+        log("direction(Deg)", direction.inUnit(degrees))
+        log("driveVelocity(MPS)", driveLinearVelocity.inUnit(meters / seconds))
+        log("wheelTravel(M)", wheelTravel.inUnit(meters))
+        log("turnMotorCurrent", turnMotor.statorCurrent.inUnit(amps))
+        log("driveMotorCurrent", driveMotor.statorCurrent.inUnit(amps))
+        log("turnVelocity(DegPerSec)", turnMotor.encoder.angularVelocity.inUnit(degrees / seconds))
     }
 
     fun setUpdateRate(period: Frequency) {
@@ -91,13 +89,13 @@ class SwerveModule(
 
     fun setDriveVoltage(target: Voltage) {
         driveMotor.voltageOut = target
-        log("DriveVoltage", target.inUnit(volts))
+        log("driveVoltage", target.inUnit(volts))
     }
 
     fun setTurnVoltage(target: Voltage) {
         val trueVoltage = if (abs(target) < 0.01.volts) 0.volts else target
         turnMotor.voltageOut = trueVoltage
-        log("TurnVoltage", trueVoltage.inUnit(volts))
+        log("turnVoltage", trueVoltage.inUnit(volts))
     }
 
     private fun calculateSetpoint(motionProfile: AngularMotionProfile, goalState: AngularMotionProfileState) =

@@ -3,6 +3,7 @@ package frc.chargers.wpilibextensions
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
+import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
@@ -15,7 +16,7 @@ Credits go to 6328 & 4099 for all of the code below;
 some edits were applied to better suit kotlin(such as swapping to extension functions).
  */
 
-private val FIELD_LENGTH = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField().fieldLength
+private val FIELD_LENGTH = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo).fieldLength
 private fun shouldFlip(): Boolean = DriverStation.getAlliance() == Optional.of(DriverStation.Alliance.Red)
 
 /** Flips a blue alliance pose to the correct side of the field based on the current alliance color. */
