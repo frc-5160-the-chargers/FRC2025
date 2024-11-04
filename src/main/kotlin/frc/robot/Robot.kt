@@ -7,35 +7,22 @@ import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.hal.FRCNetComm.tInstances
 import edu.wpi.first.hal.FRCNetComm.tResourceType
 import edu.wpi.first.hal.HAL
+import edu.wpi.first.wpilibj.DriverStation.isFMSAttached
 import edu.wpi.first.wpilibj2.command.CommandScheduler
-import edu.wpi.first.wpilibj2.command.PrintCommand
-import frc.robot.subsystems.ExampleSubsystem
+import frc.chargers.framework.setAutoCommand
+import frc.chargers.wpilibextensions.Cmd
+import monologue.Logged
+import monologue.Monologue
+import monologue.Monologue.MonologueConfig
 
-class Robot : TimedRobot() {
-    private val autonomousCommand = PrintCommand("Hello, autonomous!")
-    private val exampleSubsystem = ExampleSubsystem(1, 2)
-
+class Robot : TimedRobot(), Logged {
     init {
+        /* Required setup: The following code below is required for robot setup. */
         HAL.report(tResourceType.kResourceType_Language, tInstances.kLanguage_Kotlin)
-    }
+        Monologue.setupMonologue(this, "Robot", MonologueConfig().withFileOnly { isFMSAttached() })
+        addPeriodic(Monologue::updateAll, 0.02)
+        addPeriodic(CommandScheduler.getInstance()::run, 0.02)
 
-    override fun robotPeriodic() {
-        // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-        // commands, running already-scheduled commands, removing finished or interrupted commands,
-        // and running subsystem periodic() methods.  This must be called from the robot's periodic
-        // block in order for anything in the Command-based framework to work.
-        CommandScheduler.getInstance().run()
-    }
-
-    override fun autonomousInit() {
-        autonomousCommand.schedule()
-    }
-
-    override fun teleopInit() {
-        autonomousCommand.cancel()
-    }
-
-    override fun testInit() {
-        CommandScheduler.getInstance().cancelAll()
+        setAutoCommand { Cmd.none() }
     }
 }
