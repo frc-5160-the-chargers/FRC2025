@@ -7,7 +7,6 @@ import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.hal.FRCNetComm.tInstances
 import edu.wpi.first.hal.FRCNetComm.tResourceType
 import edu.wpi.first.hal.HAL
-import edu.wpi.first.util.datalog.DataLog
 import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.DriverStation.isFMSAttached
 import edu.wpi.first.wpilibj2.command.CommandScheduler

@@ -4,9 +4,16 @@ import com.batterystaple.kmeasure.dimensions.AnyDimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import com.batterystaple.kmeasure.quantities.inUnit
 import edu.wpi.first.util.struct.Struct
+import edu.wpi.first.util.struct.StructSerializable
 import edu.wpi.first.wpilibj.Timer
+import monologue.Annotations.SingletonLogged
 import monologue.Logged
 import java.nio.ByteBuffer
+import kotlin.internal.LowPriorityInOverloadResolution
+
+/** A utility object that allows you to log from subcomponents on the robot. */
+@SingletonLogged(key = "")
+object GlobalLog: Logged
 
 /**
  * Logs the latency of a certain function.
@@ -21,13 +28,12 @@ inline fun <T> Logged.logLatency(key: String, toRun: () -> T): T {
 
 /** Logs a nullable Double. */
 fun Logged.logNullable(key: String, value: Double?) {
-    NullableDoubleHolder.innerValue = value
-    log(key, /*struct*/ NullableDoubleHolder, /*value*/ NullableDoubleHolder)
+    NullableNumberHolder.innerValue = value
+    log(key, NullableNumberHolder.struct, NullableNumberHolder)
 }
 /** Logs a nullable Int. */
+@LowPriorityInOverloadResolution
 fun Logged.logNullable(key: String, value: Int?) = logNullable(key, value?.toDouble())
-/** Logs a nullable String. */
-fun Logged.logNullable(key: String, value: String?) = log(key, value ?: "NULL")
 
 /** Logs a list of doubles. */
 fun Logged.logList(key: String, value: List<Double>) {
@@ -57,16 +63,19 @@ val doubleArrays = mutableMapOf<Int, DoubleArray>().apply {
     for (i in 0..8) { put(i, DoubleArray(i)) }
 }
 
-private object NullableDoubleHolder: Struct<NullableDoubleHolder> {
+private object NullableNumberHolder: StructSerializable {
     var innerValue: Double? = null
 
-    override fun getTypeClass() = this.javaClass
-    override fun getTypeName() = "struct:NullableDouble"
-    override fun getSize(): Int = Struct.kSizeDouble + Struct.kSizeBool
-    override fun getSchema() = "double value;boolean isNull"
-    override fun unpack(bb: ByteBuffer) = this // no struct unpacking supported
-    override fun pack(bb: ByteBuffer, value: NullableDoubleHolder) {
-        bb.putDouble(innerValue ?: 0.0)
-        bb.put(if (innerValue == null) 0 else 1)
+    @JvmField val struct = object: Struct<NullableNumberHolder> {
+        override fun getTypeClass() = NullableNumberHolder::class.java
+        override fun getTypeName() = "NullableNumber"
+        override fun getTypeString() = "struct:NullableNumber"
+        override fun getSize(): Int = Struct.kSizeDouble + Struct.kSizeBool
+        override fun getSchema() = "bool isNull;double value;"
+        override fun unpack(bb: ByteBuffer) = this@NullableNumberHolder // unpacking not supported atm
+        override fun pack(bb: ByteBuffer, value: NullableNumberHolder) {
+            bb.put(if (value.innerValue == null) 1 else 0)
+            bb.putDouble(value.innerValue ?: 0.0)
+        }
     }
 }

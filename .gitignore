@@ -162,7 +162,6 @@ bin/
 *.iml
 *.ipr
 *.iws
-.idea/
 out/
 
 # Fleet

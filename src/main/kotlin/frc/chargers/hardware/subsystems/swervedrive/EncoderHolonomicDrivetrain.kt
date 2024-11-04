@@ -38,6 +38,7 @@ import frc.chargers.wpilibextensions.*
 import frc.chargers.wpilibextensions.kinematics.*
 import monologue.Annotations.Log
 import kotlin.jvm.optionals.getOrNull
+import kotlin.math.abs
 
 private fun ensureFour(type: String, list: List<*>) {
     require(list.size == 4){ "You must have four ${type}s." }
@@ -336,7 +337,7 @@ open class EncoderHolonomicDrivetrain(
      * This value can be changed with the [fieldRelative] parameter.
      */
     fun swerveDrive(xPower: Double, yPower: Double, rotationPower: Double, fieldRelative: Boolean = defaultFieldRelative){
-        if (kotlin.math.abs(xPower) < 0.01 && kotlin.math.abs(yPower) < 0.01 && kotlin.math.abs(rotationPower) < 0.01) {
+        if (abs(xPower) < 0.01 && abs(yPower) < 0.01 && abs(rotationPower) < 0.01) {
             stop()
             return
         }
