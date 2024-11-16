@@ -1,12 +1,11 @@
 plugins {
     id "java"
     id "edu.wpi.first.GradleRIO" version "2025.1.1-beta-1"
-    id("com.diffplug.spotless") version "7.0.0.BETA2"
+    id "com.diffplug.spotless" version "7.0.0.BETA2"
+    id 'org.jetbrains.kotlin.jvm' version '2.0.20'
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
 }
 
 def ROBOT_MAIN_CLASS = "frc.robot.Main"
@@ -53,6 +52,7 @@ def includeDesktopSupport = true
 dependencies {
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
+    annotationProcessor wpi.java.deps.wpilibAnnotations()
 
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)
@@ -70,6 +70,13 @@ dependencies {
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 test {
@@ -105,4 +112,7 @@ spotless {
 }
 repositories {
     mavenCentral()
+}
+kotlin {
+    jvmToolchain(17)
 }
