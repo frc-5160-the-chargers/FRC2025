@@ -11,13 +11,15 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 public class UnitTesting {
     public static final Time TICK_RATE = Seconds.of(0.02);
+    private static boolean isUnitTest = false;
 
     /** Sets up DS and initializes HAL with default values and asserts that it doesn't fail. */
-    public static void setupTests() {
+    public static void setupTest() {
         assert HAL.initialize(500, 0);
         DriverStationSim.setEnabled(true);
         DriverStationSim.setTest(true);
         DriverStationSim.notifyNewData();
+        isUnitTest = true;
     }
 
     /**
@@ -25,7 +27,8 @@ public class UnitTesting {
      *
      * @param autoCloseables All subsystems/objects that need to be closed
      */
-    public static void reset(AutoCloseable... autoCloseables) throws Exception {
+    public static void resetTest(AutoCloseable... autoCloseables) throws Exception {
+        if (!isUnitTest) return;
         CommandScheduler.getInstance().unregisterAllSubsystems();
         CommandScheduler.getInstance().cancelAll();
         for (AutoCloseable closeable : autoCloseables) {
@@ -34,11 +37,13 @@ public class UnitTesting {
     }
 
     /**
-     * Runs CommandScheduler and updates timer repeatedly to fast forward subsystems and run commands.
+     * Runs CommandScheduler and updates timer repeatedly
+     * to fast-forward subsystems and run commands.
      *
      * @param ticks The number of times CommandScheduler is run
      */
-    public static void fastForward(int ticks) {
+    public static void runTicks(int ticks) {
+        if (!isUnitTest) return;
         for (int i = 0; i < ticks; i++) {
             CommandScheduler.getInstance().run();
             SimHooks.stepTiming(TICK_RATE.in(Seconds));
@@ -46,44 +51,27 @@ public class UnitTesting {
     }
 
     /**
-     * Fasts forward in time by running CommandScheduler and updating timer
+     * Fasts forward in time by running CommandScheduler and updating timer.
      */
     public static void fastForward(Time time) {
-        fastForward((int) (time.in(Seconds) / TICK_RATE.in(Seconds)));
+        runTicks((int) (time.in(Seconds) / TICK_RATE.in(Seconds)));
     }
-
-    /**
-     * Schedules and runs a command
-     *
-     * @param command The command to run.
-     */
-    public static void run(Command command, double seconds) {
-        command.schedule();
-        CommandScheduler.getInstance().run();
-    }
-
+    
     /**
      * Schedules and runs a command.
-     *
-     * @param command The command to run.
-     * @param runs The number of times CommandScheduler is run.
      */
-    public static void run(Command command, int runs) {
-        command.schedule();
-        fastForward(runs);
+    public static void runUntilComplete(Command command, Time timeout) {
+        if (!isUnitTest) return;
+        CommandScheduler.getInstance().schedule(command);
+        fastForward(timeout);
     }
-
+    
     /**
-     * Schedules a command and runs it until it ends. Be careful -- if the command you give never
-     * ends, this will be an infinate loop!
-     *
-     * @param command
+     * Schedules a command without running it.
+     * To run the command for a certain number of ticks, use <code>UnitTesting.runTicks(1)</code>
      */
-    public static void runToCompletion(Command command) {
-        command.schedule();
-        fastForward(1);
-        while (command.isScheduled()) {
-            fastForward(1);
-        }
+    public static void schedule(Command command) {
+        if (!isUnitTest) return;
+        CommandScheduler.getInstance().schedule(command);
     }
 }
