@@ -13,7 +13,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.*;
 import frc.chargers.hardware.encoders.EncoderIO;
-import frc.chargers.utils.ExtensionMethods;
+import frc.chargers.utils.ChargerExtensions;
 import lombok.Getter;
 import lombok.experimental.ExtensionMethod;
 import lombok.experimental.FieldDefaults;
@@ -21,7 +21,7 @@ import lombok.experimental.FieldDefaults;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
 @FieldDefaults(makeFinal = true)
-@ExtensionMethod(ExtensionMethods.class)
+@ExtensionMethod(ChargerExtensions.class)
 public class TalonFXIO implements MotorIO, AutoCloseable {
 	@Getter private TalonFX baseMotor;
 	private StatusSignal<Angle> positionSignal;

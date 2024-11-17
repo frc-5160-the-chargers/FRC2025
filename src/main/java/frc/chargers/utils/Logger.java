@@ -20,7 +20,7 @@ public class Logger extends DogLog {
 	 * This must be called alongside Epilogue.bind(this) in the Robot class.
 	 * In addition, the robot class must have the @Logged annotation.
 	 */
-	public static void startDefault() {
+	public static void configureDefault() {
 		DogLog.setOptions(DogLog.getOptions().withNtPublish(true).withCaptureDs(true));
 		DogLog.setPdh(new PowerDistribution());
 		
