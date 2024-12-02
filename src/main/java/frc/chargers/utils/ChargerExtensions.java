@@ -7,7 +7,6 @@ import edu.wpi.first.math.geometry.AllianceSymmetry.SymmetryStrategy;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.function.Consumer;
 
 /**
@@ -23,8 +22,10 @@ import java.util.function.Consumer;
  *     public Something() {
  *         // with lombok
  *         sparkMax.resetAndConfigure(config);
+ *         var config = talonFX.getConfigurator().currConfig();
  *         // without lombok
  *         ChargerExtensions.resetAndConfigure(sparkMax, config);
+ *         ChargerExtensions.currConfig(talonFX.getConfigurator());
  *     }
  * }
  * } </pre>
@@ -35,7 +36,6 @@ public class ChargerExtensions {
     private ChargerExtensions() {}
 	
 	// Generic extensions
-	
 	/**
 	 * Runs toRun with the receiver, then returns the receiver.
 	 * Usage: <code>someValue.also(it -> it.instanceMethod());</code>
@@ -43,24 +43,6 @@ public class ChargerExtensions {
 	public static <T> T also(T receiver, Consumer<T> toRun) {
 		toRun.accept(receiver);
 		return receiver;
-	}
-	
-	// Trigger util
-	/**
-	 * Creates a new trigger that returns true when the receiver is double-clicked.
-	 * Usage: <code>controller.x().doubleClicked().onTrue(command)</code>
-	 */
-	public static Trigger doubleClicked(Trigger receiver) {
-		return doubleClicked(receiver, 0.4);
-	}
-	
-	/**
-	 * Creates a new trigger that returns true when the receiver is double-clicked.
-	 * Usage: <code>controller.x().doubleClicked().onTrue(command)</code>
-	 */
-	public static Trigger doubleClicked(Trigger receiver, double maxLengthSeconds) {
-		var tracker = new DoublePressTracker(receiver, maxLengthSeconds);
-		return new Trigger(tracker::get);
 	}
 
 	// Motor Extension Methods
@@ -70,22 +52,21 @@ public class ChargerExtensions {
 	}
 	
 	// Alliance flip util (will be removed soon)
-	static Pose2d flip(Pose2d receiver, SymmetryStrategy strategy) {
+	public static Pose2d flip(Pose2d receiver, SymmetryStrategy strategy) {
 		return new Pose2d(
 			flip(receiver.getTranslation(), strategy),
 			flip(receiver.getRotation(), strategy)
 		);
 	}
 	
-	static Rotation2d flip(Rotation2d receiver, SymmetryStrategy strategy) {
+	public static Rotation2d flip(Rotation2d receiver, SymmetryStrategy strategy) {
 		return switch (strategy) {
 			case VERTICAL -> new Rotation2d(-receiver.getCos(), receiver.getSin());
 			case ROTATIONAL -> new Rotation2d(-receiver.getCos(), -receiver.getSin());
 			case HORIZONTAL -> new Rotation2d(receiver.getCos(), -receiver.getSin());
 		};
 	}
-	
-	static Translation2d flip(Translation2d receiver, SymmetryStrategy strategy) {
+	public static Translation2d flip(Translation2d receiver, SymmetryStrategy strategy) {
 		return new Translation2d(
 			strategy.flipX(receiver.getX()),
 			strategy.flipY(receiver.getY())

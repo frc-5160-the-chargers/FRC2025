@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-processor-java/2025.1.1-beta-1/1ecdf0577490a5f667ccfbf4fc326d31f0b8219b/epilogue-processor-java-2025.1.1-beta-1.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-runtime-java/2025.1.1-beta-1/fd210029cf43752ca2106ebfa0dd65c7c7bb66a6/epilogue-runtime-java-2025.1.1-beta-1.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
+        </processorPath>
+        <module name="FRC2025.main" />
+      </profile>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
+        </processorPath>
+        <module name="FRC2025.test" />
+      </profile>
+    </annotationProcessing>
     <bytecodeTargetLevel target="17" />
   </component>
 </project>
