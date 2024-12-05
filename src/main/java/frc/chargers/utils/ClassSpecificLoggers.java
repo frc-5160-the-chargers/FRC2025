@@ -26,6 +26,6 @@ public class ClassSpecificLoggers {
 			dataLogger.log("Status/ReceiveErrorCount", status.REC);
 			dataLogger.log("Status/TransmitErrorCount", status.TEC);
 			dataLogger.log("Status/TransmitBufferFullCount", status.TxFullCount);
-		  }
+		}
 	}
 }

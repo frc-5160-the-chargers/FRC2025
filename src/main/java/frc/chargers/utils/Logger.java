@@ -11,6 +11,11 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 import java.util.function.BooleanSupplier;
 
@@ -20,8 +25,8 @@ import java.util.function.BooleanSupplier;
  */
 @SuppressWarnings("unused")
 public class Logger extends DogLog {
-	private static final Map<String, Alert> errorAlerts = new HashMap<>();
-	private static final Map<String, Alert> infoAlerts = new HashMap<>();
+	private static final Map<String, Alert> errorAlerts = new LinkedHashMap<>();
+	private static final Map<String, Alert> infoAlerts = new LinkedHashMap<>();
 	// codes make the color blue
 	private static final String INFO_START = "\u001B[36m(INFO) ";
 	private static final String INFO_END = "\u001B[0m";
@@ -33,15 +38,15 @@ public class Logger extends DogLog {
 	private Logger() {}
 	
 	private static void disableNtLogging() {
-		Logger.logInfo("Competition Started: NT(Live) logging disabled.");
+		logInfo("Competition Started: NT(Live) logging disabled.");
 		DogLog.setOptions(DogLog.getOptions().withNtPublish(false));
-		Epilogue.configure(config -> config.dataLogger = fileOnlyBackend);
+		Epilogue.getConfig().dataLogger = fileOnlyBackend;
 	}
 	
 	private static void enableNtLogging() {
-		Logger.logInfo("NT(Live) Logging Enabled.");
+		logInfo("NT(Live) Logging Enabled.");
 		DogLog.setOptions(DogLog.getOptions().withNtPublish(true));
-		Epilogue.configure(config -> config.dataLogger = fileAndNtBackend);
+		Epilogue.getConfig().dataLogger = fileAndNtBackend;
 	}
 	
 	/**
@@ -104,5 +109,77 @@ public class Logger extends DogLog {
 				return new Alert(info, AlertType.kInfo);
 			})
 			.set(true);
+	}
+	
+	/** Logs Radio information(stolen from advantagekit) */
+	public static void logRadio() {
+		RadioLogger.periodic();
+	}
+	
+	private static class RadioLogger {
+		private static final double requestPeriodSecs = 5.0;
+		private static final int connectTimeout = 500;
+		private static final int readTimeout = 500;
+		
+		private static URL statusURL;
+		private static Notifier notifier;
+		private static final Object lock = new Object();
+		private static boolean isConnected = false;
+		private static String statusJson = "";
+		
+		public static void periodic() {
+			if (notifier == null && RobotBase.isReal()) {
+				start();
+			}
+			
+			synchronized (lock) {
+				Logger.log("Radio/connected", isConnected);
+				Logger.log("Radio/status", statusJson);
+			}
+		}
+		
+		private static void start() {
+			// Get status URL
+			int teamNumber = RobotController.getTeamNumber();
+			StringBuilder statusURLBuilder = new StringBuilder();
+			statusURLBuilder.append("http://10.");
+			statusURLBuilder.append(teamNumber / 100);
+			statusURLBuilder.append(".");
+			statusURLBuilder.append(teamNumber % 100);
+			statusURLBuilder.append(".1/status");
+			try {
+				statusURL = new URL(statusURLBuilder.toString());
+			} catch (MalformedURLException e) {
+				return;
+			}
+			
+			// Launch notifier
+			notifier = new Notifier(
+				() -> {
+					// Request status from radio
+					StringBuilder response = new StringBuilder();
+					try {
+						HttpURLConnection connection = (HttpURLConnection) statusURL.openConnection();
+						connection.setRequestMethod("GET");
+						connection.setConnectTimeout(connectTimeout);
+						connection.setReadTimeout(readTimeout);
+						
+						try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+							for (String line; (line = reader.readLine()) != null; ) {
+								response.append(line);
+							}
+						}
+					} catch (Exception e) {}
+					
+					// Update status
+					String responseStr = response.toString().replaceAll("\\s+", "");
+					synchronized (lock) {
+						isConnected = !responseStr.isEmpty();
+						statusJson = responseStr;
+					}
+				});
+			notifier.setName("DogLog_RadioLogger");
+			notifier.startPeriodic(requestPeriodSecs);
+		}
 	}
 }

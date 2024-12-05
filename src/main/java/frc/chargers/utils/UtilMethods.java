@@ -1,12 +1,28 @@
 package frc.chargers.utils;
 
+import com.pathplanner.lib.util.PIDConstants;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;
 
-public class TriggerFactories {
+@SuppressWarnings("unused")
+public class UtilMethods {
+	private UtilMethods() {}
+	private static final double EPSILON = 1E-9;
+	
+	/**
+	 * Checks if 2 doubles are equal; correcting for floating point error.
+	 * Usage: <code>equivalent(2.0, 3.0 - 1.0)</code>
+	 */
+	public static boolean equivalent(double a, double b) {
+		return Math.abs(a - b) <= EPSILON;
+	}
+	
 	/**
 	 * Gets a trigger that returns true once when the value changes.
 	 */
@@ -35,6 +51,22 @@ public class TriggerFactories {
 		var tracker = new DoublePressTracker(receiver, maxLengthSeconds);
 		return new Trigger(tracker::get);
 	}
+	
+	/** Creates a PID controller from PID constants. */
+	public static PIDController pidControllerFrom(PIDConstants constants) {
+		return new PIDController(constants.kP, constants.kI, constants.kD);
+	}
+	
+	/** Runs the toRun method immediately after the time has elapsed. */
+	public static void waitThenRun(Time time, Runnable toRun) {
+		Commands.waitTime(time)
+			.andThen(Commands.runOnce(toRun))
+			.ignoringDisable(true)
+			.schedule();
+	}
+	
+	
+	// Private implementation
 	
 	@RequiredArgsConstructor
 	private static class HasChangedHandler {

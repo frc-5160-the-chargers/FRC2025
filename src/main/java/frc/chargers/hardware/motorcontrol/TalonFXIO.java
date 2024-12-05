@@ -13,7 +13,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.*;
 import frc.chargers.hardware.encoders.EncoderIO;
-import frc.chargers.utils.ChargerExtensions;
+import frc.chargers.utils.UtilExtensionMethods;
 import lombok.Getter;
 import lombok.experimental.ExtensionMethod;
 import lombok.experimental.FieldDefaults;
@@ -21,7 +21,7 @@ import lombok.experimental.FieldDefaults;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
 @FieldDefaults(makeFinal = true)
-@ExtensionMethod(ChargerExtensions.class)
+@ExtensionMethod(UtilExtensionMethods.class)
 public class TalonFXIO implements MotorIO, AutoCloseable {
 	@Getter private TalonFX baseMotor;
 	private StatusSignal<Angle> positionSignal;
@@ -44,6 +44,11 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 		@Override
 		public double velocityRadPerSec() {
 			return rotationsToRadians(velocitySignal.refresh().getValueAsDouble());
+		}
+		
+		@Override
+		public void setPositionReading(Angle angle) {
+			baseMotor.setPosition(angle);
 		}
 	};
 	
@@ -86,7 +91,7 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 	}
 	
 	@Override
-	public void spinAtVelocity(double velocityRadPerSec, double ffVolts) {
+	public void setVelocity(double velocityRadPerSec, double ffVolts) {
 		setVelocityRequest.Velocity = rotationsToRadians(velocityRadPerSec);
 		setVelocityRequest.FeedForward = ffVolts;
 		baseMotor.setControl(setVelocityRequest);
@@ -134,6 +139,11 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 				.withKI(i)
 				.withKD(d)
 		);
+	}
+	
+	@Override
+	public void enableContinuousInput() {
+		// TODO
 	}
 	
 	@Override

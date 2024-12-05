@@ -7,6 +7,7 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 
+import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
@@ -14,18 +15,26 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 public interface EncoderIO {
 	static CANcoderIO of(CANcoder encoder) { return new CANcoderIO(encoder); }
 	static EncoderIO ofDutyCycle(int port, boolean inverted) {
-		var encoder = new DutyCycleEncoder(port);
 		return new EncoderIO() {
+			private final DutyCycleEncoder encoder = new DutyCycleEncoder(port);
+			private double offset = 0.0;
+			
 			@Override
-			public double positionRad() { return encoder.get() * (inverted ? -1 : 1); }
+			public double positionRad() {
+				return rotationsToRadians(encoder.get() - offset) * (inverted ? -1 : 1);
+			}
 			
 			@Override
 			public double velocityRadPerSec() { return 0; }
+			
+			@Override
+			public void setPositionReading(Angle angle) { offset = encoder.get();  }
 		};
 	}
 	
 	double positionRad();
 	double velocityRadPerSec();
+	void setPositionReading(Angle angle);
 	
 	@NotLogged default Angle position() { return Radians.of(positionRad()); }
 	@NotLogged default AngularVelocity velocity() { return RadiansPerSecond.of(velocityRadPerSec()); }

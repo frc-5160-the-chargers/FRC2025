@@ -30,5 +30,10 @@ public class CANcoderIO implements EncoderIO, AutoCloseable {
 	}
 	
 	@Override
+	public void setPositionReading(Angle angle) {
+		baseEncoder.setPosition(angle);
+	}
+	
+	@Override
 	public void close() { baseEncoder.close(); }
 }

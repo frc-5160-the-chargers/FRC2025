@@ -1,14 +1,21 @@
 package frc.chargers.utils;
 
+import edu.wpi.first.util.struct.StructSerializable;
+import static frc.chargers.utils.UtilMethods.equivalent;
 
-import static frc.chargers.utils.DoubleEquivalency.equivalent;
-
-public record ChassisPowers(double xPower, double yPower, double zPower) {
+/**
+ * A struct that represents percentages
+ * @param xPower
+ * @param yPower
+ * @param rotationPower
+ */
+public record ChassisPowers(double xPower, double yPower, double rotationPower) implements StructSerializable {
+	
 	@Override
 	public boolean equals(Object other) {
 		return other instanceof ChassisPowers casted &&
 			   equivalent(xPower(), casted.xPower()) &&
 			   equivalent(yPower(), casted.yPower()) &&
-			   equivalent(zPower(), casted.zPower());
+			   equivalent(rotationPower(), casted.rotationPower());
 	}
 }

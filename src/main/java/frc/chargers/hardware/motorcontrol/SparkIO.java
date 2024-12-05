@@ -6,6 +6,7 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Angle;
 import frc.chargers.hardware.encoders.EncoderIO;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +19,7 @@ import static com.revrobotics.spark.config.ClosedLoopConfig.ClosedLoopSlot.kSlot
 import static com.revrobotics.spark.config.SparkBaseConfig.IdleMode.kBrake;
 import static com.revrobotics.spark.config.SparkBaseConfig.IdleMode.kCoast;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
+import static edu.wpi.first.units.Units.Rotations;
 
 @FieldDefaults(makeFinal = true)
 public class SparkIO<BaseMotor extends SparkBase> implements MotorIO, AutoCloseable {
@@ -33,6 +35,11 @@ public class SparkIO<BaseMotor extends SparkBase> implements MotorIO, AutoClosea
 		@Override
 		public double velocityRadPerSec() {
 			return rotationsToRadians(baseEncoder.getVelocity());
+		}
+		
+		@Override
+		public void setPositionReading(Angle angle) {
+			baseEncoder.setPosition(angle.in(Rotations));
 		}
 	};
 	
@@ -68,7 +75,7 @@ public class SparkIO<BaseMotor extends SparkBase> implements MotorIO, AutoClosea
 	public void setVoltage(double volts) { baseMotor.setVoltage(volts); }
 	
 	@Override
-	public void spinAtVelocity(double velocityRadPerSec, double ffVolts) {
+	public void setVelocity(double velocityRadPerSec, double ffVolts) {
 		pidController.setReference(
 			Units.radiansToRotations(velocityRadPerSec),
 			SparkBase.ControlType.kVelocity,
@@ -108,6 +115,11 @@ public class SparkIO<BaseMotor extends SparkBase> implements MotorIO, AutoClosea
 		var config = new SparkMaxConfig();
 		config.closedLoop.p(p, kSlot1).i(i, kSlot1).d(d, kSlot1);
 		baseMotor.configure(config, kNoResetSafeParameters, kPersistParameters);
+	}
+	
+	@Override
+	public void enableContinuousInput() {
+		// TODO
 	}
 	
 	@Override
