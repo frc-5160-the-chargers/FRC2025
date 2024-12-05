@@ -1,4 +1,4 @@
-package frc.chargers.utils.swerve;
+package frc.robot.subsystems.swerve;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -65,9 +65,5 @@ public class SimSwerveModule implements BaseSwerveModule {
 		mapleSim.requestDriveControl(
 			new ControlRequest.VoltageOut(Volts.of(voltage))
 		);
-	}
-	
-	@Override
-	public void periodic() {
 	}
 }

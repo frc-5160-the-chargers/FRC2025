@@ -6,6 +6,8 @@ import edu.wpi.first.epilogue.logging.DataLogger;
 import edu.wpi.first.epilogue.logging.FileLogger;
 import edu.wpi.first.epilogue.logging.NTDataLogger;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.util.datalog.StringLogEntry;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.*;
@@ -111,11 +113,13 @@ public class Logger extends DogLog {
 			.set(true);
 	}
 	
+	// TODO remove once wpilib gets this
 	/** Logs Radio information(stolen from advantagekit) */
-	public static void logRadio() {
-		RadioLogger.periodic();
+	public static void startRadioLog(TimedRobot robot) {
+		robot.addPeriodic(RadioLogger::periodic, 0.02);
 	}
 	
+	// stolen from akit
 	private static class RadioLogger {
 		private static final double requestPeriodSecs = 5.0;
 		private static final int connectTimeout = 500;
@@ -127,6 +131,14 @@ public class Logger extends DogLog {
 		private static boolean isConnected = false;
 		private static String statusJson = "";
 		
+		private static StringPublisher statusPublisher =
+			NetworkTableInstance.getDefault()
+				.getStringTopic("/Robot/Radio/status")
+				.publishEx("json", "{}");
+		
+		private static StringLogEntry fileStatusPublisher =
+			new StringLogEntry(DataLogManager.getLog(), "/Robot/Radio/status", "{}", "json");
+		
 		public static void periodic() {
 			if (notifier == null && RobotBase.isReal()) {
 				start();
@@ -134,7 +146,8 @@ public class Logger extends DogLog {
 			
 			synchronized (lock) {
 				Logger.log("Radio/connected", isConnected);
-				Logger.log("Radio/status", statusJson);
+				statusPublisher.set(statusJson);
+				fileStatusPublisher.append(statusJson);
 			}
 		}
 		

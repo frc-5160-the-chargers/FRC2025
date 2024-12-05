@@ -1,6 +1,5 @@
 package frc.chargers.utils;
 
-import edu.wpi.first.util.struct.StructSerializable;
 import static frc.chargers.utils.UtilMethods.equivalent;
 
 /**
@@ -9,7 +8,7 @@ import static frc.chargers.utils.UtilMethods.equivalent;
  * @param yPower
  * @param rotationPower
  */
-public record ChassisPowers(double xPower, double yPower, double rotationPower) implements StructSerializable {
+public record ChassisPowers(double xPower, double yPower, double rotationPower) {
 	
 	@Override
 	public boolean equals(Object other) {
