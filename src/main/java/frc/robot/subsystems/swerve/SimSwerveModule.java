@@ -1,6 +1,5 @@
 package frc.robot.subsystems.swerve;
 
-import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.Distance;
@@ -9,10 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.ironmaple.simulation.motorsims.ControlRequest;
 
-import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
 import static edu.wpi.first.units.Units.*;
 
-@Logged(strategy = OPT_IN)
 @RequiredArgsConstructor
 public class SimSwerveModule implements BaseSwerveModule {
 	private final SwerveModuleSimulation mapleSim;

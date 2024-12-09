@@ -1,14 +1,17 @@
 package frc.chargers.utils;
 
-import com.pathplanner.lib.util.PIDConstants;
 import com.revrobotics.REVLibError;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.config.SparkBaseConfig;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.AllianceSymmetry.SymmetryStrategy;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -52,8 +55,17 @@ public class UtilExtensionMethods {
 		return receiver.configure(config, SparkBase.ResetMode.kResetSafeParameters, SparkBase.PersistMode.kPersistParameters);
 	}
 	
-	public static double distanceTo(Pose2d start, Pose2d end) {
+	/** Gets the distance between 2 Pose2d's. */
+	public static double getDistance(Pose2d start, Pose2d end) {
 		return start.getTranslation().getDistance(end.getTranslation());
+	}
+	
+	/** "Binds" an alert to a boolean supplier; pushing it to the dashboard when the condition returns true. */
+	public static void bind(Alert alert, BooleanSupplier condition) {
+		var trigger = condition instanceof Trigger t ? t : new Trigger(condition);
+		trigger
+			.onTrue(Commands.runOnce(() -> alert.set(true)))
+			.onFalse(Commands.runOnce(() -> alert.set(false)));
 	}
 	
 	public static Pose2d flip(Pose2d receiver, SymmetryStrategy strategy) {

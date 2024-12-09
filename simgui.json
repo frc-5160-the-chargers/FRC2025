@@ -8,9 +8,11 @@
   },
   "NTProvider": {
     "types": {
+      "/AutoChoices/AutoChooser": "String Chooser",
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Alerts": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
+      "Robot/Dummy Field": "PIDController",
       "Robot/drivetrain/rotationController": "PIDController",
       "Robot/drivetrain/xPoseController": "PIDController",
       "Robot/drivetrain/yPoseController": "PIDController",
@@ -19,10 +21,22 @@
       "Robot/drivetrainOne/yPoseController": "PIDController",
       "Robot/drivetrainTwo/rotationController": "PIDController",
       "Robot/drivetrainTwo/xPoseController": "PIDController",
-      "Robot/drivetrainTwo/yPoseController": "PIDController"
+      "Robot/drivetrainTwo/yPoseController": "PIDController",
+      "field": "Field2d"
     },
     "windows": {
       "/SmartDashboard/SwerveDrive/fieldViz": {
+        "bottom": 1476,
+        "height": 8.210550308227539,
+        "left": 150,
+        "right": 2961,
+        "top": 79,
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
+      },
+      "field": {
         "bottom": 1476,
         "height": 8.210550308227539,
         "left": 150,
@@ -37,6 +51,12 @@
   },
   "NetworkTables": {
     "transitory": {
+      "DataLogSendable": {
+        "field": {
+          "open": true
+        },
+        "open": true
+      },
       "Robot": {
         "Radio": {
           "json##v_/Robot/Radio/status": {
@@ -44,7 +64,42 @@
           },
           "open": true
         },
-        "open": true
+        "Unknown": {
+          "open": true
+        },
+        "drivetrainOne": {
+          "bottomLeftModule": {
+            "open": true
+          },
+          "bottomRightModule": {
+            "open": true
+          },
+          "topLeftModule": {
+            "open": true
+          },
+          "topRightModule": {
+            "open": true
+          }
+        },
+        "field": {
+          "double[]##v_/Robot/field//Robot": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true,
+        "pivot": {
+          "hi": {
+            "0": {
+              "open": true
+            },
+            "1": {
+              "open": true
+            },
+            "open": true
+          },
+          "open": true
+        }
       },
       "Shuffleboard": {
         "open": true

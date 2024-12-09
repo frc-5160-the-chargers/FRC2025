@@ -1,5 +1,6 @@
 package frc.robot;
 
+import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -7,7 +8,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.chargers.utils.ChassisPowers;
+import frc.chargers.utils.InferLogPath;
+import frc.chargers.utils.InputStream;
 import frc.chargers.utils.Logger;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
@@ -35,11 +37,16 @@ public class DriverPracticeSim extends TimedRobot {
 		
 		drivetrain.setDefaultCommand(
 			drivetrain.teleopDriveCmd(
-				() -> new ChassisPowers(
-					-controller.getLeftY(),
-					-controller.getLeftX(),
-					-controller.getRightX()
-				), true
+				InputStream.of(controller::getLeftY)
+					.negate()
+					.log("driverController/xOutput"),
+				InputStream.of(controller::getLeftX)
+					.negate()
+					.log("driverController/yOutput"),
+				InputStream.of(controller::getRightX)
+					.negate()
+					.log("driverController/zOutput"),
+				true
 			)
 		);
 		return drivetrain;
@@ -48,6 +55,7 @@ public class DriverPracticeSim extends TimedRobot {
 	public DriverPracticeSim() {
 		Epilogue.bind(this);
 		Logger.configureDefault();
+		InferLogPath.Parser.enable(this);
 		
 		drivetrainOne = createSimBot(
 			new Pose2d(5.0, 7.0, Rotation2d.kZero)

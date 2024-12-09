@@ -4,7 +4,11 @@ import choreo.Choreo;
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
+import com.pathplanner.lib.commands.PathfindHolonomic;
+import com.pathplanner.lib.path.PathConstraints;
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.util.ReplanningConfig;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
@@ -36,12 +40,14 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.encoders.EncoderIO;
 import frc.chargers.hardware.motorcontrol.MotorIO;
+import frc.chargers.utils.InputStream;
 import frc.chargers.utils.Logger;
-import frc.chargers.utils.ChassisPowers;
+import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.GyroSimulation;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
@@ -68,6 +74,7 @@ import static frc.chargers.utils.UtilMethods.pidControllerFrom;
  */
 @SuppressWarnings("unused")
 @Logged(strategy = OPT_IN)
+@ExtensionMethod(UtilExtensionMethods.class)
 public class SwerveDrive extends SubsystemBase {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
@@ -134,7 +141,14 @@ public class SwerveDrive extends SubsystemBase {
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
 	private final Supplier<Rotation2d> getAngleFn;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
+	private Pose2d latestPose = new Pose2d();
 	@Setter private boolean field2dEnabled = false;
+	
+	// workaround before array logging comes around
+	@Logged private final BaseSwerveModule topLeftModule;
+	@Logged private final BaseSwerveModule topRightModule;
+	@Logged private final BaseSwerveModule bottomLeftModule;
+	@Logged private final BaseSwerveModule bottomRightModule;
 	
 	public SwerveDrive(SwerveDriveConfig config) {
 		Arrays.fill(measuredModuleStates, new SwerveModuleState());
@@ -228,6 +242,10 @@ public class SwerveDrive extends SubsystemBase {
 			}
 			this.getAngleFn = config.getRealGyroAngle;
 		}
+		this.topLeftModule = this.swerveModules[0];
+		this.topRightModule = this.swerveModules[1];
+		this.bottomLeftModule = this.swerveModules[2];
+		this.bottomRightModule = this.swerveModules[3];
 	}
 	
 	private boolean isRedAlliance() {
@@ -246,11 +264,11 @@ public class SwerveDrive extends SubsystemBase {
 		}
 	}
 	
-	public AutoFactory generateAutoFactory() {
-		return generateAutoFactory(new AutoFactory.AutoBindings());
+	public AutoFactory createAutoFactory() {
+		return createAutoFactory(new AutoFactory.AutoBindings());
 	}
 	
-	public AutoFactory generateAutoFactory(AutoFactory.AutoBindings autoBindings) {
+	public AutoFactory createAutoFactory(AutoFactory.AutoBindings autoBindings) {
 		return Choreo.createAutoFactory(
 			this,
 			this::getPose,
@@ -269,11 +287,12 @@ public class SwerveDrive extends SubsystemBase {
 		);
 	}
 	
-	@Logged public Pose2d getPose() {
+	@Logged
+	public Pose2d getPose() {
 		if (RobotBase.isSimulation()) {
 			return mapleSim.getSimulatedDriveTrainPose();
 		} else {
-			return poseEstimator.getEstimatedPosition();
+			return latestPose;
 		}
 	}
 	
@@ -319,6 +338,7 @@ public class SwerveDrive extends SubsystemBase {
 		return kinematics.toChassisSpeeds(modStates);
 	}
 	
+	// closed loop allows for the robot to drive at an exact velocity.
 	private void driveCallback(ChassisSpeeds speeds, boolean closedLoop, boolean fieldRelative) {
 		// TODO change this when ChassisSpeeds becomes immutable
 		if (fieldRelative) {
@@ -336,28 +356,59 @@ public class SwerveDrive extends SubsystemBase {
 	}
 	
 	/**
-	 * Drives the robot forever at the requested chassis powers.
+	 * Drives the robot forever at the requested x, y, and rotation powers.
 	 * Does not move the robot at an exact velocity; so best used in teleop
 	 * where exact velocities are not important.
 	 */
-	public Command teleopDriveCmd(Supplier<ChassisPowers> getChassisPowers, boolean fieldRelative) {
+	public Command teleopDriveCmd(
+		InputStream getXPower,
+		InputStream getYPower,
+		InputStream getRotationPower,
+		boolean fieldRelative
+	) {
 		var maxSpeedMps = config.ofHardware.maxSpeed.in(MetersPerSecond);
-		return this.run(() -> {
-			var power = getChassisPowers.get();
-			driveCallback(
-				new ChassisSpeeds(
-					power.xPower() * maxSpeedMps,
-					power.yPower() * maxSpeedMps,
-					power.rotationPower() * maxSpeedMps
-				),
-				false, fieldRelative
-			);
-		});
+		return this.run(() -> driveCallback(
+			new ChassisSpeeds(
+				getXPower.get() * maxSpeedMps,
+				getYPower.get() * maxSpeedMps,
+				getRotationPower.get() * maxSpeedMps
+			),
+			false, fieldRelative
+		)).withName("SwerveDriveCmd(open loop)");
 	}
 	
 	/** Drives the robot forever at the exact chassis speeds requested. */
 	public Command velocityDriveCmd(Supplier<ChassisSpeeds> getChassisSpeeds, boolean fieldRelative) {
-		return this.run(() -> driveCallback(getChassisSpeeds.get(), true, fieldRelative));
+		return this.run(() -> driveCallback(getChassisSpeeds.get(), true, fieldRelative))
+			       .withName("SwerveDriveCmd(closed loop)");
+	}
+	
+	public Command pathFindCmd(Pose2d targetPose, PathConstraints constraints) {
+		return new PathfindHolonomic(
+			targetPose,
+			constraints,
+			this::getPose,
+			this::getMeasuredSpeedsRobotRelative,
+			speeds -> driveCallback(speeds, true, false),
+			new HolonomicPathFollowerConfig(
+				config.ofHardware.maxSpeed.in(MetersPerSecond),
+				config.ofHardware.wheelBase.in(Meters) / 2,
+				new ReplanningConfig()
+			)
+		).until(() -> getPose().minus(targetPose).getTranslation().getNorm() < 1.0)
+         .andThen(
+			 this.run(() -> driveCallback(
+				 new ChassisSpeeds(
+					 xPoseController.calculate(getPose().getX(), targetPose.getX()),
+					 yPoseController.calculate(getPose().getY(), targetPose.getY()),
+					 rotationController.calculate(
+						 getPose().getRotation().getRadians(),
+						 targetPose.getRotation().getRadians()
+					 )
+				 ), true, false
+			 )).until(() -> getPose().getDistance(targetPose) < 0.1) // distanceTo is an extension method
+         )
+         .withName("SwervePathfindCmd");
 	}
 	
 	/**
@@ -378,7 +429,7 @@ public class SwerveDrive extends SubsystemBase {
 				for (var module: swerveModules) { totalVel += module.currentState().speedMetersPerSecond; }
 				return totalVel / 4.0;
 			}
-		);
+		).withName("SwerveCharacterizeCmd");
 	}
 	
 	@Override
@@ -394,38 +445,38 @@ public class SwerveDrive extends SubsystemBase {
 			}
 		}
 		
+		// if rotating too fast, discard vision measurements
+		if (Math.abs(latestHeading.minus(prevHeadingCache).getDegrees() / 0.02) < 720) {
+			for (var name: visionEstimators.keySet()) {
+				var yawOfVisionEstimator =
+					visionEstimators.get(name)
+						.getRobotToCameraTransform()
+						.getRotation()
+						.getZ();
+				var data = visionEstimators.get(name).update();
+				if (data.isPresent()) {
+					Logger.log("vision/cameras/" + name + "/hasPose", true);
+					Logger.log("vision/cameras/" + name + "/pose", data.get().estimatedPose);
+					poseEstimator.addVisionMeasurement(
+						data.get().estimatedPose.toPose2d(),
+						data.get().timestampSeconds,
+						calculateVisionUncertainty(
+							latestPose.getX(), latestHeading, Rotation2d.fromRadians(yawOfVisionEstimator)
+						)
+					);
+				} else {
+					Logger.log("vision/cameras/" + name + "/hasPose", false);
+					Logger.log("vision/cameras/" + name + "/pose", Pose3d.kZero);
+				}
+			}
+		}
+		
 		if (RobotBase.isSimulation()) {
 			// no vision updates in sim
 			if (field2dEnabled) simpleFieldViz.setRobotPose(mapleSim.getSimulatedDriveTrainPose());
 		} else {
-			Pose2d latestPose = poseEstimator.update(latestHeading, measuredModulePositions);
+			latestPose = poseEstimator.update(latestHeading, measuredModulePositions);
 			if (field2dEnabled) simpleFieldViz.setRobotPose(latestPose);
-			
-			// if rotating too fast, discard vision measurements
-			if (Math.abs(latestHeading.minus(prevHeadingCache).getDegrees() / 0.02) < 720) {
-				for (var name: visionEstimators.keySet()) {
-					var yawOfVisionEstimator =
-						visionEstimators.get(name)
-							.getRobotToCameraTransform()
-							.getRotation()
-							.getZ();
-					var data = visionEstimators.get(name).update();
-					if (data.isPresent()) {
-						Logger.log("VisionCameras/" + name + "/hasPose", true);
-						Logger.log("VisionCameras/" + name + "/pose", data.get().estimatedPose);
-						poseEstimator.addVisionMeasurement(
-							data.get().estimatedPose.toPose2d(),
-							data.get().timestampSeconds,
-							calculateVisionUncertainty(
-								latestPose.getX(), latestHeading, Rotation2d.fromRadians(yawOfVisionEstimator)
-							)
-						);
-					} else {
-						Logger.log("VisionCameras/" + name + "/hasPose", false);
-						Logger.log("VisionCameras/" + name + "/pose", Pose3d.kZero);
-					}
-				}
-			}
 			prevHeadingCache = latestHeading;
 		}
 	}
