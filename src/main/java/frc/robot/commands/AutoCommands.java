@@ -16,14 +16,24 @@ public class AutoCommands {
 	private final SwerveDrive drivetrain;
 	
 	static {
-		autonomous().and(RobotBase::isSimulation).onTrue(
-			Commands.waitSeconds(15.3)
-				.finallyDo(() -> DriverStationSim.setEnabled(false))
-				.withName("Simulated Auto Ender")
-		);
+		if (RobotBase.isSimulation()) {
+			autonomous().onTrue(
+				Commands.waitSeconds(15.3)
+					.finallyDo(() -> DriverStationSim.setEnabled(false))
+					.withName("Simulated Auto Ender")
+			);
+		}
 	}
 	
 	public Command fivePiece() {
-		return autoFactory.voidLoop().cmd();
+		var routine = autoFactory.newRoutine("FivePiece");
+		var ampToC1 = routine.trajectory("ampToC1");
+		var c1ToScore = routine.trajectory("c1ToScore");
+		var c2ToScore = routine.trajectory("c2ToScore");
+		var c3ToScore = routine.trajectory("c3ToScore");
+		routine.running().onTrue(
+			ampToC1.cmd()
+		);
+		return routine.cmd();
 	}
 }

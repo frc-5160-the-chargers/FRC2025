@@ -9,6 +9,7 @@ import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
+import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
@@ -29,24 +30,25 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.encoders.EncoderIO;
 import frc.chargers.hardware.motorcontrol.MotorIO;
 import frc.chargers.utils.InputStream;
-import frc.chargers.utils.Logger;
+import frc.chargers.utils.SwerveSetpointGenerator;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.With;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.GyroSimulation;
@@ -65,21 +67,24 @@ import java.util.function.Supplier;
 import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
+import static frc.chargers.utils.SwerveSetpointGenerator.*;
 import static frc.chargers.utils.UtilMethods.pidControllerFrom;
+import static org.photonvision.PhotonUtils.getYawToPose;
 
 /**
  * A drivetrain with 4 drive motors and 4 turn motors.
  * Each turn motor can control the exact position of each drive motor,
  * allowing for omnidirectional movement and driving while turning.
  */
-@SuppressWarnings("unused")
 @Logged(strategy = OPT_IN)
+@SuppressWarnings("unused")
 @ExtensionMethod(UtilExtensionMethods.class)
 public class SwerveDrive extends SubsystemBase {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
 		ControlsConfig ofControls,
+		ModuleSpeedLimits speedLimits,
 		Supplier<Rotation2d> getRealGyroAngle,
 		Function<Double, List<MotorIO>> getRealDriveMotors,
 		Function<Double, List<MotorIO>> getRealSteerMotors,
@@ -96,9 +101,15 @@ public class SwerveDrive extends SubsystemBase {
 		Distance bumperWidth,
 		DCMotor driveMotorType,
 		DCMotor turnMotorType,
-		LinearVelocity maxSpeed,
 		double coefficientOfFriction,
 		Mass robotMass
+	){}
+	
+	@With
+	public record ModuleSpeedLimits(
+		LinearVelocity maxVelocity,
+		LinearAcceleration maxAccel,
+		AngularVelocity maxSteerVelocity
 	){}
 	
 	public record ControlsConfig(
@@ -122,27 +133,29 @@ public class SwerveDrive extends SubsystemBase {
 		public final Distance wheelRadius;
 	}
 	
+	private final String name;
 	private final SwerveDriveConfig config;
 	
 	private final SwerveDriveKinematics kinematics;
+	private final SwerveSetpointGenerator setpointGen;
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
 	private final BaseSwerveModule[] swerveModules = new BaseSwerveModule[4];
 	
+	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
+	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
+	private SwerveSetpoint desiredState = new SwerveSetpoint();
+	private ModuleSpeedLimits moduleLimits;
+	
 	@Logged private final PIDController xPoseController;
 	@Logged private final PIDController yPoseController;
 	@Logged private final PIDController rotationController;
-	private final Field2d simpleFieldViz = new Field2d();
 	
 	private final HashMap<String, PhotonPoseEstimator> visionEstimators = new HashMap<>();
-	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
-	@Getter @Logged private SwerveModuleState[] desiredModuleStates = new SwerveModuleState[4];
-	@Getter @Logged private ChassisSpeeds desiredSpeeds = new ChassisSpeeds();
-	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
 	private final Supplier<Rotation2d> getAngleFn;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
-	private Pose2d latestPose = new Pose2d();
-	@Setter private boolean field2dEnabled = false;
+	private Pose2d estimatedPose = Pose2d.kZero;
+	private final double[] stdDevStore = new double[3];
 	
 	// workaround before array logging comes around
 	@Logged private final BaseSwerveModule topLeftModule;
@@ -150,13 +163,13 @@ public class SwerveDrive extends SubsystemBase {
 	@Logged private final BaseSwerveModule bottomLeftModule;
 	@Logged private final BaseSwerveModule bottomRightModule;
 	
-	public SwerveDrive(SwerveDriveConfig config) {
+	public SwerveDrive(String name, SwerveDriveConfig config) {
 		Arrays.fill(measuredModuleStates, new SwerveModuleState());
-		Arrays.fill(desiredModuleStates, new SwerveModuleState());
 		Arrays.fill(measuredModulePositions, new SwerveModulePosition());
 		
 		this.config = config;
-		this.kinematics = new SwerveDriveKinematics(
+		this.name = name;
+		Translation2d[] moduleLocations = {
 			new Translation2d(
 				config.ofHardware.trackWidth.div(2),
 				config.ofHardware.wheelBase.div(2)
@@ -173,10 +186,13 @@ public class SwerveDrive extends SubsystemBase {
 				config.ofHardware.trackWidth.div(-2),
 				config.ofHardware.wheelBase.div(-2)
 			)
-		);
+		};
+		this.kinematics = new SwerveDriveKinematics(moduleLocations);
+		this.setpointGen = new SwerveSetpointGenerator(kinematics, moduleLocations);
 		this.poseEstimator = new SwerveDrivePoseEstimator(
 			kinematics, Rotation2d.kZero, measuredModulePositions, new Pose2d()
 		);
+		this.moduleLimits = config.speedLimits;
 		
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
@@ -213,12 +229,12 @@ public class SwerveDrive extends SubsystemBase {
 		this.xPoseController = pidControllerFrom(config.ofControls.pathTranslationPID);
 		this.yPoseController = pidControllerFrom(config.ofControls.pathTranslationPID);
 		this.rotationController = pidControllerFrom(config.ofControls.pathRotationPID);
-		SmartDashboard.putData("SwerveDrive/fieldViz", this.simpleFieldViz);
+		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
 		
 		if (RobotBase.isSimulation()) {
 			for (int i = 0; i < 4; i++) {
 				this.swerveModules[i] = new SimSwerveModule(
-					mapleSim.getModules()[i], config.ofModules.wheelRadius, config.ofHardware.maxSpeed
+					mapleSim.getModules()[i], config.ofModules.wheelRadius, config.speedLimits.maxVelocity
 				);
 			}
 			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
@@ -236,7 +252,7 @@ public class SwerveDrive extends SubsystemBase {
 					realSteerMotors.get(i),
 					config.absoluteEncoders.get(i),
 					config.ofModules.wheelRadius,
-					config.ofHardware.maxSpeed,
+					config.speedLimits.maxVelocity,
 					config.ofControls.velocityFeedforward
 				);
 			}
@@ -259,30 +275,30 @@ public class SwerveDrive extends SubsystemBase {
 	private void logTrajectory(Trajectory<SwerveSample> traj, boolean isStart) {
 		if (isRedAlliance()) traj = traj.flipped();
 		if (isStart) {
-			Logger.log("Choreo/currentTrajectory", traj.getPoses());
-			Logger.log("Choreo/currentTrajectoryFinalPose", traj.getFinalPose(false));
+			DogLog.log(name + "/currentTrajectory/poses", traj.getPoses());
+			DogLog.log(name + "/currentTrajectory/totalTime", traj.getTotalTime());
+			DogLog.log(name + "/currentTrajectory/name", traj.name());
 		}
 	}
 	
-	public AutoFactory createAutoFactory() {
-		return createAutoFactory(new AutoFactory.AutoBindings());
+	private void choreoCallback(SwerveSample trajSample) {
+		var vx = trajSample.vx + xPoseController.calculate(getPose().getX(), trajSample.x);
+		var vy = trajSample.vy + yPoseController.calculate(getPose().getY(), trajSample.y);
+		var rotationV = trajSample.omega + rotationController.calculate(
+			getPose().getRotation().getRadians(),
+			trajSample.heading
+		);
+		// closed loop, not field relative
+		driveCallback(new ChassisSpeeds(vx, vy, rotationV), true, false);
 	}
 	
-	public AutoFactory createAutoFactory(AutoFactory.AutoBindings autoBindings) {
+	public AutoFactory createAutoFactory() {
 		return Choreo.createAutoFactory(
-			this,
 			this::getPose,
-			(currentPose, trajectorySample) -> driveCallback(
-				// closed loop, not field relative
-				new ChassisSpeeds(
-					xPoseController.calculate(currentPose.getX(), trajectorySample.x),
-					yPoseController.calculate(currentPose.getY(), trajectorySample.y),
-					rotationController.calculate(currentPose.getRotation().getRadians(), trajectorySample.omega)
-				),
-				true, false
-			),
+			this::choreoCallback,
 			this::isRedAlliance,
-			autoBindings,
+			this,
+			new AutoFactory.AutoBindings(),
 			this::logTrajectory
 		);
 	}
@@ -292,16 +308,13 @@ public class SwerveDrive extends SubsystemBase {
 		if (RobotBase.isSimulation()) {
 			return mapleSim.getSimulatedDriveTrainPose();
 		} else {
-			return latestPose;
+			return estimatedPose;
 		}
 	}
 	
 	public void resetPose(Pose2d pose) {
-		if (RobotBase.isSimulation()) {
-			mapleSim.setSimulationWorldPose(pose);
-		} else {
-			poseEstimator.resetPose(pose);
-		}
+		if (RobotBase.isSimulation()) mapleSim.setSimulationWorldPose(pose);
+		poseEstimator.resetPose(pose);
 	}
 	
 	public void addVisionCamera(
@@ -319,23 +332,21 @@ public class SwerveDrive extends SubsystemBase {
 		);
 	}
 	
-	@Logged public ChassisSpeeds getMeasuredSpeeds() {
-		return kinematics.toChassisSpeeds(measuredModuleStates);
+	public void setMaxAccel(LinearAcceleration accel) {
+		moduleLimits = moduleLimits.withMaxAccel(accel);
 	}
 	
-	@Logged public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
-		var speeds = getMeasuredSpeeds();
+	@Logged public ChassisSpeeds getMeasuredSpeeds() {
+		var speeds = getMeasuredSpeedsRobotRelative();
 		// TODO change this once ChassisSpeeds becomes immutable
-		speeds.toRobotRelativeSpeeds(
+		speeds.toFieldRelativeSpeeds(
 			addAllianceOffset(getPose().getRotation())
 		);
 		return speeds;
 	}
 	
-	private ChassisSpeeds limitMaxSpeed(ChassisSpeeds speeds) {
-		var modStates = kinematics.toSwerveModuleStates(speeds);
-		SwerveDriveKinematics.desaturateWheelSpeeds(modStates, config.ofHardware.maxSpeed);
-		return kinematics.toChassisSpeeds(modStates);
+	@Logged public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
+		return kinematics.toChassisSpeeds(measuredModuleStates);
 	}
 	
 	// closed loop allows for the robot to drive at an exact velocity.
@@ -346,12 +357,17 @@ public class SwerveDrive extends SubsystemBase {
 				addAllianceOffset(getPose().getRotation())
 			);
 		}
-		speeds = limitMaxSpeed(speeds);
-		speeds.discretize(0.02);
-		this.desiredSpeeds = speeds;
-		this.desiredModuleStates = kinematics.toSwerveModuleStates(speeds);
+		speeds.discretize(0.04);
+		desiredState = setpointGen.generateSetpoint(
+			moduleLimits.maxVelocity,
+			moduleLimits.maxAccel,
+			moduleLimits.maxSteerVelocity,
+			desiredState, speeds, 0.02
+		);
+		DogLog.log(name + "/desiredModuleStates", desiredState.moduleStates());
+		DogLog.log(name + "/desiredSpeeds(final)", desiredState.chassisSpeeds());
 		for (int i = 0; i < 4; i++) {
-			swerveModules[i].setDesiredState(desiredModuleStates[i], closedLoop);
+			swerveModules[i].setDesiredState(desiredState.moduleStates()[i], closedLoop);
 		}
 	}
 	
@@ -366,7 +382,7 @@ public class SwerveDrive extends SubsystemBase {
 		InputStream getRotationPower,
 		boolean fieldRelative
 	) {
-		var maxSpeedMps = config.ofHardware.maxSpeed.in(MetersPerSecond);
+		var maxSpeedMps = config.speedLimits.maxVelocity.in(MetersPerSecond);
 		return this.run(() -> driveCallback(
 			new ChassisSpeeds(
 				getXPower.get() * maxSpeedMps,
@@ -391,11 +407,11 @@ public class SwerveDrive extends SubsystemBase {
 			this::getMeasuredSpeedsRobotRelative,
 			speeds -> driveCallback(speeds, true, false),
 			new HolonomicPathFollowerConfig(
-				config.ofHardware.maxSpeed.in(MetersPerSecond),
+				config.speedLimits.maxVelocity.in(MetersPerSecond),
 				config.ofHardware.wheelBase.in(Meters) / 2,
 				new ReplanningConfig()
 			)
-		).until(() -> getPose().minus(targetPose).getTranslation().getNorm() < 1.0)
+		).until(() -> getPose().minus(targetPose).getTranslation().getNorm() < 0.7)
          .andThen(
 			 this.run(() -> driveCallback(
 				 new ChassisSpeeds(
@@ -409,6 +425,50 @@ public class SwerveDrive extends SubsystemBase {
 			 )).until(() -> getPose().getDistance(targetPose) < 0.1) // distanceTo is an extension method
          )
          .withName("SwervePathfindCmd");
+	}
+	
+	/**
+	 * Creates a rotation input stream that locks the robot's heading.
+	 * Example:
+	 * <pre><code>
+	 * Command cmd = drivetrain.teleopDriveCmd(
+	 *      controller::getLeftX,
+	 *      controller::getLeftY,
+	 *      drivetrain.headingLockInputStream(Radians.of(2.0))
+	 * );
+	 * cmd.schedule();
+	 */
+	public InputStream headingLockInputStream(Angle targetHeading) {
+		return () -> {
+			double output = rotationController.calculate(
+				getPose().getRotation().getRadians(),
+				targetHeading.in(Radians)
+			);
+			DogLog.log(name + "/headingLockOutput", output);
+			return output;
+		};
+	}
+	
+	/**
+	 * Creates a rotation input stream that locks the robot's heading.
+	 * Example:
+	 * <pre><code>
+	 * Command cmd = drivetrain.teleopDriveCmd(
+	 *      controller::getLeftX,
+	 *      controller::getLeftY,
+	 *      drivetrain.headingLockInputStream(new Pose2d(...))
+	 * );
+	 * cmd.schedule();
+	 */
+	public InputStream headingLockInputStream(Pose2d pose) {
+		return () -> {
+			double output = rotationController.calculate(
+				getPose().getRotation().getRadians(),
+				getYawToPose(getPose(), pose).getRadians()
+			);
+			DogLog.log(name + "/headingLockOutput", output);
+			return output;
+		};
 	}
 	
 	/**
@@ -431,7 +491,7 @@ public class SwerveDrive extends SubsystemBase {
 			}
 		).withName("SwerveCharacterizeCmd");
 	}
-	
+ 
 	@Override
 	public void periodic() {
 		Rotation2d latestHeading = getAngleFn.get();
@@ -455,30 +515,30 @@ public class SwerveDrive extends SubsystemBase {
 						.getZ();
 				var data = visionEstimators.get(name).update();
 				if (data.isPresent()) {
-					Logger.log("vision/cameras/" + name + "/hasPose", true);
-					Logger.log("vision/cameras/" + name + "/pose", data.get().estimatedPose);
+					var stdDevs = calculateVisionUncertainty(
+						getPose().getX(), latestHeading, Rotation2d.fromRadians(yawOfVisionEstimator)
+					);
+					DogLog.log("vision/cameras/" + name + "/hasPose", true);
+					DogLog.log("vision/cameras/" + name + "/pose", data.get().estimatedPose);
+					for (int i = 0; i < 3; i++) stdDevStore[i] = stdDevs.get(i, 0);
+					DogLog.log("vision/cameras/" + name + "/stdDevs", stdDevStore);
 					poseEstimator.addVisionMeasurement(
 						data.get().estimatedPose.toPose2d(),
 						data.get().timestampSeconds,
-						calculateVisionUncertainty(
-							latestPose.getX(), latestHeading, Rotation2d.fromRadians(yawOfVisionEstimator)
-						)
+						stdDevs
 					);
 				} else {
-					Logger.log("vision/cameras/" + name + "/hasPose", false);
-					Logger.log("vision/cameras/" + name + "/pose", Pose3d.kZero);
+					DogLog.log("vision/cameras/" + name + "/hasPose", false);
+					DogLog.log("vision/cameras/" + name + "/pose", Pose3d.kZero);
 				}
 			}
 		}
 		
-		if (RobotBase.isSimulation()) {
-			// no vision updates in sim
-			if (field2dEnabled) simpleFieldViz.setRobotPose(mapleSim.getSimulatedDriveTrainPose());
-		} else {
-			latestPose = poseEstimator.update(latestHeading, measuredModulePositions);
-			if (field2dEnabled) simpleFieldViz.setRobotPose(latestPose);
-			prevHeadingCache = latestHeading;
-		}
+		estimatedPose = poseEstimator.update(latestHeading, measuredModulePositions);
+		prevHeadingCache = latestHeading;
+		
+		// on the real robot, logged pose = computed pose
+		if (RobotBase.isSimulation()) DogLog.log(name + "/odometryPose", estimatedPose);
 	}
 	
 	// Credits: 6995

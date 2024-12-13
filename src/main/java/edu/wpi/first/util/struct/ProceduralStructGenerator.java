@@ -4,6 +4,8 @@
 // TODO remove when wpilib beta 3 comes out
 package edu.wpi.first.util.struct;
 
+import edu.wpi.first.math.kinematics.SwerveModuleState;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -134,7 +136,7 @@ public final class ProceduralStructGenerator {
 	 * @return An optional containing the struct if it could be extracted.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends StructSerializable> Optional<Struct<T>> extractClassStruct(
+	static <T extends StructSerializable> Optional<Struct<T>> extractClassStruct(
 		Class<? extends T> clazz) {
 		try {
 			var possibleField = Optional.ofNullable(clazz.getDeclaredField("struct"));
@@ -304,7 +306,7 @@ public final class ProceduralStructGenerator {
 	 * @return The generated struct.
 	 */
 	@SuppressWarnings({"unchecked", "PMD.AvoidAccessibilityAlteration"})
-	static <R extends Record> Struct<R> genRecord(final Class<R> recordClass) {
+	public static <R extends Record> Struct<R> genRecord(final Class<R> recordClass) {
 		final RecordComponent[] components = recordClass.getRecordComponents();
 		final SchemaBuilder schemaBuilder = new SchemaBuilder();
 		final ArrayList<Struct<?>> nestedStructs = new ArrayList<>();
@@ -327,8 +329,10 @@ public final class ProceduralStructGenerator {
 				packers.add(primType.packer);
 			} else {
 				Struct<?> struct;
+				String typeName = "";
 				if (customStructTypeMap.containsKey(type)) {
 					struct = customStructTypeMap.get(type);
+					typeName = struct.getTypeName();
 				} else if (StructSerializable.class.isAssignableFrom(type)) {
 					var optStruct = extractClassStructDynamic(type);
 					if (optStruct.isPresent()) {
@@ -466,7 +470,7 @@ public final class ProceduralStructGenerator {
 	 * @return The generated struct.
 	 */
 	@SuppressWarnings({"unchecked", "PMD.AvoidAccessibilityAlteration"})
-	static <E extends Enum<E>> Struct<E> genEnum(Class<E> enumClass) {
+	public static <E extends Enum<E>> Struct<E> genEnum(Class<E> enumClass) {
 		final E[] enumVariants = enumClass.getEnumConstants();
 		final Field[] allEnumFields = enumClass.getDeclaredFields();
 		final SchemaBuilder schemaBuilder = new SchemaBuilder();

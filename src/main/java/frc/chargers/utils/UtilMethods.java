@@ -1,19 +1,47 @@
 package frc.chargers.utils;
 
 import com.pathplanner.lib.util.PIDConstants;
+import dev.doglog.DogLog;
+import edu.wpi.first.epilogue.Epilogue;
+import edu.wpi.first.epilogue.logging.DataLogger;
+import edu.wpi.first.epilogue.logging.FileLogger;
+import edu.wpi.first.epilogue.logging.NTDataLogger;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.util.struct.ProceduralStructGenerator;
+import edu.wpi.first.util.struct.Struct;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
+
+import static edu.wpi.first.wpilibj.Alert.AlertType.kInfo;
 
 @SuppressWarnings("unused")
 public class UtilMethods {
 	private UtilMethods() {}
 	private static final double EPSILON = 1E-9;
+	
+	private static final DataLogger fileOnlyBackend = new FileLogger(DataLogManager.getLog());
+	private static final DataLogger fileAndNtBackend = DataLogger.multi(
+		fileOnlyBackend, new NTDataLogger(NetworkTableInstance.getDefault())
+	);
+	private static boolean loggingConfigured = false;
+	private static final Alert ntLoggingDisabled =
+		new Alert("NT(Live) Logging has been disabled; FMS is attached", kInfo);
 	
 	/**
 	 * Checks if 2 doubles are equal; correcting for floating point error.
@@ -65,8 +93,61 @@ public class UtilMethods {
 			.schedule();
 	}
 	
+	/**
+	 * Runs the logging function once after logging is configured.
+	 * Must be used in constructors to log values.
+	 */
+	public static void logInInit(Runnable logFn) {
+		Commands.waitUntil(() -> loggingConfigured)
+			.andThen(logFn)
+			.ignoringDisable(true)
+			.schedule();
+	}
 	
-	// Private implementation
+	/**
+	 * Sets the default DogLog/epilogue logging config.
+	 * This must be called alongside Epilogue.bind(this) in the Robot class.
+	 * In addition, the robot class must have the @Logged annotation.
+	 */
+	public static void configureDefaultLogging() {
+		if (loggingConfigured) return;
+		loggingConfigured = true;
+		
+		// Epilogue by default logs to nt only, while DogLog defaults to file-only
+		enableNtLogging();
+		DogLog.setPdh(new PowerDistribution());
+		
+		// enables NT logging when FMS is absent
+		new Trigger(DriverStation::isFMSAttached)
+			.onTrue(Commands.runOnce(UtilMethods::disableNtLogging))
+			.onFalse(Commands.runOnce(UtilMethods::enableNtLogging));
+		
+		// Logs when commands are running or not.
+		var scheduler = CommandScheduler.getInstance();
+		scheduler.onCommandInitialize(cmd -> DogLog.log("runningCommands/" + cmd.getName(), true));
+		scheduler.onCommandFinish(cmd -> DogLog.log("runningCommands/" + cmd.getName(), false));
+		scheduler.onCommandInterrupt(cmd -> DogLog.log("runningCommands/" + cmd.getName(), false));
+		// capture alert NT data
+		NetworkTableInstance.getDefault().startEntryDataLog(
+			DataLogManager.getLog(),
+			"SmartDashboard/Alerts",
+			"SmartDashboard/Alerts"
+		);
+	}
+	
+	private static void disableNtLogging() {
+		ntLoggingDisabled.set(true);
+		DogLog.setOptions(DogLog.getOptions().withNtPublish(false));
+		Epilogue.getConfig().dataLogger = fileOnlyBackend;
+	}
+	
+	private static void enableNtLogging() {
+		ntLoggingDisabled.set(false);
+		DogLog.setOptions(DogLog.getOptions().withNtPublish(true));
+		Epilogue.getConfig().dataLogger = fileAndNtBackend;
+	}
+	
+	// Credits: 6328
 	
 	@RequiredArgsConstructor
 	private static class HasChangedHandler {

@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.chargers.utils.UtilExtensionMethods;
-import frc.chargers.utils.Logger;
+import frc.chargers.utils.UtilMethods;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 
@@ -25,7 +25,7 @@ public class Robot extends TimedRobot {
     public Robot() {
         Epilogue.bind(this);
         if (isSimulation()) Epilogue.getConfig().errorHandler = ErrorHandler.crashOnError();
-        Logger.configureDefault();
+        UtilMethods.configureDefaultLogging();
     }
     
     @Override

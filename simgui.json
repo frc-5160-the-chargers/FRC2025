@@ -12,6 +12,7 @@
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Alerts": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
+      "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
       "Robot/Dummy Field": "PIDController",
       "Robot/drivetrain/rotationController": "PIDController",
       "Robot/drivetrain/xPoseController": "PIDController",
@@ -25,6 +26,11 @@
       "field": "Field2d"
     },
     "windows": {
+      "/SmartDashboard/Alerts": {
+        "window": {
+          "visible": true
+        }
+      },
       "/SmartDashboard/SwerveDrive/fieldViz": {
         "bottom": 1476,
         "height": 8.210550308227539,
@@ -58,10 +64,16 @@
         "open": true
       },
       "Robot": {
+        "BlaBla##v_/Robot/PLSWORKLOL": {
+          "open": true
+        },
         "Radio": {
           "json##v_/Robot/Radio/status": {
             "open": true
           },
+          "open": true
+        },
+        "StructTest##v_/Robot/TestingTesting": {
           "open": true
         },
         "Unknown": {
@@ -74,6 +86,7 @@
           "bottomRightModule": {
             "open": true
           },
+          "open": true,
           "topLeftModule": {
             "open": true
           },
@@ -105,6 +118,9 @@
         "open": true
       },
       "SmartDashboard": {
+        "Alerts": {
+          "open": true
+        },
         "SwerveDrive": {
           "open": true
         },

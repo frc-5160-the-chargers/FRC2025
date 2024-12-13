@@ -1,15 +1,26 @@
 package frc.chargers.utils;
 
+import dev.doglog.DogLog;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
+
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
+
+import static edu.wpi.first.wpilibj.Alert.AlertType.kWarning;
 
 /** A functional interface to aid in modifying double suppliers, such as from a joystick. */
 @SuppressWarnings("all")
 @FunctionalInterface
 public interface InputStream extends DoubleSupplier {
+	Set<String> metLogPaths = new HashSet<>();
+	MultiAlert logPathConflict = new MultiAlert(
+		causes -> "The following log paths for InputStream.log() were repeated: " + causes,
+		kWarning
+	);
 	
 	/**
 	 * Creates an input stream from a DoubleSupplier.
@@ -25,7 +36,7 @@ public interface InputStream extends DoubleSupplier {
 		return () -> Math.hypot(x.get(), y.get());
 	}
 	
-	public static InputStream atan(InputStream x, InputStream y) {
+	public static InputStream arctan(InputStream x, InputStream y) {
 		return () -> Math.atan2(x.get(), y.get());
 	}
 	
@@ -169,9 +180,14 @@ public interface InputStream extends DoubleSupplier {
 	 * @return A stream with the same output as this one.
 	 */
 	public default InputStream log(String key) {
+		if (metLogPaths.contains(key)) {
+			logPathConflict.addCause(key);
+			return this;
+		}
+		metLogPaths.add(key);
 		return () -> {
 			double val = this.get();
-			Logger.log(key, val);
+			DogLog.log(key, val);
 			return val;
 		};
 	}

@@ -9,6 +9,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import frc.chargers.hardware.motorcontrol.MotorIO;
 import frc.robot.subsystems.swerve.SwerveDrive.ControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.HardwareConfig;
+import frc.robot.subsystems.swerve.SwerveDrive.ModuleSpeedLimits;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
 
@@ -29,7 +30,6 @@ public class SwerveConfigurator {
 				Inches.of(3), // width of bumpers
 				DCMotor.getKrakenX60(1),
 				DCMotor.getNEO(1),
-				MetersPerSecond.of(4.5),
 				DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
 				Kilograms.of(45) // mass
 			),
@@ -40,6 +40,11 @@ public class SwerveConfigurator {
 				new SimpleMotorFeedforward(0.03, 0.13),
 				new PIDConstants(5.0, 0.0, 0.0),
 				new PIDConstants(5.0, 0.0, 0.0)
+			),
+			new ModuleSpeedLimits(
+				MetersPerSecond.of(4.5),
+				FeetPerSecondPerSecond.of(75),
+				DegreesPerSecond.of(1080)
 			),
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
 			SwerveConfigurator::getTurnMotors, // real drive motor getter method
