@@ -4,6 +4,7 @@ import choreo.Choreo;
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
+import choreo.util.AllianceFlipUtil;
 import com.pathplanner.lib.commands.PathfindHolonomic;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
@@ -61,6 +62,7 @@ import org.photonvision.PhotonPoseEstimator;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -456,15 +458,19 @@ public class SwerveDrive extends SubsystemBase {
 	 * Command cmd = drivetrain.teleopDriveCmd(
 	 *      controller::getLeftX,
 	 *      controller::getLeftY,
-	 *      drivetrain.headingLockInputStream(new Pose2d(...))
+	 *      drivetrain.headingLockInputStream(new Pose2d(...), true)
 	 * );
 	 * cmd.schedule();
 	 */
-	public InputStream headingLockInputStream(Pose2d pose) {
+	public InputStream headingLockInputStream(Pose2d pose, boolean shouldFlip) {
+		var actualPose = new AtomicReference<Pose2d>();
 		return () -> {
+			if (actualPose.get() != null) {
+				actualPose.set(shouldFlip ? AllianceFlipUtil.flip(pose) : pose);
+			}
 			double output = rotationController.calculate(
 				getPose().getRotation().getRadians(),
-				getYawToPose(getPose(), pose).getRadians()
+				getYawToPose(getPose(), actualPose.get()).getRadians()
 			);
 			DogLog.log(name + "/headingLockOutput", output);
 			return output;

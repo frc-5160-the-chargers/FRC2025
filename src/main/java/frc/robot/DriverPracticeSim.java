@@ -1,5 +1,6 @@
 package frc.robot;
 
+import choreo.util.AllianceFlipUtil;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
@@ -20,7 +21,6 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.photonvision.simulation.VisionSystemSim;
 
 import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
-import static edu.wpi.first.math.geometry.AllianceSymmetry.SymmetryStrategy;
 
 @Logged(strategy = OPT_IN)
 @ExtensionMethod(UtilExtensionMethods.class)
@@ -31,7 +31,7 @@ public class DriverPracticeSim extends TimedRobot {
 	);
 	@Logged private final SwerveDrive drivetrainTwo = createSimBot(
 		"drivetrainTwo",
-		new Pose2d(5.0, 7.0, Rotation2d.kZero).flip(SymmetryStrategy.ROTATIONAL)
+		AllianceFlipUtil.flip(new Pose2d(5.0, 7.0, Rotation2d.kZero))
 	);
 	
 	private final VisionSystemSim photonSimBase = new VisionSystemSim(null);

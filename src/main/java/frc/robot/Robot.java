@@ -2,7 +2,6 @@ package frc.robot;
 
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.logging.errors.ErrorHandler;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -24,7 +23,6 @@ public class Robot extends TimedRobot {
     
     public Robot() {
         Epilogue.bind(this);
-        if (isSimulation()) Epilogue.getConfig().errorHandler = ErrorHandler.crashOnError();
         UtilMethods.configureDefaultLogging();
     }
     

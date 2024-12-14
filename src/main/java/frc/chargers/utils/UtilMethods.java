@@ -9,8 +9,6 @@ import edu.wpi.first.epilogue.logging.NTDataLogger;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
-import edu.wpi.first.util.struct.ProceduralStructGenerator;
-import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -21,11 +19,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.wpilibj.Alert.AlertType.kInfo;

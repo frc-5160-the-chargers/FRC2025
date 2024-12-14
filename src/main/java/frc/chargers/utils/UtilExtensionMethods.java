@@ -1,13 +1,12 @@
 package frc.chargers.utils;
 
+import choreo.auto.AutoTrajectory;
 import com.revrobotics.REVLibError;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.config.SparkBaseConfig;
-import edu.wpi.first.math.geometry.AllianceSymmetry.SymmetryStrategy;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
@@ -66,26 +65,5 @@ public class UtilExtensionMethods {
 		trigger
 			.onTrue(Commands.runOnce(() -> alert.set(true)))
 			.onFalse(Commands.runOnce(() -> alert.set(false)));
-	}
-	
-	public static Pose2d flip(Pose2d receiver, SymmetryStrategy strategy) {
-		return new Pose2d(
-			flip(receiver.getTranslation(), strategy),
-			flip(receiver.getRotation(), strategy)
-		);
-	}
-	
-	public static Rotation2d flip(Rotation2d receiver, SymmetryStrategy strategy) {
-		return switch (strategy) {
-			case VERTICAL -> new Rotation2d(-receiver.getCos(), receiver.getSin());
-			case ROTATIONAL -> new Rotation2d(-receiver.getCos(), -receiver.getSin());
-			case HORIZONTAL -> new Rotation2d(receiver.getCos(), -receiver.getSin());
-		};
-	}
-	public static Translation2d flip(Translation2d receiver, SymmetryStrategy strategy) {
-		return new Translation2d(
-			strategy.flipX(receiver.getX()),
-			strategy.flipY(receiver.getY())
-		);
 	}
 }
