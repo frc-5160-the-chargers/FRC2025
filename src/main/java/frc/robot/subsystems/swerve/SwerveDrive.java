@@ -192,7 +192,7 @@ public class SwerveDrive extends SubsystemBase {
 		
 		this.setpointGenConfig = new RobotConfig(
 			config.ofHardware.robotMass,
-			config.ofHardware.robotMoi.div(1000),
+			config.ofHardware.robotMoi,
 			new ModuleConfig(
 				config.ofModules.wheelRadius,
 				config.ofHardware.maxVelocity,

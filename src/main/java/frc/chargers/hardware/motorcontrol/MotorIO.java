@@ -33,8 +33,9 @@ public interface MotorIO {
 		DCMotor motor, double gearRatio,
 		MomentOfInertia moi, double... measurementStdDevs
 	) {
+		motor = motor.withReduction(gearRatio);
 		return new SimMotorIO(
-			LinearSystemId.createDCMotorSystem(motor, moi.in(KilogramSquareMeters), gearRatio),
+			LinearSystemId.createDCMotorSystem(motor, moi.in(KilogramSquareMeters), 1.0),
 			motor, measurementStdDevs
 		);
 	}
