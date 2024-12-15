@@ -1,15 +1,16 @@
 package frc.robot.subsystems.swerve;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.config.PIDConstants;
 import com.revrobotics.spark.SparkMax;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Current;
 import frc.chargers.hardware.motorcontrol.MotorIO;
 import frc.robot.subsystems.swerve.SwerveDrive.ControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.HardwareConfig;
-import frc.robot.subsystems.swerve.SwerveDrive.ModuleSpeedLimits;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
 
@@ -22,29 +23,29 @@ import static org.ironmaple.simulation.drivesims.SwerveModuleSimulation.WHEEL_GR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
+	private static final Current DRIVE_CURRENT_LIMIT = Amps.of(60);
+	
 	public static SwerveDriveConfig getDefaultConfig() {
 		return new SwerveDriveConfig(
 			new HardwareConfig(
 				Inches.of(27), // trackwidth
 				Inches.of(27), // wheelbase
-				Inches.of(3), // width of bumpers
-				DCMotor.getKrakenX60(1),
-				DCMotor.getNEO(1),
+				DCMotor.getKrakenX60(1), // drive motor type
+				DCMotor.getNEO(1), // turn motor type
+				MetersPerSecond.of(4.5), // max linear speed
+				DegreesPerSecond.of(1080), // max rotation speed
 				DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
-				Kilograms.of(45) // mass
+				Kilograms.of(45), // mass
+				KilogramSquareMeters.of(6.883) // robot MOI
 			),
 			ModuleType.MK4iL2,
 			new ControlsConfig(
-				new PIDConstants(15.0, 0.0, 0.01),
-				new PIDConstants(0.5, 0.0, 0.01),
-				new SimpleMotorFeedforward(0.03, 0.13),
-				new PIDConstants(5.0, 0.0, 0.0),
-				new PIDConstants(5.0, 0.0, 0.0)
-			),
-			new ModuleSpeedLimits(
-				MetersPerSecond.of(4.5),
-				FeetPerSecondPerSecond.of(75),
-				DegreesPerSecond.of(1080)
+				new PIDConstants(15.0, 0.0, 0.01), // azimuth pid
+				new PIDConstants(0.5, 0.0, 0.01), // velocity pid
+				new SimpleMotorFeedforward(0.03, 0.13), // velocity feedforward
+				new PIDConstants(5.0, 0.0, 0.0), // path translation pid
+				new PIDConstants(5.0, 0.0, 0.0), // path rotation pid
+				DRIVE_CURRENT_LIMIT
 			),
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
 			SwerveConfigurator::getTurnMotors, // real drive motor getter method
@@ -72,6 +73,13 @@ public class SwerveConfigurator {
 		var tr = new TalonFX(0);
 		var bl = new TalonFX(0);
 		var br = new TalonFX(0);
+		
+		for (var motor: List.of(tl, tr, bl, br)) {
+			motor.getConfigurator().apply(
+				new CurrentLimitsConfigs()
+					.withStatorCurrentLimit(DRIVE_CURRENT_LIMIT)
+			);
+		}
 		
 		return List.of(
 			MotorIO.of(tl, gearRatio),

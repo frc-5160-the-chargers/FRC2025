@@ -1,7 +1,7 @@
 package frc.chargers.hardware.motorcontrol;
 
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.config.PIDConstants;
 import com.revrobotics.spark.SparkBase;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.numbers.N1;

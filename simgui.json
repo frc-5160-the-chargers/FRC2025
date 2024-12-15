@@ -79,6 +79,9 @@
         "Unknown": {
           "open": true
         },
+        "driverController1": {
+          "open": true
+        },
         "drivetrainOne": {
           "bottomLeftModule": {
             "open": true

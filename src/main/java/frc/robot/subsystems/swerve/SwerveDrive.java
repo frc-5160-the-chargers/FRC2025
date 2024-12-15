@@ -5,11 +5,15 @@ import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import choreo.util.AllianceFlipUtil;
-import com.pathplanner.lib.commands.PathfindHolonomic;
+import com.pathplanner.lib.commands.PathfindingCommand;
+import com.pathplanner.lib.config.ModuleConfig;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.path.PathConstraints;
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
-import com.pathplanner.lib.util.PIDConstants;
-import com.pathplanner.lib.util.ReplanningConfig;
+import com.pathplanner.lib.util.DriveFeedforwards;
+import com.pathplanner.lib.util.swerve.SwerveSetpoint;
+import frc.chargers.utils.SwerveSetpointGenerator;
 import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -33,10 +37,11 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
+import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -44,12 +49,10 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.encoders.EncoderIO;
 import frc.chargers.hardware.motorcontrol.MotorIO;
 import frc.chargers.utils.InputStream;
-import frc.chargers.utils.SwerveSetpointGenerator;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.With;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.GyroSimulation;
@@ -69,7 +72,6 @@ import java.util.function.Supplier;
 import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
-import static frc.chargers.utils.SwerveSetpointGenerator.*;
 import static frc.chargers.utils.UtilMethods.pidControllerFrom;
 import static org.photonvision.PhotonUtils.getYawToPose;
 
@@ -86,7 +88,6 @@ public class SwerveDrive extends SubsystemBase {
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
 		ControlsConfig ofControls,
-		ModuleSpeedLimits speedLimits,
 		Supplier<Rotation2d> getRealGyroAngle,
 		Function<Double, List<MotorIO>> getRealDriveMotors,
 		Function<Double, List<MotorIO>> getRealSteerMotors,
@@ -100,26 +101,26 @@ public class SwerveDrive extends SubsystemBase {
 	public record HardwareConfig(
 		Distance trackWidth,
 		Distance wheelBase,
-		Distance bumperWidth,
 		DCMotor driveMotorType,
 		DCMotor turnMotorType,
-		double coefficientOfFriction,
-		Mass robotMass
-	){}
-	
-	@With
-	public record ModuleSpeedLimits(
 		LinearVelocity maxVelocity,
-		LinearAcceleration maxAccel,
-		AngularVelocity maxSteerVelocity
+		AngularVelocity maxSteerVelocity,
+		double coefficientOfFriction,
+		Mass robotMass,
+		MomentOfInertia robotMoi
 	){}
 	
+	/**
+	 * <h2>IMPORTANT: The driveCurrentLimit is for calculation purposes.
+	 * You still must configure your talon fx/spark max to the appropriate limit yourself.
+	 */
 	public record ControlsConfig(
 		PIDConstants azimuthPID,
 		PIDConstants velocityPID,
 		SimpleMotorFeedforward velocityFeedforward,
 		PIDConstants pathTranslationPID,
-		PIDConstants pathRotationPID
+		PIDConstants pathRotationPID,
+		Current driveCurrentLimit
 	){}
 	
 	/** Use ModuleType.MK4iL2 and ModuleType.Mk4iL3. */
@@ -138,7 +139,7 @@ public class SwerveDrive extends SubsystemBase {
 	private final String name;
 	private final SwerveDriveConfig config;
 	
-	private final SwerveDriveKinematics kinematics;
+	private final RobotConfig setpointGenConfig;
 	private final SwerveSetpointGenerator setpointGen;
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
@@ -146,8 +147,7 @@ public class SwerveDrive extends SubsystemBase {
 	
 	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
-	private SwerveSetpoint desiredState = new SwerveSetpoint();
-	private ModuleSpeedLimits moduleLimits;
+	private SwerveSetpoint desiredState;
 	
 	@Logged private final PIDController xPoseController;
 	@Logged private final PIDController yPoseController;
@@ -189,28 +189,46 @@ public class SwerveDrive extends SubsystemBase {
 				config.ofHardware.wheelBase.div(-2)
 			)
 		};
-		this.kinematics = new SwerveDriveKinematics(moduleLocations);
-		this.setpointGen = new SwerveSetpointGenerator(kinematics, moduleLocations);
-		this.poseEstimator = new SwerveDrivePoseEstimator(
-			kinematics, Rotation2d.kZero, measuredModulePositions, new Pose2d()
+		
+		this.setpointGenConfig = new RobotConfig(
+			config.ofHardware.robotMass,
+			config.ofHardware.robotMoi.div(1000),
+			new ModuleConfig(
+				config.ofModules.wheelRadius,
+				config.ofHardware.maxVelocity,
+				config.ofHardware.coefficientOfFriction,
+				config.ofHardware.driveMotorType,
+				config.ofControls.driveCurrentLimit,
+				4
+			),
+			moduleLocations
 		);
-		this.moduleLimits = config.speedLimits;
+		this.setpointGen = new SwerveSetpointGenerator(
+			setpointGenConfig, config.ofHardware.maxSteerVelocity
+		);
+		this.desiredState = new SwerveSetpoint(
+			new ChassisSpeeds(), measuredModuleStates, DriveFeedforwards.zeros(4)
+		);
+		this.poseEstimator = new SwerveDrivePoseEstimator(
+			new SwerveDriveKinematics(moduleLocations),
+			Rotation2d.kZero, measuredModulePositions, new Pose2d()
+		);
 		
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
 				.withGyro(GyroSimulation.getNav2X())
 				.withTrackLengthTrackWidth(config.ofHardware.trackWidth, config.ofHardware.trackWidth)
 				.withBumperSize(
-					config.ofHardware.trackWidth.plus(config.ofHardware.bumperWidth),
-					config.ofHardware.wheelBase.plus(config.ofHardware.bumperWidth)
+					config.ofHardware.trackWidth.plus(Inches.of(3)),
+					config.ofHardware.wheelBase.plus(Inches.of(3))
 				);
 		
 		switch (config.ofModules) {
 			case MK4iL2, MK4iL3 -> driveSimConfig.withSwerveModule(
 				SwerveModuleSimulation.getMark4i(
 					config.ofHardware.driveMotorType,
-					config.ofHardware().turnMotorType,
-					Amps.of(60),
+					config.ofHardware.turnMotorType,
+					config.ofControls.driveCurrentLimit,
 					config.ofHardware.coefficientOfFriction,
 					config.ofModules == ModuleType.MK4iL3 ? 3 : 2
 				)
@@ -220,7 +238,7 @@ public class SwerveDrive extends SubsystemBase {
 				SwerveModuleSimulation.getSwerveX2S(
 					config.ofHardware.driveMotorType,
 					config.ofHardware().turnMotorType,
-					Amps.of(60),
+					config.ofControls.driveCurrentLimit,
 					config.ofHardware.coefficientOfFriction,
 					config.ofModules == ModuleType.SwerveX2SL3 ? 3 : 2
 				)
@@ -236,7 +254,7 @@ public class SwerveDrive extends SubsystemBase {
 		if (RobotBase.isSimulation()) {
 			for (int i = 0; i < 4; i++) {
 				this.swerveModules[i] = new SimSwerveModule(
-					mapleSim.getModules()[i], config.ofModules.wheelRadius, config.speedLimits.maxVelocity
+					mapleSim.getModules()[i], config.ofModules.wheelRadius, config.ofHardware.maxVelocity
 				);
 			}
 			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
@@ -254,7 +272,7 @@ public class SwerveDrive extends SubsystemBase {
 					realSteerMotors.get(i),
 					config.absoluteEncoders.get(i),
 					config.ofModules.wheelRadius,
-					config.speedLimits.maxVelocity,
+					config.ofHardware.maxVelocity,
 					config.ofControls.velocityFeedforward
 				);
 			}
@@ -334,10 +352,6 @@ public class SwerveDrive extends SubsystemBase {
 		);
 	}
 	
-	public void setMaxAccel(LinearAcceleration accel) {
-		moduleLimits = moduleLimits.withMaxAccel(accel);
-	}
-	
 	@Logged public ChassisSpeeds getMeasuredSpeeds() {
 		var speeds = getMeasuredSpeedsRobotRelative();
 		// TODO change this once ChassisSpeeds becomes immutable
@@ -348,7 +362,7 @@ public class SwerveDrive extends SubsystemBase {
 	}
 	
 	@Logged public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
-		return kinematics.toChassisSpeeds(measuredModuleStates);
+		return setpointGenConfig.toChassisSpeeds(measuredModuleStates);
 	}
 	
 	// closed loop allows for the robot to drive at an exact velocity.
@@ -359,15 +373,10 @@ public class SwerveDrive extends SubsystemBase {
 				addAllianceOffset(getPose().getRotation())
 			);
 		}
-		speeds.discretize(0.04);
-		desiredState = setpointGen.generateSetpoint(
-			moduleLimits.maxVelocity,
-			moduleLimits.maxAccel,
-			moduleLimits.maxSteerVelocity,
-			desiredState, speeds, 0.02
-		);
+		DogLog.log(name + "/desiredSpeeds(initial)", speeds);
+		desiredState = setpointGen.generateSetpoint(desiredState, speeds, 0.02);
 		DogLog.log(name + "/desiredModuleStates", desiredState.moduleStates());
-		DogLog.log(name + "/desiredSpeeds(final)", desiredState.chassisSpeeds());
+		DogLog.log(name + "/desiredSpeeds(final)", desiredState.robotRelativeSpeeds());
 		for (int i = 0; i < 4; i++) {
 			swerveModules[i].setDesiredState(desiredState.moduleStates()[i], closedLoop);
 		}
@@ -384,7 +393,7 @@ public class SwerveDrive extends SubsystemBase {
 		InputStream getRotationPower,
 		boolean fieldRelative
 	) {
-		var maxSpeedMps = config.speedLimits.maxVelocity.in(MetersPerSecond);
+		var maxSpeedMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
 		return this.run(() -> driveCallback(
 			new ChassisSpeeds(
 				getXPower.get() * maxSpeedMps,
@@ -402,18 +411,20 @@ public class SwerveDrive extends SubsystemBase {
 	}
 	
 	public Command pathFindCmd(Pose2d targetPose, PathConstraints constraints) {
-		return new PathfindHolonomic(
-			targetPose,
-			constraints,
+		return new PathfindingCommand(
+			targetPose, constraints,
 			this::getPose,
 			this::getMeasuredSpeedsRobotRelative,
-			speeds -> driveCallback(speeds, true, false),
-			new HolonomicPathFollowerConfig(
-				config.speedLimits.maxVelocity.in(MetersPerSecond),
-				config.ofHardware.wheelBase.in(Meters) / 2,
-				new ReplanningConfig()
-			)
-		).until(() -> getPose().minus(targetPose).getTranslation().getNorm() < 0.7)
+			(speeds, ignore) -> driveCallback(speeds, true, false),
+			new PPHolonomicDriveController(
+				config.ofControls.pathTranslationPID,
+				config.ofControls.pathRotationPID
+			),
+			setpointGenConfig,
+			this
+		)
+	     // getDistance is an extension method
+         .until(() -> getPose().getDistance(targetPose) < 0.7)
          .andThen(
 			 this.run(() -> driveCallback(
 				 new ChassisSpeeds(
@@ -424,7 +435,7 @@ public class SwerveDrive extends SubsystemBase {
 						 targetPose.getRotation().getRadians()
 					 )
 				 ), true, false
-			 )).until(() -> getPose().getDistance(targetPose) < 0.1) // distanceTo is an extension method
+			 )).until(() -> getPose().getDistance(targetPose) < 0.1)
          )
          .withName("SwervePathfindCmd");
 	}

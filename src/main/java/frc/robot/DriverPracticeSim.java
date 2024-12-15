@@ -10,12 +10,13 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.chargers.utils.SwerveSetpointGenerator;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
+import lombok.Builder;
+import lombok.NonNull;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 import org.photonvision.simulation.VisionSystemSim;
@@ -34,7 +35,6 @@ public class DriverPracticeSim extends TimedRobot {
 		AllianceFlipUtil.flip(new Pose2d(5.0, 7.0, Rotation2d.kZero))
 	);
 	
-	private final VisionSystemSim photonSimBase = new VisionSystemSim(null);
 	
 	private int currControllerId = 0;
 	private SwerveDrive createSimBot(String name, Pose2d initialPose) {
