@@ -13,7 +13,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
-import frc.chargers.utils.SwerveSetpointGenerator;
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -197,9 +197,9 @@ public class SwerveDrive extends SubsystemBase {
 				config.ofModules.wheelRadius,
 				config.ofHardware.maxVelocity,
 				config.ofHardware.coefficientOfFriction,
-				config.ofHardware.driveMotorType,
-				config.ofControls.driveCurrentLimit,
-				4
+				config.ofHardware.driveMotorType.withReduction(config.ofModules.driveGearRatio),
+				Amps.of(60),
+				1
 			),
 			moduleLocations
 		);
