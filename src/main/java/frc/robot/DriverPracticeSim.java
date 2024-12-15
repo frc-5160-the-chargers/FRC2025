@@ -7,7 +7,10 @@ import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
@@ -29,10 +32,6 @@ public class DriverPracticeSim extends TimedRobot {
 	@Logged private final SwerveDrive drivetrainOne = createSimBot(
 		"drivetrainOne",
 		new Pose2d(5.0, 7.0, Rotation2d.kZero)
-	);
-	@Logged private final SwerveDrive drivetrainTwo = createSimBot(
-		"drivetrainTwo",
-		AllianceFlipUtil.flip(new Pose2d(5.0, 7.0, Rotation2d.kZero))
 	);
 	
 	
@@ -70,6 +69,12 @@ public class DriverPracticeSim extends TimedRobot {
 	@Override
 	public void robotPeriodic() {
 		CommandScheduler.getInstance().run();
-		SimulatedArena.getInstance().simulationPeriodic();
+		if (RobotBase.isSimulation()) {
+			SimulatedArena.getInstance().simulationPeriodic();
+			// occasionally, maplesim can output NaN battery voltages
+			if (Double.isNaN(RobotController.getBatteryVoltage())) {
+				RoboRioSim.setVInVoltage(12.0);
+			}
+		}
 	}
 }

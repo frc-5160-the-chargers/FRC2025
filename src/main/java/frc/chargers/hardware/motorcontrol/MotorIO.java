@@ -49,8 +49,8 @@ public interface MotorIO {
 	}
 	
 	EncoderIO encoder();
-	double outputVoltageVolts();
-	double currentDrawAmps();
+	double outputVoltage();
+	double statorCurrent();
 	double tempCelsius();
 	
 	void setVoltage(double volts);
@@ -79,4 +79,8 @@ public interface MotorIO {
 	
 	default void setPositionPID(PIDConstants constants) { setPositionPID(constants.kP, constants.kI, constants.kD); }
 	default void setVelocityPID(PIDConstants constants) { setVelocityPID(constants.kP, constants.kI, constants.kD); }
+	
+	default double supplyCurrent() {
+		return statorCurrent() * outputVoltage() / 12.0;
+	}
 }

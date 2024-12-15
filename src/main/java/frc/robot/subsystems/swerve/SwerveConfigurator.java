@@ -23,7 +23,7 @@ import static org.ironmaple.simulation.drivesims.SwerveModuleSimulation.WHEEL_GR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
-	private static final Current DRIVE_CURRENT_LIMIT = Amps.of(60);
+	private static final Current DRIVE_CURRENT_LIMIT = Amps.of(120);
 	
 	public static SwerveDriveConfig getDefaultConfig() {
 		return new SwerveDriveConfig(
@@ -33,7 +33,7 @@ public class SwerveConfigurator {
 				DCMotor.getKrakenX60(1), // drive motor type
 				DCMotor.getNEO(1), // turn motor type
 				MetersPerSecond.of(4.5), // max linear speed
-				DegreesPerSecond.of(1080), // max rotation speed
+				DegreesPerSecond.of(5000), // max rotation speed
 				DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
 				Kilograms.of(45), // mass
 				KilogramSquareMeters.of(6.883) // robot MOI

@@ -198,7 +198,7 @@ public class SwerveDrive extends SubsystemBase {
 				config.ofHardware.maxVelocity,
 				config.ofHardware.coefficientOfFriction,
 				config.ofHardware.driveMotorType.withReduction(config.ofModules.driveGearRatio),
-				Amps.of(60),
+				config.ofControls.driveCurrentLimit,
 				1
 			),
 			moduleLocations
@@ -400,7 +400,7 @@ public class SwerveDrive extends SubsystemBase {
 				getYPower.get() * maxSpeedMps,
 				getRotationPower.get() * maxSpeedMps
 			),
-			false, fieldRelative
+			true, fieldRelative
 		)).withName("SwerveDriveCmd(open loop)");
 	}
 	

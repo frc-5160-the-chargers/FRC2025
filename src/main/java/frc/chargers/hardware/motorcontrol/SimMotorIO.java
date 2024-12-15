@@ -51,10 +51,10 @@ public class SimMotorIO implements MotorIO {
 	public EncoderIO encoder() { return encoderIO; }
 	
 	@Override
-	public double outputVoltageVolts() { return currVoltage; }
+	public double outputVoltage() { return currVoltage; }
 	
 	@Override
-	public double currentDrawAmps() { return sim.getCurrentDrawAmps(); }
+	public double statorCurrent() { return sim.getCurrentDrawAmps(); }
 	
 	@Override
 	public double tempCelsius() { return 0; }

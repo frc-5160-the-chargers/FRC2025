@@ -1,6 +1,7 @@
 package frc.chargers.hardware.motorcontrol;
 
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -28,6 +29,7 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 	private StatusSignal<AngularVelocity> velocitySignal;
 	private StatusSignal<Voltage> voltageSignal;
 	private StatusSignal<Current> currentSignal;
+	private StatusSignal<Current> supplyCurrentSignal;
 	private StatusSignal<Temperature> tempSignal;
 	
 	private VoltageOut voltageRequest = new VoltageOut(0.0);
@@ -61,7 +63,8 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 		this.positionSignal = baseMotor.getPosition();
 		this.velocitySignal = baseMotor.getVelocity();
 		this.voltageSignal = baseMotor.getMotorVoltage();
-		this.currentSignal = baseMotor.getSupplyCurrent();
+		this.currentSignal = baseMotor.getStatorCurrent();
+		this.supplyCurrentSignal = baseMotor.getSupplyCurrent();
 		this.tempSignal = baseMotor.getDeviceTemp();
 	}
 	
@@ -76,10 +79,10 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 	public EncoderIO encoder() { return encoderIO; }
 	
 	@Override
-	public double outputVoltageVolts() { return voltageSignal.refresh().getValueAsDouble(); }
+	public double outputVoltage() { return voltageSignal.refresh().getValueAsDouble(); }
 	
 	@Override
-	public double currentDrawAmps() { return currentSignal.refresh().getValueAsDouble(); }
+	public double statorCurrent() { return currentSignal.refresh().getValueAsDouble(); }
 	
 	@Override
 	public double tempCelsius() { return tempSignal.refresh().getValueAsDouble(); }
@@ -143,7 +146,14 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 	
 	@Override
 	public void enableContinuousInput() {
-		// TODO
+		var config = new ClosedLoopGeneralConfigs();
+		config.ContinuousWrap = true;
+		baseMotor.getConfigurator().apply(config);
+	}
+	
+	@Override
+	public double supplyCurrent() {
+		return supplyCurrentSignal.refresh().getValueAsDouble();
 	}
 	
 	@Override

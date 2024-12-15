@@ -13,8 +13,8 @@ class VoidMotorIO implements MotorIO {
 		public void setPositionReading(Angle angle) {}
 	};
 	public EncoderIO encoder() { return encoder; }
-	public double outputVoltageVolts() { return 0; }
-	public double currentDrawAmps() { return 0; }
+	public double outputVoltage() { return 0; }
+	public double statorCurrent() { return 0; }
 	public double tempCelsius() { return 0; }
 	public void setVoltage(double volts) {}
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {}

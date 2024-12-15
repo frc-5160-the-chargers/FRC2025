@@ -61,12 +61,12 @@ public class SparkIO<BaseMotor extends SparkBase> implements MotorIO, AutoClosea
 	public EncoderIO encoder() { return encoderIO; }
 	
 	@Override
-	public double outputVoltageVolts() {
+	public double outputVoltage() {
 		return baseMotor.getAppliedOutput() * baseMotor.getBusVoltage();
 	}
 	
 	@Override
-	public double currentDrawAmps() { return baseMotor.getOutputCurrent(); }
+	public double statorCurrent() { return baseMotor.getOutputCurrent(); }
 	
 	@Override
 	public double tempCelsius() { return baseMotor.getMotorTemperature(); }
