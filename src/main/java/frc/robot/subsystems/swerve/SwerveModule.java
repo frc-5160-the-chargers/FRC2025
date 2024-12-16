@@ -26,6 +26,7 @@ public class SwerveModule {
 	private final SimpleMotorFeedforward velocityFF;
 	private final Optional<SwerveModuleSimulation> mapleSim;
 	
+	@Logged
 	@SuppressWarnings("ALL")
 	public static class OfLogged extends SwerveModule {
 		// these "redundant" fields are logged by epilogue
@@ -69,8 +70,8 @@ public class SwerveModule {
 		
 		steerMotor.moveToPosition(state.angle.getRadians());
 		if (closedLoop) {
-			var speedSetpoint = RadiansPerSecond.of(state.speedMetersPerSecond / wheelRadius.in(Meters));
-			driveMotor.setVelocity(speedSetpoint, velocityFF.calculate(speedSetpoint).in(Volts));
+			var speedSetpoint = state.speedMetersPerSecond / wheelRadius.in(Meters);
+			driveMotor.setVelocity(speedSetpoint, velocityFF.calculate(speedSetpoint));
 		} else {
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
 			driveMotor.setVoltage(voltage);

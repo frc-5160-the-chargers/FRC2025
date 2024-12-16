@@ -77,7 +77,6 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  * Each turn motor can control the exact position of each drive motor,
  * allowing for omnidirectional movement and driving while turning.
  */
-@Logged(strategy = OPT_IN)
 @SuppressWarnings("unused")
 @ExtensionMethod(UtilExtensionMethods.class)
 public class SwerveDrive extends SubsystemBase {
@@ -327,7 +326,8 @@ public class SwerveDrive extends SubsystemBase {
 	@Logged public ChassisSpeeds getMeasuredSpeeds() {
 		var speeds = getMeasuredSpeedsRobotRelative();
 		// TODO change this once ChassisSpeeds becomes immutable
-		speeds.toFieldRelativeSpeeds(
+		speeds = ChassisSpeeds.fromRobotRelativeSpeeds(
+			speeds,
 			addAllianceOffset(getPose().getRotation())
 		);
 		return speeds;
@@ -340,11 +340,11 @@ public class SwerveDrive extends SubsystemBase {
 	// closed loop allows for the robot to drive at an exact velocity.
 	private void driveCallback(ChassisSpeeds speeds, boolean closedLoop, boolean fieldRelative) {
 		if (fieldRelative) {
-			speeds.toRobotRelativeSpeeds(
-				addAllianceOffset(getPose().getRotation())
+			speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+				speeds, addAllianceOffset(getPose().getRotation())
 			);
 		}
-		speeds.discretize(0.03);
+		speeds = ChassisSpeeds.discretize(speeds, 0.03);
 		DogLog.log(name + "/desiredSpeeds", speeds);
 		
 		var desiredStates = kinematics.toSwerveModuleStates(speeds);

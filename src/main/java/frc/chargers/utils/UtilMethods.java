@@ -3,9 +3,9 @@ package frc.chargers.utils;
 import com.pathplanner.lib.config.PIDConstants;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
-import edu.wpi.first.epilogue.logging.DataLogger;
-import edu.wpi.first.epilogue.logging.FileLogger;
-import edu.wpi.first.epilogue.logging.NTDataLogger;
+import edu.wpi.first.epilogue.logging.EpilogueBackend;
+import edu.wpi.first.epilogue.logging.FileBackend;
+import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
@@ -28,9 +28,9 @@ public class UtilMethods {
 	private UtilMethods() {}
 	private static final double EPSILON = 1E-9;
 	
-	private static final DataLogger fileOnlyBackend = new FileLogger(DataLogManager.getLog());
-	private static final DataLogger fileAndNtBackend = DataLogger.multi(
-		fileOnlyBackend, new NTDataLogger(NetworkTableInstance.getDefault())
+	private static final EpilogueBackend fileOnlyBackend = new FileBackend(DataLogManager.getLog());
+	private static final EpilogueBackend fileAndNtBackend = EpilogueBackend.multi(
+		fileOnlyBackend, new NTEpilogueBackend(NetworkTableInstance.getDefault())
 	);
 	private static boolean loggingConfigured = false;
 	private static final Alert ntLoggingDisabled =
@@ -131,13 +131,13 @@ public class UtilMethods {
 	private static void disableNtLogging() {
 		ntLoggingDisabled.set(true);
 		DogLog.setOptions(DogLog.getOptions().withNtPublish(false));
-		Epilogue.getConfig().dataLogger = fileOnlyBackend;
+		Epilogue.getConfig().backend = fileOnlyBackend;
 	}
 	
 	private static void enableNtLogging() {
 		ntLoggingDisabled.set(false);
 		DogLog.setOptions(DogLog.getOptions().withNtPublish(true));
-		Epilogue.getConfig().dataLogger = fileAndNtBackend;
+		Epilogue.getConfig().backend = fileAndNtBackend;
 	}
 	
 	// Credits: 6328
