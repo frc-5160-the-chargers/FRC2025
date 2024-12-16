@@ -8,12 +8,12 @@ import edu.wpi.first.units.measure.AngularVelocity;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
-public class CANcoderIO implements EncoderIO, AutoCloseable {
+public class ChargerCANcoder implements Encoder, AutoCloseable {
 	private final CANcoder baseEncoder;
 	private final StatusSignal<Angle> positionSignal;
 	private final StatusSignal<AngularVelocity> velocitySignal;
 	
-	public CANcoderIO(CANcoder baseEncoder) {
+	public ChargerCANcoder(CANcoder baseEncoder) {
 		this.baseEncoder = baseEncoder;
 		this.positionSignal = baseEncoder.getPosition();
 		this.velocitySignal = baseEncoder.getVelocity();

@@ -1,14 +1,14 @@
 package frc.robot.subsystems.swerve;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
-import com.ctre.phoenix6.hardware.TalonFX;
 import com.pathplanner.lib.config.PIDConstants;
-import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.measure.Current;
-import frc.chargers.hardware.motorcontrol.MotorIO;
+import frc.chargers.hardware.motorcontrol.ChargerSpark;
+import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
+import frc.chargers.hardware.motorcontrol.Motor;
 import frc.robot.subsystems.swerve.SwerveDrive.ControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.HardwareConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
@@ -16,14 +16,11 @@ import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
 
 import java.util.List;
 
-import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
 import static edu.wpi.first.units.Units.*;
-import static org.ironmaple.simulation.drivesims.SwerveModuleSimulation.WHEEL_GRIP.DEFAULT_NEOPRENE_TREAD;
+import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TREAD;
 
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
-	
-	private static final Current DRIVE_CURRENT_LIMIT = Amps.of(120);
 	
 	public static SwerveDriveConfig getDefaultConfig() {
 		return new SwerveDriveConfig(
@@ -33,7 +30,6 @@ public class SwerveConfigurator {
 				DCMotor.getKrakenX60(1), // drive motor type
 				DCMotor.getNEO(1), // turn motor type
 				MetersPerSecond.of(4.5), // max linear speed
-				DegreesPerSecond.of(5000), // max rotation speed
 				DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
 				Kilograms.of(45), // mass
 				KilogramSquareMeters.of(6.883) // robot MOI
@@ -44,8 +40,7 @@ public class SwerveConfigurator {
 				new PIDConstants(0.5, 0.0, 0.01), // velocity pid
 				new SimpleMotorFeedforward(0.03, 0.13), // velocity feedforward
 				new PIDConstants(5.0, 0.0, 0.0), // path translation pid
-				new PIDConstants(5.0, 0.0, 0.0), // path rotation pid
-				DRIVE_CURRENT_LIMIT
+				new PIDConstants(5.0, 0.0, 0.0) // path rotation pid
 			),
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
 			SwerveConfigurator::getTurnMotors, // real drive motor getter method
@@ -54,38 +49,29 @@ public class SwerveConfigurator {
 		);
 	}
 	
-	private static List<MotorIO> getTurnMotors(double gearRatio) {
-		var tl = new SparkMax(6, kBrushless);
-		var tr = new SparkMax(6, kBrushless);
-		var bl = new SparkMax(6, kBrushless);
-		var br = new SparkMax(6, kBrushless);
-		
+	private static List<Motor> getTurnMotors(double gearRatio) {
 		return List.of(
-			MotorIO.of(tl, gearRatio),
-			MotorIO.of(tr, gearRatio),
-			MotorIO.of(bl, gearRatio),
-			MotorIO.of(br, gearRatio)
+			ChargerSpark.max(6, gearRatio).configure(new SparkMaxConfig()),
+			ChargerSpark.max(6, gearRatio),
+			ChargerSpark.max(6, gearRatio),
+			ChargerSpark.max(6, gearRatio)
 		);
 	}
 	
-	private static List<MotorIO> getDriveMotors(double gearRatio) {
-		var tl = new TalonFX(0);
-		var tr = new TalonFX(0);
-		var bl = new TalonFX(0);
-		var br = new TalonFX(0);
+	private static List<Motor> getDriveMotors(double gearRatio) {
+		var tl = new ChargerTalonFX(0, gearRatio);
+		var tr = new ChargerTalonFX(0, gearRatio);
+		var bl = new ChargerTalonFX(0, gearRatio);
+		var br = new ChargerTalonFX(0, gearRatio);
 		
 		for (var motor: List.of(tl, tr, bl, br)) {
 			motor.getConfigurator().apply(
 				new CurrentLimitsConfigs()
-					.withStatorCurrentLimit(DRIVE_CURRENT_LIMIT)
+					.withStatorCurrentLimit(50)
+					.withSupplyCurrentLimit(80)
 			);
 		}
 		
-		return List.of(
-			MotorIO.of(tl, gearRatio),
-			MotorIO.of(tr, gearRatio),
-			MotorIO.of(bl, gearRatio),
-			MotorIO.of(br, gearRatio)
-		);
+		return List.of(tl, tr, bl, br);
 	}
 }

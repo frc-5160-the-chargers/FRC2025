@@ -1,10 +1,9 @@
 package frc.robot;
 
-import choreo.util.AllianceFlipUtil;
-import com.ctre.phoenix6.swerve.SwerveModule;
-import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -18,11 +17,8 @@ import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import lombok.Builder;
-import lombok.NonNull;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
-import org.photonvision.simulation.VisionSystemSim;
 
 import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
 
@@ -33,7 +29,6 @@ public class DriverPracticeSim extends TimedRobot {
 		"drivetrainOne",
 		new Pose2d(5.0, 7.0, Rotation2d.kZero)
 	);
-	
 	
 	private int currControllerId = 0;
 	private SwerveDrive createSimBot(String name, Pose2d initialPose) {
@@ -61,10 +56,12 @@ public class DriverPracticeSim extends TimedRobot {
 	}
 	
 	public DriverPracticeSim() {
-		// logging config
+		// logging config; do not remove
 		Epilogue.bind(this);
 		UtilMethods.configureDefaultLogging();
 	}
+	
+	private static final LinearFilter voltageFilter = LinearFilter.movingAverage(200);
 	
 	@Override
 	public void robotPeriodic() {
@@ -72,9 +69,11 @@ public class DriverPracticeSim extends TimedRobot {
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().simulationPeriodic();
 			// occasionally, maplesim can output NaN battery voltages
-			if (Double.isNaN(RobotController.getBatteryVoltage())) {
-				RoboRioSim.setVInVoltage(12.0);
-			}
+			RoboRioSim.setVInVoltage(
+				voltageFilter.calculate(
+					MathUtil.clamp(RobotController.getBatteryVoltage(), 0, 12)
+				)
+			);
 		}
 	}
 }

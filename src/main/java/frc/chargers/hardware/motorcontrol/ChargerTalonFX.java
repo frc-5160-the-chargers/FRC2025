@@ -6,25 +6,24 @@ import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.Slot1Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.pathplanner.lib.config.PIDConstants;
 import edu.wpi.first.units.measure.*;
-import frc.chargers.hardware.encoders.EncoderIO;
-import frc.chargers.utils.UtilExtensionMethods;
-import lombok.Getter;
-import lombok.experimental.ExtensionMethod;
+import frc.chargers.hardware.encoders.Encoder;
 import lombok.experimental.FieldDefaults;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
 @FieldDefaults(makeFinal = true)
-@ExtensionMethod(UtilExtensionMethods.class)
-public class TalonFXIO implements MotorIO, AutoCloseable {
-	@Getter private TalonFX baseMotor;
+public class ChargerTalonFX implements Motor, AutoCloseable {
+	protected TalonFX baseMotor;
 	private StatusSignal<Angle> positionSignal;
 	private StatusSignal<AngularVelocity> velocitySignal;
 	private StatusSignal<Voltage> voltageSignal;
@@ -37,7 +36,7 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 	private VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0);
 	private TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0.0);
 	
-	private EncoderIO encoderIO = new EncoderIO() {
+	private Encoder encoderIO = new Encoder() {
 		@Override
 		public double positionRad() {
 			return rotationsToRadians(positionSignal.refresh().getValueAsDouble());
@@ -54,29 +53,37 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 		}
 	};
 	
-	public TalonFXIO(TalonFX baseMotor, double gearRatio) {
-		var feedbackConfigs = new FeedbackConfigs();
-		baseMotor.getConfigurator().refresh(feedbackConfigs);
-		baseMotor.getConfigurator().apply(feedbackConfigs.withSensorToMechanismRatio(gearRatio));
-		
-		this.baseMotor = baseMotor;
+	public ChargerTalonFX(int id, double gearRatio) {
+		this.baseMotor = new TalonFX(id);
 		this.positionSignal = baseMotor.getPosition();
 		this.velocitySignal = baseMotor.getVelocity();
 		this.voltageSignal = baseMotor.getMotorVoltage();
 		this.currentSignal = baseMotor.getStatorCurrent();
 		this.supplyCurrentSignal = baseMotor.getSupplyCurrent();
 		this.tempSignal = baseMotor.getDeviceTemp();
+		baseMotor.getConfigurator().apply(
+			new FeedbackConfigs().withSensorToMechanismRatio(gearRatio)
+		);
 	}
 	
-	public TalonFXIO withPhoenixPro() {
+	public ChargerTalonFX withPhoenixPro() {
 		voltageRequest.EnableFOC = true;
 		setAngleRequest.EnableFOC = true;
 		setVelocityRequest.EnableFOC = true;
 		return this;
 	}
 	
+	public TalonFXConfigurator getConfigurator() {
+		return baseMotor.getConfigurator();
+	}
+	
+	public ChargerTalonFX configure(TalonFXConfiguration config) {
+		baseMotor.getConfigurator().apply(config);
+		return this;
+	}
+	
 	@Override
-	public EncoderIO encoder() { return encoderIO; }
+	public Encoder encoder() { return encoderIO; }
 	
 	@Override
 	public double outputVoltage() { return voltageSignal.refresh().getValueAsDouble(); }
@@ -115,32 +122,29 @@ public class TalonFXIO implements MotorIO, AutoCloseable {
 	
 	@Override
 	public void setCoastMode(boolean on) {
-		baseMotor.getConfigurator().apply(
-			new MotorOutputConfigs()
-				.also(it -> baseMotor.getConfigurator().refresh(it))
-				.withNeutralMode(on ? NeutralModeValue.Coast : NeutralModeValue.Brake)
-		);
+		var config = new MotorOutputConfigs();
+		getConfigurator().refresh(config);
+		config.NeutralMode = on ? NeutralModeValue.Coast : NeutralModeValue.Brake;
+		getConfigurator().apply(config);
 	}
 	
 	@Override
-	public void setPositionPID(double p, double i, double d) {
+	public void setPositionPID(PIDConstants constants) {
 		baseMotor.getConfigurator().apply(
 			new Slot0Configs()
-				.also(it -> baseMotor.getConfigurator().refresh(it))
-				.withKP(p)
-				.withKI(i)
-				.withKD(d)
+				.withKP(constants.kP)
+				.withKI(constants.kI)
+				.withKD(constants.kD)
 		);
 	}
 	
 	@Override
-	public void setVelocityPID(double p, double i, double d) {
+	public void setVelocityPID(PIDConstants constants) {
 		baseMotor.getConfigurator().apply(
 			new Slot1Configs()
-				.also(it -> baseMotor.getConfigurator().refresh(it))
-				.withKP(p)
-				.withKI(i)
-				.withKD(d)
+				.withKP(constants.kP)
+				.withKI(constants.kI)
+				.withKD(constants.kD)
 		);
 	}
 	

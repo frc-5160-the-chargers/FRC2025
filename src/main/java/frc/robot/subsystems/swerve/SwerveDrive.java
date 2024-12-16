@@ -6,14 +6,10 @@ import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import choreo.util.AllianceFlipUtil;
 import com.pathplanner.lib.commands.PathfindingCommand;
-import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.path.PathConstraints;
-import com.pathplanner.lib.util.DriveFeedforwards;
-import com.pathplanner.lib.util.swerve.SwerveSetpoint;
-import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -36,8 +32,6 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
@@ -46,18 +40,20 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.chargers.hardware.encoders.EncoderIO;
-import frc.chargers.hardware.motorcontrol.MotorIO;
+import frc.chargers.hardware.encoders.Encoder;
+import frc.chargers.hardware.encoders.VoidEncoder;
+import frc.chargers.hardware.motorcontrol.Motor;
+import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
-import org.ironmaple.simulation.drivesims.GyroSimulation;
+import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
-import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
@@ -65,6 +61,7 @@ import org.photonvision.PhotonPoseEstimator;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -89,9 +86,9 @@ public class SwerveDrive extends SubsystemBase {
 		ModuleType ofModules,
 		ControlsConfig ofControls,
 		Supplier<Rotation2d> getRealGyroAngle,
-		Function<Double, List<MotorIO>> getRealDriveMotors,
-		Function<Double, List<MotorIO>> getRealSteerMotors,
-		List<EncoderIO> absoluteEncoders
+		Function<Double, List<? extends Motor>> getRealDriveMotors,
+		Function<Double, List<? extends Motor>> getRealSteerMotors,
+		List<Encoder> absoluteEncoders
 	){}
 	
 	/**
@@ -104,7 +101,6 @@ public class SwerveDrive extends SubsystemBase {
 		DCMotor driveMotorType,
 		DCMotor turnMotorType,
 		LinearVelocity maxVelocity,
-		AngularVelocity maxSteerVelocity,
 		double coefficientOfFriction,
 		Mass robotMass,
 		MomentOfInertia robotMoi
@@ -119,8 +115,7 @@ public class SwerveDrive extends SubsystemBase {
 		PIDConstants velocityPID,
 		SimpleMotorFeedforward velocityFeedforward,
 		PIDConstants pathTranslationPID,
-		PIDConstants pathRotationPID,
-		Current driveCurrentLimit
+		PIDConstants pathRotationPID
 	){}
 	
 	/** Use ModuleType.MK4iL2 and ModuleType.Mk4iL3. */
@@ -139,15 +134,14 @@ public class SwerveDrive extends SubsystemBase {
 	private final String name;
 	private final SwerveDriveConfig config;
 	
-	private final RobotConfig setpointGenConfig;
-	private final SwerveSetpointGenerator setpointGen;
+	private final SwerveDriveKinematics kinematics;
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
-	private final BaseSwerveModule[] swerveModules = new BaseSwerveModule[4];
+	private final SwerveModule[] swerveModules = new SwerveModule[4];
 	
+	@Setter private boolean useExactVelocityInTeleop = false;
 	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
-	private SwerveSetpoint desiredState;
 	
 	@Logged private final PIDController xPoseController;
 	@Logged private final PIDController yPoseController;
@@ -160,10 +154,10 @@ public class SwerveDrive extends SubsystemBase {
 	private final double[] stdDevStore = new double[3];
 	
 	// workaround before array logging comes around
-	@Logged private final BaseSwerveModule topLeftModule;
-	@Logged private final BaseSwerveModule topRightModule;
-	@Logged private final BaseSwerveModule bottomLeftModule;
-	@Logged private final BaseSwerveModule bottomRightModule;
+	@Logged private final SwerveModule topLeftModule;
+	@Logged private final SwerveModule topRightModule;
+	@Logged private final SwerveModule bottomLeftModule;
+	@Logged private final SwerveModule bottomRightModule;
 	
 	public SwerveDrive(String name, SwerveDriveConfig config) {
 		Arrays.fill(measuredModuleStates, new SwerveModuleState());
@@ -171,7 +165,7 @@ public class SwerveDrive extends SubsystemBase {
 		
 		this.config = config;
 		this.name = name;
-		Translation2d[] moduleLocations = {
+		this.kinematics = new SwerveDriveKinematics(
 			new Translation2d(
 				config.ofHardware.trackWidth.div(2),
 				config.ofHardware.wheelBase.div(2)
@@ -188,35 +182,14 @@ public class SwerveDrive extends SubsystemBase {
 				config.ofHardware.trackWidth.div(-2),
 				config.ofHardware.wheelBase.div(-2)
 			)
-		};
-		
-		this.setpointGenConfig = new RobotConfig(
-			config.ofHardware.robotMass,
-			config.ofHardware.robotMoi,
-			new ModuleConfig(
-				config.ofModules.wheelRadius,
-				config.ofHardware.maxVelocity,
-				config.ofHardware.coefficientOfFriction,
-				config.ofHardware.driveMotorType.withReduction(config.ofModules.driveGearRatio),
-				config.ofControls.driveCurrentLimit,
-				1
-			),
-			moduleLocations
-		);
-		this.setpointGen = new SwerveSetpointGenerator(
-			setpointGenConfig, config.ofHardware.maxSteerVelocity
-		);
-		this.desiredState = new SwerveSetpoint(
-			new ChassisSpeeds(), measuredModuleStates, DriveFeedforwards.zeros(4)
 		);
 		this.poseEstimator = new SwerveDrivePoseEstimator(
-			new SwerveDriveKinematics(moduleLocations),
-			Rotation2d.kZero, measuredModulePositions, new Pose2d()
+			kinematics, Rotation2d.kZero, measuredModulePositions, new Pose2d()
 		);
 		
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
-				.withGyro(GyroSimulation.getNav2X())
+				.withGyro(COTS.ofPigeon2())
 				.withTrackLengthTrackWidth(config.ofHardware.trackWidth, config.ofHardware.trackWidth)
 				.withBumperSize(
 					config.ofHardware.trackWidth.plus(Inches.of(3)),
@@ -225,20 +198,18 @@ public class SwerveDrive extends SubsystemBase {
 		
 		switch (config.ofModules) {
 			case MK4iL2, MK4iL3 -> driveSimConfig.withSwerveModule(
-				SwerveModuleSimulation.getMark4i(
+				COTS.ofMark4i(
 					config.ofHardware.driveMotorType,
 					config.ofHardware.turnMotorType,
-					config.ofControls.driveCurrentLimit,
 					config.ofHardware.coefficientOfFriction,
 					config.ofModules == ModuleType.MK4iL3 ? 3 : 2
 				)
 			);
 			
 			case SwerveX2SL2, SwerveX2SL3 -> driveSimConfig.withSwerveModule(
-				SwerveModuleSimulation.getSwerveX2S(
+				COTS.ofSwerveX2S(
 					config.ofHardware.driveMotorType,
 					config.ofHardware().turnMotorType,
-					config.ofControls.driveCurrentLimit,
 					config.ofHardware.coefficientOfFriction,
 					config.ofModules == ModuleType.SwerveX2SL3 ? 3 : 2
 				)
@@ -253,8 +224,12 @@ public class SwerveDrive extends SubsystemBase {
 		
 		if (RobotBase.isSimulation()) {
 			for (int i = 0; i < 4; i++) {
-				this.swerveModules[i] = new SimSwerveModule(
-					mapleSim.getModules()[i], config.ofModules.wheelRadius, config.ofHardware.maxVelocity
+				this.swerveModules[i] = new SwerveModule(
+					config,
+					new VoidEncoder(),
+					new SimMotor(config.ofHardware.turnMotorType, config.ofModules.steerGearRatio, KilogramSquareMeters.of(0.004)),
+					new SimMotor(config.ofHardware.driveMotorType, config.ofModules.driveGearRatio, KilogramSquareMeters.of(0.025)),
+					Optional.of(mapleSim.getModules()[i])
 				);
 			}
 			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
@@ -266,14 +241,11 @@ public class SwerveDrive extends SubsystemBase {
 				realDriveMotors.get(i).setPositionPID(config.ofControls.azimuthPID);
 				realDriveMotors.get(i).setVelocityPID(config.ofControls.velocityPID);
 				realSteerMotors.get(i).enableContinuousInput();
-				
-				this.swerveModules[i] = new RealSwerveModule(
-					realDriveMotors.get(i),
-					realSteerMotors.get(i),
+				this.swerveModules[i] = new SwerveModule.OfLogged(
+					config,
 					config.absoluteEncoders.get(i),
-					config.ofModules.wheelRadius,
-					config.ofHardware.maxVelocity,
-					config.ofControls.velocityFeedforward
+					realDriveMotors.get(i),
+					realSteerMotors.get(i)
 				);
 			}
 			this.getAngleFn = config.getRealGyroAngle;
@@ -362,28 +334,30 @@ public class SwerveDrive extends SubsystemBase {
 	}
 	
 	@Logged public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
-		return setpointGenConfig.toChassisSpeeds(measuredModuleStates);
+		return kinematics.toChassisSpeeds(measuredModuleStates);
 	}
 	
 	// closed loop allows for the robot to drive at an exact velocity.
 	private void driveCallback(ChassisSpeeds speeds, boolean closedLoop, boolean fieldRelative) {
-		// TODO change this when ChassisSpeeds becomes immutable
 		if (fieldRelative) {
 			speeds.toRobotRelativeSpeeds(
 				addAllianceOffset(getPose().getRotation())
 			);
 		}
-		DogLog.log(name + "/desiredSpeeds(initial)", speeds);
-		desiredState = setpointGen.generateSetpoint(desiredState, speeds, 0.02);
-		DogLog.log(name + "/desiredModuleStates", desiredState.moduleStates());
-		DogLog.log(name + "/desiredSpeeds(final)", desiredState.robotRelativeSpeeds());
+		speeds.discretize(0.03);
+		DogLog.log(name + "/desiredSpeeds", speeds);
+		
+		var desiredStates = kinematics.toSwerveModuleStates(speeds);
+		SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, config.ofHardware.maxVelocity);
+		DogLog.log(name + "/desiredStates", desiredStates);
 		for (int i = 0; i < 4; i++) {
-			swerveModules[i].setDesiredState(desiredState.moduleStates()[i], closedLoop);
+			swerveModules[i].setDesiredState(desiredStates[i], closedLoop);
 		}
 	}
 	
 	/**
-	 * Drives the robot forever at the requested x, y, and rotation powers.
+	 * Creates a Command that, when scheduled,
+	 * drives the robot forever at the requested x, y, and rotation powers.
 	 * Does not move the robot at an exact velocity; so best used in teleop
 	 * where exact velocities are not important.
 	 */
@@ -400,16 +374,17 @@ public class SwerveDrive extends SubsystemBase {
 				getYPower.get() * maxSpeedMps,
 				getRotationPower.get() * maxSpeedMps
 			),
-			true, fieldRelative
+			useExactVelocityInTeleop, fieldRelative
 		)).withName("SwerveDriveCmd(open loop)");
 	}
 	
-	/** Drives the robot forever at the exact chassis speeds requested. */
+	/** Creates a Command that drives the robot forever at the exact chassis speeds requested. */
 	public Command velocityDriveCmd(Supplier<ChassisSpeeds> getChassisSpeeds, boolean fieldRelative) {
 		return this.run(() -> driveCallback(getChassisSpeeds.get(), true, fieldRelative))
 			       .withName("SwerveDriveCmd(closed loop)");
 	}
 	
+	/** Creates a Command that, when scheduled, drives the robot to a certain pose. */
 	public Command pathFindCmd(Pose2d targetPose, PathConstraints constraints) {
 		return new PathfindingCommand(
 			targetPose, constraints,
@@ -420,11 +395,16 @@ public class SwerveDrive extends SubsystemBase {
 				config.ofControls.pathTranslationPID,
 				config.ofControls.pathRotationPID
 			),
-			setpointGenConfig,
+			new RobotConfig(
+				config.ofHardware.robotMass,
+				config.ofHardware.robotMoi,
+				null,
+				kinematics.getModules()
+			),
 			this
 		)
 	     // getDistance is an extension method
-         .until(() -> getPose().getDistance(targetPose) < 0.7)
+         .until(() -> getPose().getDistance(targetPose) < 0.5)
          .andThen(
 			 this.run(() -> driveCallback(
 				 new ChassisSpeeds(
@@ -476,7 +456,7 @@ public class SwerveDrive extends SubsystemBase {
 	public InputStream headingLockInputStream(Pose2d pose, boolean shouldFlip) {
 		var actualPose = new AtomicReference<Pose2d>();
 		return () -> {
-			if (actualPose.get() != null) {
+			if (actualPose.get() == null) {
 				actualPose.set(shouldFlip ? AllianceFlipUtil.flip(pose) : pose);
 			}
 			double output = rotationController.calculate(
@@ -515,7 +495,6 @@ public class SwerveDrive extends SubsystemBase {
 		for (int i = 0; i < 4; i++) {
 			measuredModuleStates[i] = swerveModules[i].currentState();
 			measuredModulePositions[i] = swerveModules[i].currentPosition();
-			swerveModules[i].periodic();
 			if (DriverStation.isDisabled()) {
 				swerveModules[i].setDriveVoltage(0.0);
 				swerveModules[i].setSteerVoltage(0.0);

@@ -6,13 +6,13 @@
     "GLOBAL": {
       "font": "Proggy Dotted",
       "fps": "120",
-      "height": "1459",
+      "height": "1444",
       "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "2560",
-      "xpos": "-294",
-      "ypos": "872"
+      "width": "956",
+      "xpos": "1602",
+      "ypos": "58"
     }
   },
   "Window": {
@@ -28,13 +28,13 @@
     },
     "###FMS": {
       "Collapsed": "0",
-      "Pos": "1447,270",
-      "Size": "314,304"
+      "Pos": "379,157",
+      "Size": "495,212"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "348,838",
-      "Size": "1516,307"
+      "Size": "950,307"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -43,7 +43,7 @@
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "1202,602",
+      "Pos": "937,602",
       "Size": "1212,722"
     },
     "###NetworkTables Info": {
@@ -64,7 +64,7 @@
     "###Timing": {
       "Collapsed": "0",
       "Pos": "796,598",
-      "Size": "362,257"
+      "Size": "241,222"
     },
     "###field": {
       "Collapsed": "0",
