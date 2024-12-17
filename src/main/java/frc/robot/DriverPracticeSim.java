@@ -20,9 +20,7 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
-
-@Logged(strategy = OPT_IN)
+@Logged(strategy = Logged.Strategy.OPT_IN)
 @ExtensionMethod(UtilExtensionMethods.class)
 public class DriverPracticeSim extends TimedRobot {
 	@Logged private final SwerveDrive drivetrainOne = createSimBot(

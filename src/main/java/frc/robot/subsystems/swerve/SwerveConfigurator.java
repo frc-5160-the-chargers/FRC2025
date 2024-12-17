@@ -36,7 +36,7 @@ public class SwerveConfigurator {
 			),
 			ModuleType.MK4iL2,
 			new ControlsConfig(
-				new PIDConstants(15.0, 0.0, 0.01), // azimuth pid
+				new PIDConstants(7.0, 0.0, 0.01), // azimuth pid
 				new PIDConstants(0.5, 0.0, 0.01), // velocity pid
 				new SimpleMotorFeedforward(0.03, 0.13), // velocity feedforward
 				new PIDConstants(5.0, 0.0, 0.0), // path translation pid

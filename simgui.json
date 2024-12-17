@@ -87,7 +87,19 @@
             "open": true
           },
           "bottomRightModule": {
-            "open": true
+            "driveMotor": {
+              "encoder": {
+                "open": true
+              },
+              "open": true
+            },
+            "open": true,
+            "steerMotor": {
+              "encoder": {
+                "open": true
+              },
+              "open": true
+            }
           },
           "open": true,
           "topLeftModule": {
@@ -102,6 +114,21 @@
             "open": true
           },
           "open": true
+        },
+        "mod": {
+          "driveMotor": {
+            "encoder": {
+              "open": true
+            },
+            "open": true
+          },
+          "open": true,
+          "steerMotor": {
+            "encoder": {
+              "open": true
+            },
+            "open": true
+          }
         },
         "open": true,
         "pivot": {

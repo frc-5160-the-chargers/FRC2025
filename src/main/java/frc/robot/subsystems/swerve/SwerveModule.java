@@ -7,6 +7,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
@@ -19,28 +20,12 @@ import static edu.wpi.first.units.Units.*;
 
 @Logged(strategy = OPT_IN)
 public class SwerveModule {
-	private final Motor driveMotor;
-	private final Motor steerMotor;
+	@Logged private final Motor driveMotor;
+	@Logged private final Motor steerMotor;
+	@Logged private final Encoder absoluteEncoder;
 	private final Distance wheelRadius;
 	private final LinearVelocity maxVelocity;
 	private final SimpleMotorFeedforward velocityFF;
-	private final Optional<SwerveModuleSimulation> mapleSim;
-	
-	@Logged
-	@SuppressWarnings("ALL")
-	public static class OfLogged extends SwerveModule {
-		// these "redundant" fields are logged by epilogue
-		private final Motor driveMotor;
-		private final Motor steerMotor;
-		private final Encoder absoluteEncoder;
-		
-		public OfLogged(SwerveDriveConfig config, Encoder absoluteEncoder, Motor steerMotor, Motor driveMotor) {
-			super(config, absoluteEncoder, steerMotor, driveMotor, Optional.empty());
-			this.driveMotor = driveMotor;
-			this.steerMotor = steerMotor;
-			this.absoluteEncoder = absoluteEncoder;
-		}
-	}
 	
 	public SwerveModule(
 		SwerveDriveConfig config,
@@ -52,19 +37,24 @@ public class SwerveModule {
 		this.wheelRadius = config.ofModules().wheelRadius;
 		this.maxVelocity = config.ofHardware().maxVelocity();
 		this.velocityFF = config.ofControls().velocityFeedforward();
-		this.mapleSim = mapleSim;
 		if (mapleSim.isPresent() && steerMotor instanceof SimMotor sm && driveMotor instanceof SimMotor dm) {
 			this.steerMotor = mapleSim.get().useSteerMotorController(sm);
-			this.driveMotor = mapleSim.get().useSteerMotorController(dm);
+			this.driveMotor = mapleSim.get().useDriveMotorController(dm);
+			this.absoluteEncoder = absoluteEncoder;
 		} else {
+			if (RobotBase.isSimulation()) {
+				throw new RuntimeException("Only SimMotors are allowed for simulated swerve modules.");
+			}
 			this.steerMotor = steerMotor;
 			this.driveMotor = driveMotor;
+			this.absoluteEncoder = absoluteEncoder;
 			steerMotor.encoder().setPositionReading(absoluteEncoder.position());
+			driveMotor.encoder().setPositionReading(Degrees.zero());
 		}
 	}
 	
 	public void setDesiredState(SwerveModuleState state, boolean closedLoop) {
-		var currentAngle = Rotation2d.fromRadians(driveMotor.encoder().positionRad());
+		var currentAngle = Rotation2d.fromRadians(steerMotor.encoder().positionRad());
 		state.optimize(currentAngle);
 		state.cosineScale(currentAngle);
 		
@@ -79,28 +69,17 @@ public class SwerveModule {
 	}
 	
 	public SwerveModuleState currentState() {
-		if (mapleSim.isPresent()) {
-			return mapleSim.get().getCurrentState();
-		} else {
-			return new SwerveModuleState(
-				driveMotor.encoder().velocityRadPerSec() * wheelRadius.in(Meters),
-				Rotation2d.fromRadians(driveMotor.encoder().positionRad())
-			);
-		}
+		return new SwerveModuleState(
+			driveMotor.encoder().velocityRadPerSec() * wheelRadius.in(Meters),
+			Rotation2d.fromRadians(steerMotor.encoder().positionRad())
+		);
 	}
 	
 	public SwerveModulePosition currentPosition() {
-		if (mapleSim.isPresent()) {
-			return new SwerveModulePosition(
-				mapleSim.get().getDriveWheelFinalPosition().in(Radians) * wheelRadius.in(Meters),
-				mapleSim.get().getSteerAbsoluteFacing()
-			);
-		} else {
-			return new SwerveModulePosition(
-				driveMotor.encoder().positionRad() * wheelRadius.in(Meters),
-				Rotation2d.fromRadians(driveMotor.encoder().positionRad())
-			);
-		}
+		return new SwerveModulePosition(
+			driveMotor.encoder().positionRad() * wheelRadius.in(Meters),
+			Rotation2d.fromRadians(steerMotor.encoder().positionRad())
+		);
 	}
 	
 	public void setSteerVoltage(double voltage) { steerMotor.setVoltage(voltage); }

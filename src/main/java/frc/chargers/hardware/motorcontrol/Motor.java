@@ -1,54 +1,15 @@
 package frc.chargers.hardware.motorcontrol;
 
-import com.ctre.phoenix6.hardware.TalonFX;
 import com.pathplanner.lib.config.PIDConstants;
-import com.revrobotics.spark.SparkBase;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.math.system.LinearSystem;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.chargers.hardware.encoders.Encoder;
-import org.jetbrains.annotations.Nullable;
 
 import static edu.wpi.first.units.Units.*;
 
 @Logged
 public interface Motor {
-//	/** Creates an instance of a MotorIO with a spark max. */
-//	static <M extends SparkBase> SparkIO<M> of(M baseMotor, double gearRatio) {
-//		return new SparkIO<>(baseMotor, gearRatio);
-//	}
-//
-//	/** Creates an instance of a MotorIO with a TalonFX. */
-//	static ChargerTalonFX of(TalonFX baseMotor, double gearRatio) {
-//		return new ChargerTalonFX(baseMotor, gearRatio);
-//	}
-//
-//	/** Creates an instance of a simulated MotorIO. */
-//	static SimMotorIO ofSim(
-//		DCMotor motor, double gearRatio,
-//		MomentOfInertia moi, double... measurementStdDevs
-//	) {
-//		motor = motor.withReduction(gearRatio);
-//		return new SimMotorIO(
-//			LinearSystemId.createDCMotorSystem(motor, moi.in(KilogramSquareMeters), 1.0),
-//			motor, measurementStdDevs
-//		);
-//	}
-//
-//	/** Creates an instance of a simulated MotorIO. */
-//	static SimMotorIO ofSim(
-//		LinearSystem<N2, N1, N2> linearSystem,
-//		DCMotor motor, double... measurementStdDevs
-//	) {
-//		return new SimMotorIO(linearSystem, motor, measurementStdDevs);
-//	}
-	
 	Encoder encoder();
 	double outputVoltage();
 	double statorCurrent();

@@ -32,7 +32,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 	@Getter private BaseMotor baseMotor;
 	private RelativeEncoder baseEncoder;
 	private SparkClosedLoopController pidController;
-	private Encoder encoderIO = new Encoder() {
+	private Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
 			return rotationsToRadians(baseEncoder.getPosition());
@@ -90,7 +90,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 	}
 	
 	@Override
-	public Encoder encoder() { return encoderIO; }
+	public Encoder encoder() { return encoder; }
 	
 	@Override
 	public double outputVoltage() {

@@ -5,6 +5,9 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
+/**
+ * A wrapper around a DutyCycleEncoder.
+ */
 public class ChargerDCEncoder implements Encoder {
 	private final boolean inverted;
 	private final DutyCycleEncoder encoder;

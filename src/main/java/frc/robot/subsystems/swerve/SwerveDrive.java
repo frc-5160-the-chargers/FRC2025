@@ -66,7 +66,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
 import static frc.chargers.utils.UtilMethods.pidControllerFrom;
@@ -77,6 +76,7 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  * Each turn motor can control the exact position of each drive motor,
  * allowing for omnidirectional movement and driving while turning.
  */
+@Logged(strategy = Logged.Strategy.OPT_IN)
 @SuppressWarnings("unused")
 @ExtensionMethod(UtilExtensionMethods.class)
 public class SwerveDrive extends SubsystemBase {
@@ -223,12 +223,14 @@ public class SwerveDrive extends SubsystemBase {
 		
 		if (RobotBase.isSimulation()) {
 			for (int i = 0; i < 4; i++) {
+				var steerMotor = new SimMotor(config.ofHardware.turnMotorType, config.ofModules.steerGearRatio, KilogramSquareMeters.of(0.004));
+				var driveMotor = new SimMotor(config.ofHardware.driveMotorType, config.ofModules.driveGearRatio, KilogramSquareMeters.of(0.025));
+				steerMotor.setPositionPID(config.ofControls.azimuthPID);
+				driveMotor.setVelocityPID(config.ofControls.velocityPID);
+				steerMotor.enableContinuousInput();
 				this.swerveModules[i] = new SwerveModule(
-					config,
-					new VoidEncoder(),
-					new SimMotor(config.ofHardware.turnMotorType, config.ofModules.steerGearRatio, KilogramSquareMeters.of(0.004)),
-					new SimMotor(config.ofHardware.driveMotorType, config.ofModules.driveGearRatio, KilogramSquareMeters.of(0.025)),
-					Optional.of(mapleSim.getModules()[i])
+					config, new VoidEncoder(), steerMotor,
+					driveMotor, Optional.of(mapleSim.getModules()[i])
 				);
 			}
 			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
@@ -240,11 +242,12 @@ public class SwerveDrive extends SubsystemBase {
 				realDriveMotors.get(i).setPositionPID(config.ofControls.azimuthPID);
 				realDriveMotors.get(i).setVelocityPID(config.ofControls.velocityPID);
 				realSteerMotors.get(i).enableContinuousInput();
-				this.swerveModules[i] = new SwerveModule.OfLogged(
+				this.swerveModules[i] = new SwerveModule(
 					config,
 					config.absoluteEncoders.get(i),
 					realDriveMotors.get(i),
-					realSteerMotors.get(i)
+					realSteerMotors.get(i),
+					Optional.empty()
 				);
 			}
 			this.getAngleFn = config.getRealGyroAngle;
@@ -325,7 +328,6 @@ public class SwerveDrive extends SubsystemBase {
 	
 	@Logged public ChassisSpeeds getMeasuredSpeeds() {
 		var speeds = getMeasuredSpeedsRobotRelative();
-		// TODO change this once ChassisSpeeds becomes immutable
 		speeds = ChassisSpeeds.fromRobotRelativeSpeeds(
 			speeds,
 			addAllianceOffset(getPose().getRotation())

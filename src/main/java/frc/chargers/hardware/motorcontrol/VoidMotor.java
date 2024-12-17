@@ -1,18 +1,15 @@
 package frc.chargers.hardware.motorcontrol;
 
 import com.pathplanner.lib.config.PIDConstants;
-import edu.wpi.first.units.measure.Angle;
 import frc.chargers.hardware.encoders.Encoder;
+import frc.chargers.hardware.encoders.VoidEncoder;
 
 /**
  * An null motor.
  */
 class VoidMotor implements Motor {
-	private static final Encoder encoder = new Encoder() {
-		public double positionRad() { return 0; }
-		public double velocityRadPerSec() { return 0; }
-		public void setPositionReading(Angle angle) {}
-	};
+	private static final Encoder encoder = new VoidEncoder();
+	
 	public Encoder encoder() { return encoder; }
 	public double outputVoltage() { return 0; }
 	public double statorCurrent() { return 0; }

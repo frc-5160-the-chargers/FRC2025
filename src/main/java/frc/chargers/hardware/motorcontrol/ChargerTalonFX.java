@@ -19,11 +19,13 @@ import edu.wpi.first.units.measure.*;
 import frc.chargers.hardware.encoders.Encoder;
 import lombok.experimental.FieldDefaults;
 
+import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
+import static java.lang.Math.PI;
 
 @FieldDefaults(makeFinal = true)
 public class ChargerTalonFX implements Motor, AutoCloseable {
-	protected TalonFX baseMotor;
+	public TalonFX baseMotor;
 	private StatusSignal<Angle> positionSignal;
 	private StatusSignal<AngularVelocity> velocitySignal;
 	private StatusSignal<Voltage> voltageSignal;
@@ -36,7 +38,7 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	private VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0);
 	private TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0.0);
 	
-	private Encoder encoderIO = new Encoder() {
+	private Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
 			return rotationsToRadians(positionSignal.refresh().getValueAsDouble());
@@ -83,7 +85,7 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	}
 	
 	@Override
-	public Encoder encoder() { return encoderIO; }
+	public Encoder encoder() { return encoder; }
 	
 	@Override
 	public double outputVoltage() { return voltageSignal.refresh().getValueAsDouble(); }
@@ -102,14 +104,14 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	
 	@Override
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {
-		setVelocityRequest.Velocity = rotationsToRadians(velocityRadPerSec);
+		setVelocityRequest.Velocity = radiansToRotations(velocityRadPerSec);
 		setVelocityRequest.FeedForward = ffVolts;
 		baseMotor.setControl(setVelocityRequest);
 	}
 	
 	@Override
 	public void moveToPosition(double positionRads, double ffVolts) {
-		setAngleRequest.Position = rotationsToRadians(positionRads);
+		setAngleRequest.Position = radiansToRotations(positionRads);
 		setAngleRequest.FeedForward = ffVolts;
 		baseMotor.setControl(setAngleRequest);
 	}
@@ -132,9 +134,9 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	public void setPositionPID(PIDConstants constants) {
 		baseMotor.getConfigurator().apply(
 			new Slot0Configs()
-				.withKP(constants.kP)
-				.withKI(constants.kI)
-				.withKD(constants.kD)
+				.withKP(constants.kP * (2 * PI))
+				.withKI(constants.kI * (2 * PI))
+				.withKD(constants.kD * (2 * PI))
 		);
 	}
 	
@@ -142,9 +144,9 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	public void setVelocityPID(PIDConstants constants) {
 		baseMotor.getConfigurator().apply(
 			new Slot1Configs()
-				.withKP(constants.kP)
-				.withKI(constants.kI)
-				.withKD(constants.kD)
+				.withKP(constants.kP * (2 * PI))
+				.withKI(constants.kI * (2 * PI))
+				.withKD(constants.kD * (2 * PI))
 		);
 	}
 	

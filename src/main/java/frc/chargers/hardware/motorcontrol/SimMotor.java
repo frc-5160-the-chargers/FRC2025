@@ -46,7 +46,7 @@ public class SimMotor extends ChargerTalonFX implements SimulatedMotorController
 	
 	public SimMotor(DCMotor motorType, double gearRatio, MomentOfInertia moi) {
 		this(
-			LinearSystemId.createDCMotorSystem(motorType, gearRatio, moi.in(KilogramSquareMeters)),
+			LinearSystemId.createDCMotorSystem(motorType, moi.in(KilogramSquareMeters), gearRatio),
 			gearRatio,
 			motorType
 		);
@@ -59,7 +59,7 @@ public class SimMotor extends ChargerTalonFX implements SimulatedMotorController
 		double... measurementStdDevs
 	) {
 		super(currId++, gearRatio);
-		this.talonSimApi = super.baseMotor.getSimState();
+		this.talonSimApi = baseMotor.getSimState();
 		this.gearRatio = gearRatio;
 		this.sim = new DCMotorSim(linearSystem, motorType, measurementStdDevs);
 		
@@ -73,6 +73,7 @@ public class SimMotor extends ChargerTalonFX implements SimulatedMotorController
 		return this;
 	}
 	
+	// an internal callback by maplesim to update the motor controller.
 	@Override
 	public Voltage updateControlSignal(
 		Angle mechanismAngle,
@@ -89,10 +90,10 @@ public class SimMotor extends ChargerTalonFX implements SimulatedMotorController
 	
 	private void periodicCallback() {
 		if (isMapleSim) return;
-		var currentBatteryV = RobotController.getBatteryVoltage();
-		talonSimApi.setSupplyVoltage(Double.isNaN(currentBatteryV) ? 12.0 : currentBatteryV);
 		sim.setInputVoltage(talonSimApi.getMotorVoltage());
 		sim.update(0.02);
+		
+		talonSimApi.setSupplyVoltage(RobotController.getBatteryVoltage());
 		talonSimApi.setRawRotorPosition(sim.getAngularPosition().times(gearRatio));
 		talonSimApi.setRotorVelocity(sim.getAngularVelocity().times(gearRatio));
 	}
