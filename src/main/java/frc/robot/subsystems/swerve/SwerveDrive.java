@@ -283,6 +283,8 @@ public class SwerveDrive extends SubsystemBase {
 		);
 	}
 	
+	@Logged private List<SwerveSample> trajSamples = List.of();
+	
 	public AutoFactory createAutoFactory() {
 		return new AutoFactory(
 			this::getPose,
@@ -292,7 +294,7 @@ public class SwerveDrive extends SubsystemBase {
 			this,
 			new AutoFactory.AutoBindings(),
 			(trajectory, isStart) -> {
-				DogLog.log(name + "/currentTrajectory/samples", trajectory.samples().toArray(new SwerveSample[0]));
+				trajSamples = trajectory.samples();
 				DogLog.log(name + "/currentTrajectory/name", trajectory.name());
 			}
 		);

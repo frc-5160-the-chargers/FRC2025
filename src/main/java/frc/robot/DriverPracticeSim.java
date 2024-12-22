@@ -3,6 +3,7 @@ package frc.robot;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.logging.errors.ErrorHandler;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -61,6 +62,7 @@ public class DriverPracticeSim extends TimedRobot {
 		// logging config; do not remove
 		Epilogue.bind(this);
 		UtilMethods.configureDefaultLogging();
+		Epilogue.getConfig().errorHandler = ErrorHandler.crashOnError();
 		//SimulatedArena.getInstance().placeGamePiecesOnField();
 		mapAutoModes();
 		DriverStation.silenceJoystickConnectionWarning(true);
