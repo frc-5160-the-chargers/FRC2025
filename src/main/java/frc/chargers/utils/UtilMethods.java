@@ -3,9 +3,9 @@ package frc.chargers.utils;
 import com.pathplanner.lib.config.PIDConstants;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
-//import edu.wpi.first.epilogue.logging.EpilogueBackend;
-//import edu.wpi.first.epilogue.logging.FileBackend;
-//import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
+import edu.wpi.first.epilogue.logging.EpilogueBackend;
+import edu.wpi.first.epilogue.logging.FileBackend;
+import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.wpilibj.Alert.AlertType.kInfo;
@@ -28,10 +29,10 @@ public class UtilMethods {
 	private UtilMethods() {}
 	private static final double EPSILON = 1E-9;
 	
-//	private static final EpilogueBackend fileOnlyBackend = new FileBackend(DataLogManager.getLog());
-//	private static final EpilogueBackend fileAndNtBackend = EpilogueBackend.multi(
-//		fileOnlyBackend, new NTEpilogueBackend(NetworkTableInstance.getDefault())
-//	);
+	private static final EpilogueBackend fileOnlyBackend = new FileBackend(DataLogManager.getLog());
+	private static final EpilogueBackend fileAndNtBackend = EpilogueBackend.multi(
+		fileOnlyBackend, new NTEpilogueBackend(NetworkTableInstance.getDefault())
+	);
 	private static boolean loggingConfigured = false;
 	private static final Alert ntLoggingDisabled =
 		new Alert("NT(Live) Logging has been disabled; FMS is attached", kInfo);
@@ -97,6 +98,13 @@ public class UtilMethods {
 			.schedule();
 	}
 	
+	@SuppressWarnings("unchecked")
+	public static <T> List<T> createList(int size, Supplier<T> generator) {
+		var arr = new Object[size];
+		for (int i = 0; i < size; i++) arr[i] = generator.get();
+		return List.of((T[]) arr);
+	}
+	
 	/**
 	 * Sets the default DogLog/epilogue logging config.
 	 * This must be called alongside Epilogue.bind(this) in the Robot class.
@@ -107,13 +115,14 @@ public class UtilMethods {
 		loggingConfigured = true;
 		
 		// Epilogue by default logs to nt only, while DogLog defaults to file-only
-		enableNtLogging();
+		DogLog.setOptions(DogLog.getOptions().withCaptureDs(true).withLogEntryQueueCapacity(3000));
+		setNtLogging(true);
 		DogLog.setPdh(new PowerDistribution());
 		
 		// enables NT logging when FMS is absent
 		new Trigger(DriverStation::isFMSAttached)
-			.onTrue(Commands.runOnce(UtilMethods::disableNtLogging))
-			.onFalse(Commands.runOnce(UtilMethods::enableNtLogging));
+			.onTrue(Commands.runOnce(() -> setNtLogging(true)))
+			.onFalse(Commands.runOnce(() -> setNtLogging(false)));
 		
 		// Logs when commands are running or not.
 		var scheduler = CommandScheduler.getInstance();
@@ -128,16 +137,10 @@ public class UtilMethods {
 		);
 	}
 	
-	private static void disableNtLogging() {
-		ntLoggingDisabled.set(true);
-		DogLog.setOptions(DogLog.getOptions().withNtPublish(false));
-//		Epilogue.getConfig().backend = fileOnlyBackend;
-	}
-	
-	private static void enableNtLogging() {
-		ntLoggingDisabled.set(false);
-		DogLog.setOptions(DogLog.getOptions().withNtPublish(true));
-//		Epilogue.getConfig().backend = fileAndNtBackend;
+	private static void setNtLogging(boolean enabled) {
+		ntLoggingDisabled.set(!enabled);
+		DogLog.setOptions(DogLog.getOptions().withNtPublish(enabled));
+		Epilogue.getConfig().backend = enabled ? fileAndNtBackend : fileOnlyBackend;
 	}
 	
 	// Credits: 6328

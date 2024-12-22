@@ -9,27 +9,26 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import frc.chargers.hardware.encoders.Encoder;
-import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 
 import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kNoResetSafeParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
-import static com.revrobotics.spark.SparkLowLevel.*;
+import static com.revrobotics.spark.SparkLowLevel.MotorType;
 import static com.revrobotics.spark.config.ClosedLoopConfig.ClosedLoopSlot.kSlot0;
 import static com.revrobotics.spark.config.ClosedLoopConfig.ClosedLoopSlot.kSlot1;
 import static com.revrobotics.spark.config.SparkBaseConfig.IdleMode.kBrake;
 import static com.revrobotics.spark.config.SparkBaseConfig.IdleMode.kCoast;
+import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static edu.wpi.first.units.Units.Rotations;
 import static java.lang.Math.PI;
 
 @FieldDefaults(makeFinal = true)
 public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoCloseable {
-	@Getter private BaseMotor baseMotor;
+	private BaseMotor baseMotor;
 	private RelativeEncoder baseEncoder;
 	private SparkClosedLoopController pidController;
 	private Encoder encoder = new Encoder() {
@@ -61,6 +60,9 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 		return new ChargerSpark<>(new SparkMax(id, MotorType.kBrushed), gearRatio);
 	}
 	
+	/**
+	 * Use {@link ChargerSpark#max} or {@link ChargerSpark#flex} instead.
+	 */
 	private ChargerSpark(BaseMotor baseMotor, double gearRatio) {
 		this.baseMotor = baseMotor;
 		this.baseEncoder = baseMotor.getEncoder();
@@ -109,7 +111,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 	@Override
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {
 		pidController.setReference(
-			Units.radiansToRotations(velocityRadPerSec),
+			radiansToRotations(velocityRadPerSec),
 			SparkBase.ControlType.kVelocity,
 			1
 		);
@@ -129,7 +131,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 	@Override
 	public void moveToPosition(double positionRads, double ffVolts) {
 		pidController.setReference(
-			Units.radiansToRotations(positionRads),
+			radiansToRotations(positionRads),
 			SparkBase.ControlType.kVelocity,
 			2
 		);

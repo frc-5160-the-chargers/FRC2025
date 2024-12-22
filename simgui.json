@@ -11,6 +11,8 @@
       "/AutoChoices/AutoChooser": "String Chooser",
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Alerts": "Alerts",
+      "/SmartDashboard/AutoChooser": "String Chooser",
+      "/SmartDashboard/ChoreoAlert": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
       "Robot/Dummy Field": "PIDController",
@@ -27,6 +29,11 @@
     },
     "windows": {
       "/SmartDashboard/Alerts": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/AutoChooser": {
         "window": {
           "visible": true
         }
@@ -83,6 +90,15 @@
           "open": true
         },
         "drivetrainOne": {
+          "Pose2d##v_Robot/drivetrainOne/getPose": {
+            "Rotation2d##v_rotation": {
+              "open": true
+            },
+            "Translation2d##v_translation": {
+              "open": true
+            },
+            "open": true
+          },
           "bottomLeftModule": {
             "open": true
           },
@@ -93,7 +109,6 @@
               },
               "open": true
             },
-            "open": true,
             "steerMotor": {
               "encoder": {
                 "open": true
@@ -102,9 +117,6 @@
             }
           },
           "open": true,
-          "topLeftModule": {
-            "open": true
-          },
           "topRightModule": {
             "open": true
           }
@@ -141,6 +153,9 @@
             },
             "open": true
           },
+          "open": true
+        },
+        "runningCommands": {
           "open": true
         }
       },

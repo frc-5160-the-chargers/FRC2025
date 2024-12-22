@@ -4,8 +4,6 @@
 // TODO remove when wpilib beta 3 comes out
 package edu.wpi.first.util.struct;
 
-import edu.wpi.first.math.kinematics.SwerveModuleState;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;

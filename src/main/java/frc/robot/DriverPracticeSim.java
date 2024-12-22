@@ -1,43 +1,47 @@
 package frc.robot;
 
+import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.chargers.utils.AutoChooser;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.chargers.utils.UtilMethods;
+import frc.robot.commands.AutoCommands;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 
-@Logged(strategy = Logged.Strategy.OPT_IN)
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+
 @ExtensionMethod(UtilExtensionMethods.class)
 public class DriverPracticeSim extends TimedRobot {
-	@Logged private final SwerveDrive drivetrainOne = createSimBot(
+	@Logged public final SwerveDrive drivetrainOne = createSimBot(
 		"drivetrainOne",
 		new Pose2d(5.0, 7.0, Rotation2d.kZero)
 	);
+	private final AutoChooser autoChooser = new AutoChooser();
 	
 	private int currControllerId = 0;
 	private SwerveDrive createSimBot(String name, Pose2d initialPose) {
-		var drivetrain = new SwerveDrive(name, SwerveConfigurator.getDefaultConfig());
+		var drivetrain = new SwerveDrive(name, SwerveConfigurator.defaultConfig());
 		drivetrain.resetPose(initialPose);
 		
 		var controller = new CommandXboxController(currControllerId);
 		currControllerId++;
 		
 		drivetrain.setDefaultCommand(
-			drivetrain.teleopDriveCmd(
+			drivetrain.driveCmd(
 				InputStream.of(controller::getLeftY)
 					.negate()
 					.log("driverController" + currControllerId + "/xOutput"),
@@ -57,9 +61,18 @@ public class DriverPracticeSim extends TimedRobot {
 		// logging config; do not remove
 		Epilogue.bind(this);
 		UtilMethods.configureDefaultLogging();
+		//SimulatedArena.getInstance().placeGamePiecesOnField();
+		mapAutoModes();
+		DriverStation.silenceJoystickConnectionWarning(true);
 	}
 	
-	private static final LinearFilter voltageFilter = LinearFilter.movingAverage(200);
+	private void mapAutoModes() {
+		var autoCommands = new AutoCommands(drivetrainOne.createAutoFactory());
+		autoChooser.addCmd("FourPiece", autoCommands::fourPiece);
+		autoChooser.addCmd("Characterize", drivetrainOne::characterizeFeedforwardCmd);
+		autonomous().whileTrue(autoChooser.selectedCommandScheduler().withName("AutoCmdScheduler"));
+		SmartDashboard.putData("AutoChooser", autoChooser);
+	}
 	
 	@Override
 	public void robotPeriodic() {
@@ -67,10 +80,11 @@ public class DriverPracticeSim extends TimedRobot {
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().simulationPeriodic();
 			// occasionally, maplesim can output NaN battery voltages
-			RoboRioSim.setVInVoltage(
-				voltageFilter.calculate(
-					MathUtil.clamp(RobotController.getBatteryVoltage(), 0, 12)
-				)
+			DogLog.log(
+				"simNotePoses",
+				SimulatedArena.getInstance()
+					.getGamePiecesByType("Note")
+					.toArray(new Pose3d[]{})
 			);
 		}
 	}

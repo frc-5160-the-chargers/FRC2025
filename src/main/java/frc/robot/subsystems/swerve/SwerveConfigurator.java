@@ -22,7 +22,7 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
-	public static SwerveDriveConfig getDefaultConfig() {
+	public static SwerveDriveConfig defaultConfig() {
 		return new SwerveDriveConfig(
 			new HardwareConfig(
 				Inches.of(27), // trackwidth
@@ -31,25 +31,26 @@ public class SwerveConfigurator {
 				DCMotor.getNEO(1), // turn motor type
 				MetersPerSecond.of(4.5), // max linear speed
 				DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
-				Kilograms.of(45), // mass
-				KilogramSquareMeters.of(6.883) // robot MOI
+				Kilograms.of(45) // mass
 			),
 			ModuleType.MK4iL2,
 			new ControlsConfig(
-				new PIDConstants(7.0, 0.0, 0.01), // azimuth pid
-				new PIDConstants(0.5, 0.0, 0.01), // velocity pid
-				new SimpleMotorFeedforward(0.03, 0.13), // velocity feedforward
+				new PIDConstants(15.0, 0.0, 0.01), // azimuth pid
+				new PIDConstants(2.0, 0.0, 0.01), // velocity pid
+				new SimpleMotorFeedforward(0.032, 2.73), // velocity feedforward
 				new PIDConstants(5.0, 0.0, 0.0), // path translation pid
 				new PIDConstants(5.0, 0.0, 0.0) // path rotation pid
 			),
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
-			SwerveConfigurator::getTurnMotors, // real drive motor getter method
-			SwerveConfigurator::getDriveMotors,  // real turn motor getter method
-			List.of() // encoders
+			SwerveConfigurator::getRealTurnMotors, // real drive motor getter method
+			SwerveConfigurator::getRealDriveMotors,  // real turn motor getter method
+			List.of(), // encoders
+			null,
+			null
 		);
 	}
 	
-	private static List<Motor> getTurnMotors(double gearRatio) {
+	private static List<Motor> getRealTurnMotors(double gearRatio) {
 		return List.of(
 			ChargerSpark.max(6, gearRatio).configure(new SparkMaxConfig()),
 			ChargerSpark.max(6, gearRatio),
@@ -58,7 +59,7 @@ public class SwerveConfigurator {
 		);
 	}
 	
-	private static List<Motor> getDriveMotors(double gearRatio) {
+	private static List<Motor> getRealDriveMotors(double gearRatio) {
 		var tl = new ChargerTalonFX(0, gearRatio);
 		var tr = new ChargerTalonFX(0, gearRatio);
 		var bl = new ChargerTalonFX(0, gearRatio);
@@ -68,7 +69,9 @@ public class SwerveConfigurator {
 			motor.getConfigurator().apply(
 				new CurrentLimitsConfigs()
 					.withStatorCurrentLimit(50)
-					.withSupplyCurrentLimit(80)
+					.withSupplyCurrentLimit(90)
+					.withStatorCurrentLimitEnable(true)
+					.withSupplyCurrentLimitEnable(true)
 			);
 		}
 		

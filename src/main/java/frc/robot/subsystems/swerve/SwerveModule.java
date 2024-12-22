@@ -7,18 +7,16 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
-import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
+
 import java.util.Optional;
 
-import static edu.wpi.first.epilogue.Logged.Strategy.OPT_IN;
 import static edu.wpi.first.units.Units.*;
 
-@Logged(strategy = OPT_IN)
 public class SwerveModule {
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
@@ -37,17 +35,13 @@ public class SwerveModule {
 		this.wheelRadius = config.ofModules().wheelRadius;
 		this.maxVelocity = config.ofHardware().maxVelocity();
 		this.velocityFF = config.ofControls().velocityFeedforward();
+		this.steerMotor = steerMotor;
+		this.driveMotor = driveMotor;
+		this.absoluteEncoder = absoluteEncoder;
 		if (mapleSim.isPresent() && steerMotor instanceof SimMotor sm && driveMotor instanceof SimMotor dm) {
-			this.steerMotor = mapleSim.get().useSteerMotorController(sm);
-			this.driveMotor = mapleSim.get().useDriveMotorController(dm);
-			this.absoluteEncoder = absoluteEncoder;
+			mapleSim.get().useSteerMotorController(sm.getMapleSimApi());
+			mapleSim.get().useDriveMotorController(dm.getMapleSimApi());
 		} else {
-			if (RobotBase.isSimulation()) {
-				throw new RuntimeException("Only SimMotors are allowed for simulated swerve modules.");
-			}
-			this.steerMotor = steerMotor;
-			this.driveMotor = driveMotor;
-			this.absoluteEncoder = absoluteEncoder;
 			steerMotor.encoder().setPositionReading(absoluteEncoder.position());
 			driveMotor.encoder().setPositionReading(Degrees.zero());
 		}
@@ -66,6 +60,10 @@ public class SwerveModule {
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
 			driveMotor.setVoltage(voltage);
 		}
+	}
+	
+	public void setAngle(double radians) {
+		steerMotor.moveToPosition(radians);
 	}
 	
 	public SwerveModuleState currentState() {

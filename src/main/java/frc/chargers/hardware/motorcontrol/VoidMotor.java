@@ -8,9 +8,9 @@ import frc.chargers.hardware.encoders.VoidEncoder;
  * An null motor.
  */
 class VoidMotor implements Motor {
-	private static final Encoder encoder = new VoidEncoder();
+	private static final Encoder ENCODER = new VoidEncoder();
 	
-	public Encoder encoder() { return encoder; }
+	public Encoder encoder() { return ENCODER; }
 	public double outputVoltage() { return 0; }
 	public double statorCurrent() { return 0; }
 	public double tempCelsius() { return 0; }

@@ -2,7 +2,6 @@ package frc.chargers.hardware.motorcontrol;
 
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
-import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.Slot1Configs;
@@ -15,7 +14,11 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.pathplanner.lib.config.PIDConstants;
-import edu.wpi.first.units.measure.*;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Temperature;
+import edu.wpi.first.units.measure.Voltage;
 import frc.chargers.hardware.encoders.Encoder;
 import lombok.experimental.FieldDefaults;
 
@@ -25,7 +28,8 @@ import static java.lang.Math.PI;
 
 @FieldDefaults(makeFinal = true)
 public class ChargerTalonFX implements Motor, AutoCloseable {
-	public TalonFX baseMotor;
+	protected TalonFX baseMotor;
+	protected double gearRatio;
 	private StatusSignal<Angle> positionSignal;
 	private StatusSignal<AngularVelocity> velocitySignal;
 	private StatusSignal<Voltage> voltageSignal;
@@ -34,8 +38,8 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	private StatusSignal<Temperature> tempSignal;
 	
 	private VoltageOut voltageRequest = new VoltageOut(0.0);
-	private PositionVoltage setAngleRequest = new PositionVoltage(0.0);
-	private VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0);
+	private PositionVoltage setAngleRequest = new PositionVoltage(0.0).withSlot(0);
+	private VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0).withSlot(1);
 	private TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0.0);
 	
 	private Encoder encoder = new Encoder() {
@@ -63,9 +67,8 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 		this.currentSignal = baseMotor.getStatorCurrent();
 		this.supplyCurrentSignal = baseMotor.getSupplyCurrent();
 		this.tempSignal = baseMotor.getDeviceTemp();
-		baseMotor.getConfigurator().apply(
-			new FeedbackConfigs().withSensorToMechanismRatio(gearRatio)
-		);
+		this.gearRatio = gearRatio;
+		this.configure(new TalonFXConfiguration());
 	}
 	
 	public ChargerTalonFX withPhoenixPro() {
@@ -75,12 +78,20 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 		return this;
 	}
 	
+	/**
+	 * Fetches the base TalonFX Configurator.
+	 * <h6>WARNING: If you use motor.getConfigurator().apply(TalonFXConfiguration),
+	 * your gear ratio will be reset.</h6>
+	 */
 	public TalonFXConfigurator getConfigurator() {
 		return baseMotor.getConfigurator();
 	}
 	
+	/** Configures this motor with a TalonFXConfiguration. */
 	public ChargerTalonFX configure(TalonFXConfiguration config) {
-		baseMotor.getConfigurator().apply(config);
+		if (config == null) return this;
+		config.Feedback.SensorToMechanismRatio = gearRatio;
+		baseMotor.getConfigurator().apply(config, 0.010);
 		return this;
 	}
 	

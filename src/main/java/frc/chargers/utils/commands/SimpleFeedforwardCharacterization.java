@@ -7,15 +7,16 @@ package frc.chargers.utils.commands;
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
+import Jama.Matrix;
+import Jama.QRDecomposition;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import Jama.Matrix;
-import Jama.QRDecomposition;
 
 @SuppressWarnings("all")
 public class SimpleFeedforwardCharacterization extends Command {
