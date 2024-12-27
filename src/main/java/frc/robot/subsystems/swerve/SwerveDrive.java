@@ -9,7 +9,6 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.path.PathConstraints;
-import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
@@ -49,6 +48,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
+import monologue.LogLocal;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
@@ -78,7 +78,7 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  */
 @SuppressWarnings("unused")
 @ExtensionMethod(UtilExtensionMethods.class)
-public class SwerveDrive extends SubsystemBase {
+public class SwerveDrive extends SubsystemBase implements LogLocal {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
@@ -90,7 +90,7 @@ public class SwerveDrive extends SubsystemBase {
 		@Nullable TalonFXConfiguration simDriveConfig,
 		@Nullable TalonFXConfiguration simSteerConfig
 	){}
-	
+
 	/**
 	 * Use DEFAULT_NEOPRENE_TREAD.cof or COLSONS.cof for coefficientOfFriction,
 	 * depending on wheel type.
@@ -129,8 +129,7 @@ public class SwerveDrive extends SubsystemBase {
 		public final double steerGearRatio;
 		public final Distance wheelRadius;
 	}
-	
-	private final String name;
+
 	private final SwerveDriveConfig config;
 	
 	private final SwerveDriveKinematics kinematics;
@@ -141,29 +140,28 @@ public class SwerveDrive extends SubsystemBase {
 	@Setter private boolean useExactVelocityInTeleop = false;
 	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
-	
-	@Logged private final PIDController xPoseController;
-	@Logged private final PIDController yPoseController;
-	@Logged private final PIDController rotationController;
-	
+
+	private final PIDController xPoseController;
+	private final PIDController yPoseController;
+	private final PIDController rotationController;
+
 	private final HashMap<String, PhotonPoseEstimator> visionEstimators = new HashMap<>();
 	private final Supplier<Rotation2d> getAngleFn;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
 	private Pose2d estimatedPose = Pose2d.kZero;
 	private final double[] stdDevStore = new double[3];
-	
+
 	// workaround before array logging comes around
 	@Logged private final SwerveModule topLeftModule;
 	@Logged private final SwerveModule topRightModule;
 	@Logged private final SwerveModule bottomLeftModule;
 	@Logged private final SwerveModule bottomRightModule;
 	
-	public SwerveDrive(String name, SwerveDriveConfig config) {
+	public SwerveDrive(SwerveDriveConfig config) {
 		Arrays.fill(measuredModuleStates, new SwerveModuleState());
 		Arrays.fill(measuredModulePositions, new SwerveModulePosition());
 		
 		this.config = config;
-		this.name = name;
 		this.kinematics = new SwerveDriveKinematics(
 			new Translation2d(
 				config.ofHardware.trackWidth.div(2),
@@ -185,7 +183,7 @@ public class SwerveDrive extends SubsystemBase {
 		this.poseEstimator = new SwerveDrivePoseEstimator(
 			kinematics, Rotation2d.kZero, measuredModulePositions, new Pose2d()
 		);
-		
+
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
 				.withGyro(COTS.ofPigeon2())
@@ -195,7 +193,7 @@ public class SwerveDrive extends SubsystemBase {
 					config.ofHardware.trackWidth.plus(Inches.of(3)),
 					config.ofHardware.wheelBase.plus(Inches.of(3))
 				);
-		
+
 		switch (config.ofModules) {
 			case MK4iL2, MK4iL3 -> driveSimConfig.withSwerveModule(
 				COTS.ofMark4i(
@@ -205,7 +203,7 @@ public class SwerveDrive extends SubsystemBase {
 					config.ofModules == ModuleType.MK4iL3 ? 3 : 2
 				)
 			);
-			
+
 			case SwerveX2SL2, SwerveX2SL3 -> driveSimConfig.withSwerveModule(
 				COTS.ofSwerveX2S(
 					config.ofHardware.driveMotorType,
@@ -215,13 +213,13 @@ public class SwerveDrive extends SubsystemBase {
 				)
 			);
 		}
-		
+
 		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, new Pose2d());
 		this.xPoseController = pidControllerFrom(config.ofControls.pathTranslationPID);
 		this.yPoseController = pidControllerFrom(config.ofControls.pathTranslationPID);
 		this.rotationController = pidControllerFrom(config.ofControls.pathRotationPID);
 		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
-		
+
 		if (RobotBase.isSimulation()) {
 			for (int i = 0; i < 4; i++) {
 				var steerMotor = new SimMotor(config.ofHardware.turnMotorType, config.ofModules.steerGearRatio, KilogramSquareMeters.of(0.004));
@@ -260,15 +258,15 @@ public class SwerveDrive extends SubsystemBase {
 		this.bottomLeftModule = this.swerveModules[2];
 		this.bottomRightModule = this.swerveModules[3];
 	}
-	
+
 	private boolean isRedAlliance() {
 		return DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Red);
 	}
-	
+
 	private Rotation2d addAllianceOffset(Rotation2d base) {
 		return isRedAlliance() ? base.plus(Rotation2d.k180deg) : base;
 	}
-	
+
 	private void choreoCallback(SwerveSample trajSample) {
 		var vx = trajSample.vx + xPoseController.calculate(getPose().getX(), trajSample.x);
 		var vy = trajSample.vy + yPoseController.calculate(getPose().getY(), trajSample.y);
@@ -282,9 +280,9 @@ public class SwerveDrive extends SubsystemBase {
 			true
 		);
 	}
-	
+
 	@Logged private List<SwerveSample> trajSamples = List.of();
-	
+
 	public AutoFactory createAutoFactory() {
 		return new AutoFactory(
 			this::getPose,
@@ -295,11 +293,11 @@ public class SwerveDrive extends SubsystemBase {
 			new AutoFactory.AutoBindings(),
 			(trajectory, isStart) -> {
 				trajSamples = trajectory.samples();
-				DogLog.log(name + "/currentTrajectory/name", trajectory.name());
+				log("currentTrajectory/name", trajectory.name());
 			}
 		);
 	}
-	
+
 	@Logged
 	public Pose2d getPose() {
 		if (RobotBase.isSimulation()) {
@@ -308,16 +306,16 @@ public class SwerveDrive extends SubsystemBase {
 			return estimatedPose;
 		}
 	}
-	
+
 	public SwerveDriveSimulation mapleSimApi() {
 		return mapleSim;
 	}
-	
+
 	public void resetPose(Pose2d pose) {
 		if (RobotBase.isSimulation()) mapleSim.setSimulationWorldPose(pose);
 		poseEstimator.resetPose(pose);
 	}
-	
+
 	public void addVisionCamera(
 		PhotonCamera cam,
 		Transform3d robotToCamera,
@@ -332,8 +330,9 @@ public class SwerveDrive extends SubsystemBase {
 			)
 		);
 	}
-	
-	@Logged public ChassisSpeeds getMeasuredSpeeds() {
+
+	@Logged
+	public ChassisSpeeds getMeasuredSpeeds() {
 		var speeds = getMeasuredSpeedsRobotRelative();
 		speeds = ChassisSpeeds.fromRobotRelativeSpeeds(
 			speeds,
@@ -341,24 +340,25 @@ public class SwerveDrive extends SubsystemBase {
 		);
 		return speeds;
 	}
-	
-	@Logged public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
+
+	@Logged
+	public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
 		return kinematics.toChassisSpeeds(measuredModuleStates);
 	}
-	
+
 	// closed loop allows for the robot to drive at an exact velocity.
 	private void driveCallback(ChassisSpeeds speeds, boolean closedLoop) {
 		speeds = ChassisSpeeds.discretize(speeds, 0.02);
-		DogLog.log(name + "/desiredSpeeds", speeds);
-		
+		log("desiredSpeeds", speeds);
+
 		var desiredStates = kinematics.toSwerveModuleStates(speeds);
 		SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, config.ofHardware.maxVelocity);
-		DogLog.log(name + "/desiredStates", desiredStates);
+		log("desiredStates", desiredStates);
 		for (int i = 0; i < 4; i++) {
 			swerveModules[i].setDesiredState(desiredStates[i], closedLoop);
 		}
 	}
-	
+
 	/**
 	 * Creates a Command that, when scheduled,
 	 * drives the robot forever at the requested x, y, and rotation powers.
@@ -382,7 +382,7 @@ public class SwerveDrive extends SubsystemBase {
 			useExactVelocityInTeleop
 		)).withName("SwerveDriveCmd" + (useExactVelocityInTeleop ? "(Closed Loop)" : "(Open Loop)"));
 	}
-	
+
 	/** Creates a Command that, when scheduled, drives the robot to a certain pose. */
 	public Command pathFindCmd(Pose2d targetPose, PathConstraints constraints) {
 		return new PathfindingCommand(
@@ -418,7 +418,7 @@ public class SwerveDrive extends SubsystemBase {
          )
          .withName("SwervePathfindCmd");
 	}
-	
+
 	/**
 	 * Creates a rotation input stream that locks the robot's heading.
 	 * Example:
@@ -436,11 +436,11 @@ public class SwerveDrive extends SubsystemBase {
 				getPose().getRotation().getRadians(),
 				targetHeading.in(Radians)
 			);
-			DogLog.log(name + "/headingLockOutput", output);
+			log("headingLockOutput", output);
 			return output;
 		};
 	}
-	
+
 	/**
 	 * Creates a rotation input stream that locks the robot's heading.
 	 * Example:
@@ -462,11 +462,11 @@ public class SwerveDrive extends SubsystemBase {
 				getPose().getRotation().getRadians(),
 				getYawToPose(getPose(), actualPose.get()).getRadians()
 			);
-			DogLog.log(name + "/headingLockOutput", output);
+			log("headingLockOutput", output);
 			return output;
 		};
 	}
-	
+
 	/**
 	 * Runs feedforward characterization forever until interrupt.
 	 * On end, prints feedforward numbers.
@@ -487,7 +487,7 @@ public class SwerveDrive extends SubsystemBase {
 			}
 		).withName("SwerveCharacterizeCmd");
 	}
- 
+
 	@Override
 	public void periodic() {
 		Rotation2d latestHeading = getAngleFn.get();
@@ -499,7 +499,7 @@ public class SwerveDrive extends SubsystemBase {
 				swerveModules[i].setSteerVoltage(0.0);
 			}
 		}
-		
+
 		// if rotating too fast, discard vision measurements
 		if (Math.abs(latestHeading.minus(prevHeadingCache).getDegrees() / 0.02) < 720) {
 			for (var name: visionEstimators.keySet()) {
@@ -513,29 +513,29 @@ public class SwerveDrive extends SubsystemBase {
 					var stdDevs = calculateVisionUncertainty(
 						getPose().getX(), latestHeading, Rotation2d.fromRadians(yawOfVisionEstimator)
 					);
-					DogLog.log("vision/cameras/" + name + "/hasPose", true);
-					DogLog.log("vision/cameras/" + name + "/pose", data.get().estimatedPose);
+					log("vision/cameras/" + name + "/hasPose", true);
+					log("vision/cameras/" + name + "/pose", data.get().estimatedPose);
 					for (int i = 0; i < 3; i++) stdDevStore[i] = stdDevs.get(i, 0);
-					DogLog.log("vision/cameras/" + name + "/stdDevs", stdDevStore);
+					log("vision/cameras/" + name + "/stdDevs", stdDevStore);
 					poseEstimator.addVisionMeasurement(
 						data.get().estimatedPose.toPose2d(),
 						data.get().timestampSeconds,
 						stdDevs
 					);
 				} else {
-					DogLog.log("vision/cameras/" + name + "/hasPose", false);
-					DogLog.log("vision/cameras/" + name + "/pose", Pose3d.kZero);
+					log("vision/cameras/" + name + "/hasPose", false);
+					log("vision/cameras/" + name + "/pose", Pose3d.kZero);
 				}
 			}
 		}
-		
+
 		estimatedPose = poseEstimator.update(latestHeading, measuredModulePositions);
 		prevHeadingCache = latestHeading;
-		
+
 		// on the real robot, logged pose = computed pose
-		if (RobotBase.isSimulation()) DogLog.log(name + "/odometryPose", estimatedPose);
+		if (RobotBase.isSimulation()) log("odometryPose", estimatedPose);
 	}
-	
+
 	// Credits: 6995
 	private static Matrix<N3, N1> calculateVisionUncertainty(
 		double poseX, Rotation2d heading, Rotation2d cameraYaw
@@ -548,7 +548,7 @@ public class SwerveDrive extends SubsystemBase {
 		boolean isCameraFacingFieldSideTags;
 		boolean facingRedAlliance;
 		double distanceFromTagSide;
-		
+
 		if (-90 < cameraWorldYaw.getDegrees() && cameraWorldYaw.getDegrees() < 90) {
 			// camera facing towards red alliance
 			facingRedAlliance = true;
@@ -558,7 +558,7 @@ public class SwerveDrive extends SubsystemBase {
 			facingRedAlliance = false;
 			isCameraFacingFieldSideTags = poseX < 16.5 / 2;
 		}
-		
+
 		if (isCameraFacingFieldSideTags) {
 			// uncertainty low
 			if (facingRedAlliance) {

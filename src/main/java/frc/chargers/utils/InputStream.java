@@ -1,6 +1,5 @@
 package frc.chargers.utils;
 
-import dev.doglog.DogLog;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
@@ -11,6 +10,7 @@ import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
 
 import static edu.wpi.first.wpilibj.Alert.AlertType.kWarning;
+import static monologue.Monologue.GlobalLog;
 
 /** A functional interface to aid in modifying double suppliers, such as from a joystick. */
 @SuppressWarnings("all")
@@ -176,18 +176,18 @@ public interface InputStream extends DoubleSupplier {
 	 * <p>A new stream is returned that is identical to this stream, but publishes its output to
 	 * networktables every time it is polled.
 	 *
-	 * @param key The logging key to publish to.
+	 * @param absoluteKey The logging key to publish to.
 	 * @return A stream with the same output as this one.
 	 */
-	public default InputStream log(String key) {
-		if (metLogPaths.contains(key)) {
-			logPathConflict.addCause(key);
+	public default InputStream log(String absoluteKey) {
+		if (metLogPaths.contains(absoluteKey)) {
+			logPathConflict.addCause(absoluteKey);
 			return this;
 		}
-		metLogPaths.add(key);
+		metLogPaths.add(absoluteKey);
 		return () -> {
 			double val = this.get();
-			DogLog.log(key, val);
+			GlobalLog.log(absoluteKey, val);
 			return val;
 		};
 	}

@@ -22,14 +22,12 @@ class SwerveModuleTest {
 
 	@Test
 	void setAngleTest() {
-		var drivetrain = new SwerveDrive("Test drivetrain", SwerveConfigurator.defaultConfig());
+		var drivetrain = new SwerveDrive(SwerveConfigurator.defaultConfig());
 		var module = drivetrain.getSwerveModules()[0];
 		var scheduler = newCommandScheduler();
 		runUntilComplete(
 			scheduler,
-			Commands.run(() -> {
-				module.setAngle(2.0);
-			}, drivetrain),
+			Commands.run(() -> module.setAngle(2.0), drivetrain),
 			Seconds.of(3)
 		);
 		assertEquals(2.0, module.currentState().angle.getRadians(), 0.05);
@@ -37,7 +35,7 @@ class SwerveModuleTest {
 
 	@Test
 	void setVelocityTest() {
-		var drivetrain = new SwerveDrive("Test drivetrain", SwerveConfigurator.defaultConfig());
+		var drivetrain = new SwerveDrive(SwerveConfigurator.defaultConfig());
 		SimulatedArena.overrideInstance(new Arena2024Crescendo());
 		int ticks = timeToTicks(Seconds.of(3));
 		for (int i = 0; i < ticks; i++) {

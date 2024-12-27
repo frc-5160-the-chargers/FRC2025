@@ -12,8 +12,8 @@
       <profile name="Gradle Imported" enabled="true">
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
-          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-processor-java/2025.1.1-beta-2/6fa1fbe1ec2a70edcbb921581526f69141b39937/epilogue-processor-java-2025.1.1-beta-2.jar" />
-          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-runtime-java/2025.1.1-beta-2/c2d8ed3535dae1effd5dfb5581e01610e7f561b0/epilogue-runtime-java-2025.1.1-beta-2.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-processor-java/2025.1.1-beta-3/beb820e4156c0df5e9412b6ae3f9bb25322742ab/epilogue-processor-java-2025.1.1-beta-3.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-runtime-java/2025.1.1-beta-3/669c863c5e725f62009778cbefe075c08f098fb1/epilogue-runtime-java-2025.1.1-beta-3.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
         </processorPath>
         <module name="FRC2025.main" />

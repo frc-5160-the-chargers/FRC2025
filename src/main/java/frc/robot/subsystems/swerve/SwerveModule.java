@@ -11,13 +11,14 @@ import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
+import monologue.LogLocal;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 
 import java.util.Optional;
 
 import static edu.wpi.first.units.Units.*;
 
-public class SwerveModule {
+public class SwerveModule implements LogLocal {
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
 	@Logged private final Encoder absoluteEncoder;

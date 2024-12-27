@@ -16,6 +16,7 @@
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
       "Robot/Dummy Field": "PIDController",
+      "Robot/autoChooser": "String Chooser",
       "Robot/drivetrain/rotationController": "PIDController",
       "Robot/drivetrain/xPoseController": "PIDController",
       "Robot/drivetrain/yPoseController": "PIDController",
@@ -70,6 +71,15 @@
         },
         "open": true
       },
+      "GlobalLog": {
+        "RadioStatus": {
+          "open": true
+        },
+        "open": true
+      },
+      "RadioStatus": {
+        "open": true
+      },
       "Robot": {
         "BlaBla##v_/Robot/PLSWORKLOL": {
           "open": true
@@ -86,21 +96,37 @@
         "Unknown": {
           "open": true
         },
+        "a": {
+          "b": {
+            "open": true
+          },
+          "open": true
+        },
+        "arm": {
+          "open": true
+        },
         "driverController1": {
           "open": true
         },
         "drivetrainOne": {
+          "ChassisSpeeds##v_Robot/drivetrainOne/getMeasuredSpeedsRobotRelative": {
+            "open": true
+          },
           "Pose2d##v_Robot/drivetrainOne/getPose": {
             "Rotation2d##v_rotation": {
               "open": true
             },
             "Translation2d##v_translation": {
               "open": true
-            },
-            "open": true
+            }
           },
-          "bottomLeftModule": {
-            "open": true
+          "SwerveModuleState[]##v_Robot/drivetrainOne/desiredStates": {
+            "SwerveModuleState##v_[0]": {
+              "Rotation2d##v_angle": {
+                "open": true
+              },
+              "open": true
+            }
           },
           "bottomRightModule": {
             "driveMotor": {
@@ -116,10 +142,7 @@
               "open": true
             }
           },
-          "open": true,
-          "topRightModule": {
-            "open": true
-          }
+          "open": true
         },
         "field": {
           "double[]##v_/Robot/field//Robot": {
@@ -157,10 +180,10 @@
         },
         "runningCommands": {
           "open": true
+        },
+        "test": {
+          "open": true
         }
-      },
-      "Shuffleboard": {
-        "open": true
       },
       "SmartDashboard": {
         "Alerts": {
@@ -168,8 +191,7 @@
         },
         "SwerveDrive": {
           "open": true
-        },
-        "open": true
+        }
       }
     }
   },
