@@ -185,10 +185,6 @@ public interface InputStream extends DoubleSupplier {
 			return this;
 		}
 		metLogPaths.add(absoluteKey);
-		return () -> {
-			double val = this.get();
-			GlobalLog.log(absoluteKey, val);
-			return val;
-		};
+		return () -> GlobalLog.log(absoluteKey, this.get());
 	}
 }

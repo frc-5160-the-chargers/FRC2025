@@ -431,14 +431,13 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 	 * cmd.schedule();
 	 */
 	public InputStream headingLockInputStream(Angle targetHeading) {
-		return () -> {
-			double output = rotationController.calculate(
+		return () -> log(
+			"headingLockOutput",
+			rotationController.calculate(
 				getPose().getRotation().getRadians(),
 				targetHeading.in(Radians)
-			);
-			log("headingLockOutput", output);
-			return output;
-		};
+			)
+		);
 	}
 
 	/**

@@ -66,7 +66,7 @@ public class Monologue {
     logTree(robot, config.root);
     GlobalLog.setRootPath(config.root);
     prematureCalls.forEach(Runnable::run);
-    robot.addPeriodic(Monologue::updateAll, 0.02);
+    robot.addPeriodic(Monologue::updateAll, robot.getPeriod());
     System.gc();
     RuntimeLog.info("Monologue.setupMonologue() finished");
   }

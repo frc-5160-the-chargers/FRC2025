@@ -3,14 +3,11 @@ package frc.robot;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
-import edu.wpi.first.epilogue.logging.FileBackend;
-import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
-import edu.wpi.first.epilogue.logging.errors.ErrorHandler;
+import frc.chargers.utils.logging.FileBackend;
+import frc.chargers.utils.logging.NTBackend;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -66,12 +63,11 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		// logging config; do not remove
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
-		Epilogue.getConfig().errorHandler = ErrorHandler.crashOnError();
-		Epilogue.getConfig().backend =
-			EpilogueBackend.multi(
-				new NTEpilogueBackend(NetworkTableInstance.getDefault()),
-				new FileBackend(DataLogManager.getLog())
-			);
+		Epilogue.getConfig().backend = EpilogueBackend.multi(
+			new NTBackend().disableWhen(DriverStation::isFMSAttached),
+			new FileBackend(false)
+		);
+		
 
 		SimulatedArena.getInstance().placeGamePiecesOnField();
 		mapAutoModes();
