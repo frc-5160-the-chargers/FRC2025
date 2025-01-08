@@ -4,24 +4,15 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
 
-import static edu.wpi.first.wpilibj.Alert.AlertType.kWarning;
 import static monologue.Monologue.GlobalLog;
 
 /** A functional interface to aid in modifying double suppliers, such as from a joystick. */
 @SuppressWarnings("all")
 @FunctionalInterface
 public interface InputStream extends DoubleSupplier {
-	Set<String> metLogPaths = new HashSet<>();
-	MultiAlert logPathConflict = new MultiAlert(
-		causes -> "The following log paths for InputStream.log() were repeated: " + causes,
-		kWarning
-	);
-	
 	/**
 	 * Creates an input stream from a DoubleSupplier.
 	 *
@@ -180,11 +171,6 @@ public interface InputStream extends DoubleSupplier {
 	 * @return A stream with the same output as this one.
 	 */
 	public default InputStream log(String absoluteKey) {
-		if (metLogPaths.contains(absoluteKey)) {
-			logPathConflict.addCause(absoluteKey);
-			return this;
-		}
-		metLogPaths.add(absoluteKey);
 		return () -> GlobalLog.log(absoluteKey, this.get());
 	}
 }

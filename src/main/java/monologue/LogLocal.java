@@ -6,8 +6,9 @@ import edu.wpi.first.util.struct.StructFetcher;
 import edu.wpi.first.util.struct.StructSerializable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.WeakHashMap;
+import java.util.Map;
 
 import edu.wpi.first.util.struct.Struct;
 import monologue.LoggingTree.LoggingNode;
@@ -17,18 +18,28 @@ import monologue.LoggingTree.LoggingNode;
  */
 @SuppressWarnings("unchecked")
 public interface LogLocal {
-  WeakHashMap<Object, ArrayList<LoggingNode>> registry = new WeakHashMap<>();
+  Map<Object, ArrayList<LoggingNode>> registry = new HashMap<>();
 
   static void addNode(Object logged, LoggingNode node) {
     var lst = getNodes(logged);
+    if (lst.size() > 100) {
+      RuntimeLog.warn("Log namespace determination is likely recursive: " +
+                          "An object instance is logged under >100 namespaces." +
+                          "To prevent recursion, use the @NotLogged annotation from epilogue.");
+    }
     if (!lst.contains(node)) {
       lst.add(node);
     }
   }
 
   static List<LoggingNode> getNodes(Object logged) {
-    registry.putIfAbsent(logged, new ArrayList<>());
-    return registry.get(logged);
+    var nodes = registry.get(logged);
+    if (nodes == null) {
+      var newList = new ArrayList<LoggingNode>();
+      registry.put(logged, newList);
+      return newList;
+    }
+    return nodes;
   }
   
   /**

@@ -1,5 +1,6 @@
 package frc.chargers.hardware.motorcontrol;
 
+import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.hal.HAL;
@@ -18,6 +19,9 @@ import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.simulation.LinearSystemSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -26,48 +30,55 @@ import static edu.wpi.first.units.Units.*;
  * while implementing MapleSim's SimulatedMotorController api.
  */
 public class SimMotor extends ChargerTalonFX {
-	private static int dummyId = 0;
-	private final LinearSystemSim<N2, N1, N2> sim;
+	@FunctionalInterface
+	public interface SimMotorType {
+		LinearSystemSim<N2, N1, N2> createSim(double gearRatio);
+		
+		static SimMotorType base(DCMotor motorKind, MomentOfInertia moi) {
+			return gearRatio -> new DCMotorSim(
+				LinearSystemId.createDCMotorSystem(motorKind, moi.in(KilogramSquareMeters), gearRatio),
+				motorKind
+			);
+		}
+		
+		static SimMotorType elevator(DCMotor motorKind, Mass mass) {
+			return gearRatio -> new ElevatorSim(
+				motorKind, gearRatio, mass.in(Kilograms), 1.0,
+				Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
+				true, 0.0
+			);
+		}
+		
+		static SimMotorType singleJointedArm(DCMotor motorKind, MomentOfInertia moi, Distance armLength) {
+			return gearRatio -> new SingleJointedArmSim(
+				motorKind, gearRatio, moi.in(KilogramSquareMeters), armLength.in(Meters),
+				Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
+				true, 0.0
+			);
+		}
+	}
+	
+	private final SimMotorType motorType;
 	private final TalonFXSimState talonSimApi;
+	
+	private static int dummyId = 0;
+	private LinearSystemSim<N2, N1, N2> sim;
+	private double currentGearRatio;
 	private boolean isMapleSim = false;
 	
-	public static SimMotor elevator(DCMotor motorType, double gearRatio, Mass mass) {
-		return new SimMotor(
-			new ElevatorSim(
-				motorType, gearRatio, mass.in(Kilograms), 1.0,
-				Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
-				true, 0.0
-			),
-			gearRatio
-		);
-	}
-	
-	public static SimMotor singleJointedArm(DCMotor motorType, double gearRatio, MomentOfInertia moi, Distance armLength) {
-		return new SimMotor(
-			new SingleJointedArmSim(
-				motorType, gearRatio, moi.in(KilogramSquareMeters), armLength.in(Meters),
-				Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
-				true, 0.0
-			),
-			gearRatio
-		);
-	}
-	
-	public SimMotor(DCMotor motorType, double gearRatio, MomentOfInertia moi) {
-		this(
-			new DCMotorSim(
-				LinearSystemId.createDCMotorSystem(motorType, moi.in(KilogramSquareMeters), gearRatio),
-				motorType
-			),
-			gearRatio
-		);
-	}
-	
-	public SimMotor(LinearSystemSim<N2, N1, N2> sim, double gearRatio) {
-		super(dummyId++, gearRatio);
+	public SimMotor(SimMotorType motorType, @Nullable Consumer<TalonFXConfigurator> configureFn) {
+		super(dummyId++, configureFn);
 		this.talonSimApi = baseMotor.getSimState();
-		this.sim = sim;
+		this.motorType = motorType;
+		this.sim = motorType.createSim(1.0); // default to a gear ratio of 1.0
 		HAL.registerSimPeriodicAfterCallback(this::periodicCallback);
+	}
+	
+	@Override
+	public void setCommonConfig(CommonConfig newConfig) {
+		super.setCommonConfig(newConfig);
+		currentGearRatio = newConfig.gearRatio();
+		sim = motorType.createSim(newConfig.gearRatio());
 	}
 	
 	public SimMotor setOrientation(ChassisReference orientation) {
@@ -91,7 +102,7 @@ public class SimMotor extends ChargerTalonFX {
 		sim.update(0.02);
 		
 		talonSimApi.setSupplyVoltage(RobotController.getBatteryVoltage());
-		talonSimApi.setRawRotorPosition(Radians.of(sim.getOutput(0) * super.gearRatio));
-		talonSimApi.setRotorVelocity(RadiansPerSecond.of(sim.getOutput(1) * super.gearRatio));
+		talonSimApi.setRawRotorPosition(Radians.of(sim.getOutput(0) * currentGearRatio));
+		talonSimApi.setRotorVelocity(RadiansPerSecond.of(sim.getOutput(1) * currentGearRatio));
 	}
 }

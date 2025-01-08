@@ -47,7 +47,7 @@ public class LoggingTree {
         RuntimeLog.warn(err);
         return;
       }
-      if (o instanceof LogLocal && LogLocal.getNodes(o).isEmpty()) {
+      if (o instanceof LogLocal && !LogLocal.getNodes(o).contains(this)) {
         LogLocal.addNode(o, this);
       }
       for (LoggingNode child : children) {

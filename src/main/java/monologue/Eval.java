@@ -11,7 +11,7 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import monologue.LoggingTree.*;
 
-public class Eval {
+class Eval {
   static List<Class<?>> getLoggedInHierarchy(Class<?> type, Class<?> stop) {
     ArrayList<Class<?>> result = new ArrayList<Class<?>>();
 
@@ -47,7 +47,7 @@ public class Eval {
   }
   
   static List<Field> getAllFields(List<Class<?>> classes) {
-    ArrayList<Field> result = new ArrayList<Field>();
+    ArrayList<Field> result = new ArrayList<>();
     for (Class<?> clazz : classes) {
       Collections.addAll(result, clazz.getDeclaredFields());
     }

@@ -67,7 +67,6 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 			new NTBackend().disableWhen(DriverStation::isFMSAttached),
 			new FileBackend(false)
 		);
-		
 
 		SimulatedArena.getInstance().placeGamePiecesOnField();
 		mapAutoModes();
@@ -87,13 +86,9 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		CommandScheduler.getInstance().run();
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().simulationPeriodic();
-			// occasionally, maplesim can output NaN battery voltages
-			log(
-				"simNotePoses",
-				SimulatedArena.getInstance()
-					.getGamePiecesByType("Note")
-					.toArray(new Pose3d[]{})
-			);
+			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
+			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
+			log("simulatedCoralAlgaeStackPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("CoralAlgaeStack"));
 		}
 	}
 }

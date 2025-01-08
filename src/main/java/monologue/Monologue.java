@@ -68,7 +68,7 @@ public class Monologue {
     prematureCalls.forEach(Runnable::run);
     robot.addPeriodic(Monologue::updateAll, robot.getPeriod());
     System.gc();
-    RuntimeLog.info("Monologue.setupMonologue() finished");
+    RuntimeLog.info("Monologue.setup() finished");
   }
 
   /**

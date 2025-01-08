@@ -1,6 +1,5 @@
 package frc.chargers.utils;
 
-import com.pathplanner.lib.config.PIDConstants;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;

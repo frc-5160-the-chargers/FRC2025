@@ -1,10 +1,6 @@
 package frc.chargers.hardware.motorcontrol;
 
 import com.ctre.phoenix6.StatusSignal;
-import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
-import com.ctre.phoenix6.configs.MotorOutputConfigs;
-import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.Slot1Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -12,37 +8,35 @@ import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.pathplanner.lib.config.PIDConstants;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.chargers.hardware.encoders.Encoder;
-import lombok.experimental.FieldDefaults;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
 
 import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static java.lang.Math.PI;
 
-@FieldDefaults(makeFinal = true)
 public class ChargerTalonFX implements Motor, AutoCloseable {
 	protected TalonFX baseMotor;
-	protected double gearRatio;
-	private StatusSignal<Angle> positionSignal;
-	private StatusSignal<AngularVelocity> velocitySignal;
-	private StatusSignal<Voltage> voltageSignal;
-	private StatusSignal<Current> currentSignal;
-	private StatusSignal<Current> supplyCurrentSignal;
-	private StatusSignal<Temperature> tempSignal;
+	private final StatusSignal<Angle> positionSignal;
+	private final StatusSignal<AngularVelocity> velocitySignal;
+	private final StatusSignal<Voltage> voltageSignal;
+	private final StatusSignal<Current> currentSignal;
+	private final StatusSignal<Current> supplyCurrentSignal;
+	private final StatusSignal<Temperature> tempSignal;
 	
-	private VoltageOut voltageRequest = new VoltageOut(0.0);
-	private PositionVoltage setAngleRequest = new PositionVoltage(0.0).withSlot(0);
-	private VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0).withSlot(1);
-	private TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0.0);
+	private final VoltageOut voltageRequest = new VoltageOut(0.0);
+	private final PositionVoltage setAngleRequest = new PositionVoltage(0.0).withSlot(0);
+	private final VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0).withSlot(1);
+	private final TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0.0);
 	
-	private Encoder encoder = new Encoder() {
+	private final Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
 			return rotationsToRadians(positionSignal.refresh().getValueAsDouble());
@@ -59,7 +53,7 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 		}
 	};
 	
-	public ChargerTalonFX(int id, double gearRatio) {
+	public ChargerTalonFX(int id, @Nullable Consumer<TalonFXConfigurator> configureFn) {
 		this.baseMotor = new TalonFX(id);
 		this.positionSignal = baseMotor.getPosition();
 		this.velocitySignal = baseMotor.getVelocity();
@@ -67,31 +61,17 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 		this.currentSignal = baseMotor.getStatorCurrent();
 		this.supplyCurrentSignal = baseMotor.getSupplyCurrent();
 		this.tempSignal = baseMotor.getDeviceTemp();
-		this.gearRatio = gearRatio;
-		this.configure(new TalonFXConfiguration());
+		if (configureFn != null) configureFn.accept(baseMotor.getConfigurator());
+	}
+	
+	public TalonFXConfigurator getConfigurator() {
+		return baseMotor.getConfigurator();
 	}
 	
 	public ChargerTalonFX withPhoenixPro() {
 		voltageRequest.EnableFOC = true;
 		setAngleRequest.EnableFOC = true;
 		setVelocityRequest.EnableFOC = true;
-		return this;
-	}
-	
-	/**
-	 * Fetches the base TalonFX Configurator.
-	 * <h6>WARNING: If you use motor.getConfigurator().apply(TalonFXConfiguration),
-	 * your gear ratio will be reset.</h6>
-	 */
-	public TalonFXConfigurator getConfigurator() {
-		return baseMotor.getConfigurator();
-	}
-	
-	/** Configures this motor with a TalonFXConfiguration. */
-	public ChargerTalonFX configure(TalonFXConfiguration config) {
-		if (config == null) return this;
-		config.Feedback.SensorToMechanismRatio = gearRatio;
-		baseMotor.getConfigurator().apply(config, 0.010);
 		return this;
 	}
 	
@@ -134,38 +114,25 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	}
 	
 	@Override
-	public void setCoastMode(boolean on) {
-		var config = new MotorOutputConfigs();
-		getConfigurator().refresh(config);
-		config.NeutralMode = on ? NeutralModeValue.Coast : NeutralModeValue.Brake;
-		getConfigurator().apply(config);
-	}
-	
-	@Override
-	public void setPositionPID(PIDConstants constants) {
-		baseMotor.getConfigurator().apply(
-			new Slot0Configs()
-				.withKP(constants.kP * (2 * PI))
-				.withKI(constants.kI * (2 * PI))
-				.withKD(constants.kD * (2 * PI))
-		);
-	}
-	
-	@Override
-	public void setVelocityPID(PIDConstants constants) {
-		baseMotor.getConfigurator().apply(
-			new Slot1Configs()
-				.withKP(constants.kP * (2 * PI))
-				.withKI(constants.kI * (2 * PI))
-				.withKD(constants.kD * (2 * PI))
-		);
-	}
-	
-	@Override
-	public void enableContinuousInput() {
-		var config = new ClosedLoopGeneralConfigs();
-		config.ContinuousWrap = true;
-		baseMotor.getConfigurator().apply(config);
+	public void setCommonConfig(CommonConfig newConfig) {
+		var motorConfig = new TalonFXConfiguration();
+		baseMotor.getConfigurator().refresh(motorConfig);
+		if (newConfig.gearRatio() != 1.0) {
+			System.out.println(newConfig.gearRatio());
+			motorConfig.Feedback.SensorToMechanismRatio = newConfig.gearRatio();
+		}
+		if (newConfig.positionPID().kP != 0.0) {
+			motorConfig.Slot0.kP = newConfig.positionPID().kP * (2 * PI);
+			motorConfig.Slot0.kI = newConfig.positionPID().kI * (2 * PI);
+			motorConfig.Slot0.kD = newConfig.positionPID().kD * (2 * PI);
+			motorConfig.ClosedLoopGeneral.ContinuousWrap = newConfig.continuousInput();
+		}
+		if (newConfig.velocityPID().kP != 0.0) {
+			motorConfig.Slot1.kP = newConfig.velocityPID().kP * (2 * PI);
+			motorConfig.Slot1.kI = newConfig.velocityPID().kI * (2 * PI);
+			motorConfig.Slot1.kD = newConfig.velocityPID().kD * (2 * PI);
+		}
+		baseMotor.getConfigurator().apply(motorConfig, 0.01);
 	}
 	
 	@Override

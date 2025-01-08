@@ -1,37 +1,33 @@
 package frc.chargers.hardware.motorcontrol;
 
-import com.pathplanner.lib.config.PIDConstants;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.config.EncoderConfig;
-import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.units.measure.Angle;
 import frc.chargers.hardware.encoders.Encoder;
-import lombok.experimental.FieldDefaults;
+import lombok.Getter;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Consumer;
+
+import static com.revrobotics.spark.ClosedLoopSlot.kSlot0;
+import static com.revrobotics.spark.ClosedLoopSlot.kSlot1;
 import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kNoResetSafeParameters;
-import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType;
-import static com.revrobotics.spark.config.ClosedLoopConfig.ClosedLoopSlot.kSlot0;
-import static com.revrobotics.spark.config.ClosedLoopConfig.ClosedLoopSlot.kSlot1;
-import static com.revrobotics.spark.config.SparkBaseConfig.IdleMode.kBrake;
-import static com.revrobotics.spark.config.SparkBaseConfig.IdleMode.kCoast;
 import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static edu.wpi.first.units.Units.Rotations;
 import static java.lang.Math.PI;
 
-@FieldDefaults(makeFinal = true)
 public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoCloseable {
-	private BaseMotor baseMotor;
-	private RelativeEncoder baseEncoder;
-	private SparkClosedLoopController pidController;
-	private Encoder encoder = new Encoder() {
+	@Getter private final BaseMotor baseMotor;
+	private final RelativeEncoder baseEncoder;
+	private final SparkClosedLoopController pidController;
+	private final Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
 			return rotationsToRadians(baseEncoder.getPosition());
@@ -48,47 +44,31 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 		}
 	};
 	
-	public static ChargerSpark<SparkMax> max(int id, double gearRatio) {
-		return new ChargerSpark<>(new SparkMax(id, MotorType.kBrushless), gearRatio);
+	public static ChargerSpark<SparkMax> max(int id, @Nullable Consumer<SparkMax> configureFn) {
+		var baseMotor = new SparkMax(id, MotorType.kBrushless);
+		if (configureFn != null) configureFn.accept(baseMotor);
+		return new ChargerSpark<>(baseMotor);
 	}
 	
-	public static ChargerSpark<SparkFlex> flex(int id, double gearRatio) {
-		return new ChargerSpark<>(new SparkFlex(id, MotorType.kBrushless), gearRatio);
+	public static ChargerSpark<SparkFlex> flex(int id, @Nullable Consumer<SparkFlex> configureFn) {
+		var baseMotor = new SparkFlex(id, MotorType.kBrushless);
+		if (configureFn != null) configureFn.accept(baseMotor);
+		return new ChargerSpark<>(baseMotor);
 	}
 	
-	public static ChargerSpark<SparkMax> brushed(int id, double gearRatio) {
-		return new ChargerSpark<>(new SparkMax(id, MotorType.kBrushed), gearRatio);
+	public static ChargerSpark<SparkMax> brushed(int id, @Nullable Consumer<SparkMax> configureFn) {
+		var baseMotor = new SparkMax(id, MotorType.kBrushed);
+		if (configureFn != null) configureFn.accept(baseMotor);
+		return new ChargerSpark<>(baseMotor);
 	}
 	
 	/**
 	 * Use {@link ChargerSpark#max} or {@link ChargerSpark#flex} instead.
 	 */
-	private ChargerSpark(BaseMotor baseMotor, double gearRatio) {
+	private ChargerSpark(BaseMotor baseMotor) {
 		this.baseMotor = baseMotor;
 		this.baseEncoder = baseMotor.getEncoder();
 		this.pidController = baseMotor.getClosedLoopController();
-		baseMotor.configure(
-			new SparkMaxConfig().apply(
-				new EncoderConfig()
-					.positionConversionFactor(1 / gearRatio)
-					.velocityConversionFactor(1 / gearRatio)
-			),
-			kResetSafeParameters, kPersistParameters
-		);
-	}
-	
-	public ChargerSpark<BaseMotor> configure(
-		SparkBaseConfig config,
-		SparkBase.ResetMode resetMode,
-		SparkBase.PersistMode persistMode
-	) {
-		baseMotor.configure(config, resetMode, persistMode);
-		return this;
-	}
-	
-	public ChargerSpark<BaseMotor> configure(SparkBaseConfig config) {
-		baseMotor.configure(config, kResetSafeParameters, kPersistParameters);
-		return this;
 	}
 	
 	@Override
@@ -113,15 +93,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 		pidController.setReference(
 			radiansToRotations(velocityRadPerSec),
 			SparkBase.ControlType.kVelocity,
-			1
-		);
-	}
-	
-	@Override
-	public void setCoastMode(boolean on) {
-		baseMotor.configure(
-			new SparkMaxConfig().idleMode(on ? kBrake : kCoast),
-			kNoResetSafeParameters, kPersistParameters
+			kSlot1
 		);
 	}
 	
@@ -133,31 +105,31 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoClo
 		pidController.setReference(
 			radiansToRotations(positionRads),
 			SparkBase.ControlType.kVelocity,
-			2
+			kSlot0
 		);
 	}
 	
 	@Override
-	public void setPositionPID(PIDConstants constants) {
-		var config = new SparkMaxConfig();
-		config.closedLoop.p(constants.kP, kSlot0).i(constants.kI, kSlot0).d(constants.kD, kSlot0);
-		baseMotor.configure(config, kNoResetSafeParameters, kPersistParameters);
+	public void setCommonConfig(CommonConfig newConfig) {
+		var baseConfig = new SparkMaxConfig();
+		if (newConfig.positionPID().kP != 0.0) {
+			baseConfig.closedLoop
+				.pid(newConfig.positionPID().kP, newConfig.positionPID().kI, newConfig.positionPID().kD, kSlot0)
+				.positionWrappingEnabled(newConfig.continuousInput())
+				.positionWrappingInputRange(-PI, PI);
+		}
+		if (newConfig.velocityPID().kP != 0.0) {
+			baseConfig.closedLoop
+				.pid(newConfig.velocityPID().kP, newConfig.velocityPID().kI, newConfig.velocityPID().kD, kSlot1);
+		}
+		if (newConfig.gearRatio() != 1.0) {
+			baseConfig.encoder
+				.positionConversionFactor(1 / newConfig.gearRatio())
+				.velocityConversionFactor(1 / newConfig.gearRatio());
+		}
+		baseMotor.configure(baseConfig, kNoResetSafeParameters, kPersistParameters);
 	}
 	
 	@Override
-	public void setVelocityPID(PIDConstants constants) {
-		var config = new SparkMaxConfig();
-		config.closedLoop.p(constants.kP, kSlot1).i(constants.kI, kSlot1).d(constants.kD, kSlot1);
-		baseMotor.configure(config, kNoResetSafeParameters, kPersistParameters);
-	}
-	
-	@Override
-	public void enableContinuousInput() {
-		var config = new SparkMaxConfig();
-		config.closedLoop.positionWrappingEnabled(true).positionWrappingInputRange(-PI, PI);
-		baseMotor.configure(config, kNoResetSafeParameters, kPersistParameters);
-	}
-	
-	@Override
-	public void close(){ baseMotor.close(); }
+	public void close() { baseMotor.close(); }
 }
