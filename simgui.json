@@ -12,6 +12,7 @@
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Alerts": "Alerts",
       "/SmartDashboard/AutoChooser": "String Chooser",
+      "/SmartDashboard/Choreo Alerts": "Alerts",
       "/SmartDashboard/ChoreoAlert": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",

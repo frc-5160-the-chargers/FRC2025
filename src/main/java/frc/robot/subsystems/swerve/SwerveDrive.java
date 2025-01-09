@@ -2,7 +2,7 @@ package frc.robot.subsystems.swerve;
 
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
-import choreo.util.AllianceFlipUtil;
+import choreo.util.ChoreoAllianceFlipUtil;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.DeviceIdentifier;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -66,7 +66,6 @@ import java.util.function.Supplier;
 import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
-import static frc.chargers.utils.ShorterUnitsNames.KgSquareMeters;
 import static frc.chargers.utils.UtilMethods.pidControllerFrom;
 import static org.photonvision.PhotonUtils.getYawToPose;
 
@@ -77,7 +76,7 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  */
 @SuppressWarnings("unused")
 @ExtensionMethod(UtilExtensionMethods.class)
-public class SwerveDrive extends SubsystemBase implements LogLocal {
+public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseable {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
@@ -128,7 +127,7 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 	private final SwerveDriveKinematics kinematics;
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
-	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
+	private final SwerveModule[] swerveModules = new SwerveModule[4];
 	private final RepulsorFieldPlanner fieldPlanner = new RepulsorFieldPlanner();
 	// given dummy values in case called on real robot
 	@Getter private TalonFXConfigurator simDriveConfigurator = new TalonFXConfigurator(new DeviceIdentifier());
@@ -183,7 +182,6 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
-				.withGyro(COTS.ofPigeon2())
 				.withTrackLengthTrackWidth(config.ofHardware.trackWidth, config.ofHardware.trackWidth)
 				.withRobotMass(config.ofHardware.robotMass)
 				.withBumperSize(
@@ -220,19 +218,23 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 		for (int i = 0; i < 4; i++) {
 			Motor steerMotor;
 			Motor driveMotor;
+			Encoder absoluteEncoder;
 			if (RobotBase.isSimulation()) {
 				steerMotor = new SimMotor(
-					SimMotorType.base(DCMotor.getNEO(1), KgSquareMeters.of(0.004)),
+					SimMotorType.DC(DCMotor.getNEO(1), 0.004),
 					configurator -> this.simSteerConfigurator = configurator
 				);
 				driveMotor = new SimMotor(
-					SimMotorType.base(DCMotor.getNEO(1), KgSquareMeters.of(0.025)),
+					SimMotorType.DC(DCMotor.getNEO(1), 0.025),
 					configurator -> this.simDriveConfigurator = configurator
 				);
+				absoluteEncoder = new VoidEncoder();
 			} else {
 				steerMotor = config.realSteerMotors().get(i);
 				driveMotor = config.realDriveMotors().get(i);
+				absoluteEncoder = config.realAbsoluteEncoders().get(i);
 			}
+			
 			steerMotor.setCommonConfig(
 				CommonConfig.EMPTY
 					.withGearRatio(config.ofModules.steerGearRatio)
@@ -245,17 +247,10 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 					.withVelocityPID(config.ofControls.velocityPID)
 			);
 			
-			if (RobotBase.isSimulation()) {
-				this.swerveModules[i] = new SwerveModule(
-					config, new VoidEncoder(), steerMotor,
-					driveMotor, Optional.of(mapleSim.getModules()[i])
-				);
-			} else {
-				this.swerveModules[i] = new SwerveModule(
-					config, config.realAbsoluteEncoders.get(i),
-					driveMotor, steerMotor, Optional.empty()
-				);
-			}
+			this.swerveModules[i] = new SwerveModule(
+				config, absoluteEncoder, steerMotor,
+				driveMotor, RobotBase.isSimulation() ? Optional.of(mapleSim.getModules()[i]) : Optional.empty()
+			);
 		}
 		if (RobotBase.isSimulation()) {
 			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
@@ -300,7 +295,6 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 			this::choreoCallback,
 			true,
 			this,
-			new AutoFactory.AutoBindings(),
 			(trajectory, isStart) -> {
 				trajSamples = trajectory.samples();
 				log("currentTrajectory/name", trajectory.name());
@@ -315,10 +309,6 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 		} else {
 			return estimatedPose;
 		}
-	}
-
-	public SwerveDriveSimulation mapleSimApi() {
-		return mapleSim;
 	}
 
 	public void resetPose(Pose2d pose) {
@@ -358,7 +348,7 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 
 	// closed loop allows for the robot to drive at an exact velocity.
 	private void driveCallback(ChassisSpeeds speeds, boolean closedLoop) {
-		//speeds = ChassisSpeeds.discretize(speeds, 0.02);
+		speeds = ChassisSpeeds.discretize(speeds, 0.02);
 		log("desiredSpeeds", speeds);
 
 		var desiredStates = kinematics.toSwerveModuleStates(speeds);
@@ -441,7 +431,7 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 		var actualPose = new AtomicReference<Pose2d>();
 		return () -> {
 			if (actualPose.get() == null) {
-				actualPose.set(shouldFlip ? AllianceFlipUtil.flip(pose) : pose);
+				actualPose.set(shouldFlip ? ChoreoAllianceFlipUtil.flip(pose) : pose);
 			}
 			double output = rotationController.calculate(
 				getPose().getRotation().getRadians(),
@@ -484,8 +474,8 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 				swerveModules[i].setSteerVoltage(0.0);
 			}
 		}
+		estimatedPose = poseEstimator.update(latestHeading, measuredModulePositions);
 		
-		// if rotating too fast, discard vision measurements
 		if (Math.abs(latestHeading.minus(prevHeadingCache).getDegrees() / 0.02) < 720) {
 			for (var name: visionEstimators.keySet()) {
 				var yawOfVisionEstimator =
@@ -559,5 +549,10 @@ public class SwerveDrive extends SubsystemBase implements LogLocal {
 				 / (1 + Math.pow(Math.E, (a + (b * distanceFromTagSide)))))
 				+ minimumUncertainty;
 		return VecBuilder.fill(positionUncertainty, positionUncertainty, 10000);
+	}
+	
+	@Override
+	public void close() throws Exception {
+		for (var mod: swerveModules) { mod.close(); }
 	}
 }

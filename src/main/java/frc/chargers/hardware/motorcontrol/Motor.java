@@ -11,7 +11,7 @@ import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
 @Logged
-public interface Motor {
+public interface Motor extends AutoCloseable {
 	@With
 	record CommonConfig(
 		double gearRatio,

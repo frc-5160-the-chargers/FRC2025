@@ -23,7 +23,7 @@ import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static edu.wpi.first.units.Units.Rotations;
 import static java.lang.Math.PI;
 
-public class ChargerSpark<BaseMotor extends SparkBase> implements Motor, AutoCloseable {
+public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 	@Getter private final BaseMotor baseMotor;
 	private final RelativeEncoder baseEncoder;
 	private final SparkClosedLoopController pidController;

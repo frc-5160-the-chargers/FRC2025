@@ -57,10 +57,10 @@ public class SwerveConfigurator {
 	}
 
 	private static List<Motor> getRealDriveMotors() {
-		var tl = new ChargerTalonFX(0, null);
-		var tr = new ChargerTalonFX(1, null);
-		var bl = new ChargerTalonFX(2, null);
-		var br = new ChargerTalonFX(3, null);
+		var tl = new ChargerTalonFX(20, null);
+		var tr = new ChargerTalonFX(21, null);
+		var bl = new ChargerTalonFX(22, null);
+		var br = new ChargerTalonFX(23, null);
 
 		for (var motor: List.of(tl, tr, bl, br)) {
 			motor.getConfigurator().apply(

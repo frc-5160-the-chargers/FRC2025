@@ -1,13 +1,16 @@
 package frc.chargers.hardware.motorcontrol;
 
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
+import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -22,8 +25,9 @@ import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static java.lang.Math.PI;
 
-public class ChargerTalonFX implements Motor, AutoCloseable {
+public class ChargerTalonFX implements Motor {
 	protected TalonFX baseMotor;
+	private boolean hasFusedSensor = false;
 	private final StatusSignal<Angle> positionSignal;
 	private final StatusSignal<AngularVelocity> velocitySignal;
 	private final StatusSignal<Voltage> voltageSignal;
@@ -31,10 +35,10 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 	private final StatusSignal<Current> supplyCurrentSignal;
 	private final StatusSignal<Temperature> tempSignal;
 	
-	private final VoltageOut voltageRequest = new VoltageOut(0.0);
-	private final PositionVoltage setAngleRequest = new PositionVoltage(0.0).withSlot(0);
-	private final VelocityVoltage setVelocityRequest = new VelocityVoltage(0.0).withSlot(1);
-	private final TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0.0);
+	private final VoltageOut voltageRequest = new VoltageOut(0);
+	private final PositionVoltage setAngleRequest = new PositionVoltage(0).withSlot(0);
+	private final VelocityVoltage setVelocityRequest = new VelocityVoltage(0).withSlot(1);
+	private final TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0);
 	
 	private final Encoder encoder = new Encoder() {
 		@Override
@@ -72,6 +76,16 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 		voltageRequest.EnableFOC = true;
 		setAngleRequest.EnableFOC = true;
 		setVelocityRequest.EnableFOC = true;
+		return this;
+	}
+	
+	public ChargerTalonFX withFusedSensor(CANcoder canCoder) {
+		hasFusedSensor = true;
+		var config = new FeedbackConfigs();
+		baseMotor.getConfigurator().refresh(config);
+		config.FeedbackRemoteSensorID = canCoder.getDeviceID();
+		config.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
+		baseMotor.getConfigurator().apply(config);
 		return this;
 	}
 	
@@ -118,8 +132,11 @@ public class ChargerTalonFX implements Motor, AutoCloseable {
 		var motorConfig = new TalonFXConfiguration();
 		baseMotor.getConfigurator().refresh(motorConfig);
 		if (newConfig.gearRatio() != 1.0) {
-			System.out.println(newConfig.gearRatio());
-			motorConfig.Feedback.SensorToMechanismRatio = newConfig.gearRatio();
+			if (hasFusedSensor) {
+				motorConfig.Feedback.RotorToSensorRatio = newConfig.gearRatio();
+			} else {
+				motorConfig.Feedback.SensorToMechanismRatio = newConfig.gearRatio();
+			}
 		}
 		if (newConfig.positionPID().kP != 0.0) {
 			motorConfig.Slot0.kP = newConfig.positionPID().kP * (2 * PI);

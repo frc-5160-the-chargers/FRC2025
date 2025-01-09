@@ -29,7 +29,7 @@ public class AutoCommands {
 			Commands.print("Aiming! 1").withName("Intake")
 		);
 		routine.active().onTrue(
-			routine.resetOdometry(ampToM1).andThen(ampToM1.cmd()).withName("FourPieceAutoEntry")
+			ampToM1.resetOdometry().andThen(ampToM1.cmd()).withName("FourPieceAutoEntry")
 		);
 		
 		ampToM1.done().onTrue(

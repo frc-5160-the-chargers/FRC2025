@@ -11,7 +11,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Mass;
-import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -34,9 +33,9 @@ public class SimMotor extends ChargerTalonFX {
 	public interface SimMotorType {
 		LinearSystemSim<N2, N1, N2> createSim(double gearRatio);
 		
-		static SimMotorType base(DCMotor motorKind, MomentOfInertia moi) {
+		static SimMotorType DC(DCMotor motorKind, double moiKgMetersSquared) {
 			return gearRatio -> new DCMotorSim(
-				LinearSystemId.createDCMotorSystem(motorKind, moi.in(KilogramSquareMeters), gearRatio),
+				LinearSystemId.createDCMotorSystem(motorKind, moiKgMetersSquared, gearRatio),
 				motorKind
 			);
 		}
@@ -49,9 +48,9 @@ public class SimMotor extends ChargerTalonFX {
 			);
 		}
 		
-		static SimMotorType singleJointedArm(DCMotor motorKind, MomentOfInertia moi, Distance armLength) {
+		static SimMotorType singleJointedArm(DCMotor motorKind, double moiKgMetersSquared, Distance armLength) {
 			return gearRatio -> new SingleJointedArmSim(
-				motorKind, gearRatio, moi.in(KilogramSquareMeters), armLength.in(Meters),
+				motorKind, gearRatio, moiKgMetersSquared, armLength.in(Meters),
 				Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
 				true, 0.0
 			);

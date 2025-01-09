@@ -16,9 +16,10 @@ import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 
 import java.util.Optional;
 
+import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 
-public class SwerveModule implements LogLocal {
+public class SwerveModule implements LogLocal, AutoCloseable {
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
 	@Logged private final Encoder absoluteEncoder;
@@ -33,9 +34,26 @@ public class SwerveModule implements LogLocal {
 		Motor driveMotor,
 		Optional<SwerveModuleSimulation> mapleSim
 	) {
-		this.wheelRadius = config.ofModules().wheelRadius;
-		this.maxVelocity = config.ofHardware().maxVelocity();
-		this.velocityFF = config.ofControls().velocityFeedforward();
+		this(
+			config.ofModules().wheelRadius,
+			config.ofHardware().maxVelocity(),
+			config.ofControls().velocityFeedforward(),
+			absoluteEncoder, steerMotor, driveMotor, mapleSim
+		);
+	}
+	
+	public SwerveModule(
+		Distance wheelRadius,
+		LinearVelocity maxVelocity,
+		SimpleMotorFeedforward velocityFF,
+		Encoder absoluteEncoder,
+		Motor steerMotor,
+		Motor driveMotor,
+		Optional<SwerveModuleSimulation> mapleSim
+	) {
+		this.wheelRadius = wheelRadius;
+		this.maxVelocity = maxVelocity;
+		this.velocityFF = velocityFF;
 		this.steerMotor = steerMotor;
 		this.driveMotor = driveMotor;
 		this.absoluteEncoder = absoluteEncoder;
@@ -49,9 +67,10 @@ public class SwerveModule implements LogLocal {
 	}
 	
 	public void setDesiredState(SwerveModuleState state, boolean closedLoop) {
-		var currentAngle = Rotation2d.fromRadians(steerMotor.encoder().positionRad());
+		var currentAngle = Rotation2d.fromRadians(angleModulus(steerMotor.encoder().positionRad()));
 		state.optimize(currentAngle);
 		state.cosineScale(currentAngle);
+		log("targetState", state);
 		
 		steerMotor.moveToPosition(state.angle.getRadians());
 		if (closedLoop) {
@@ -81,7 +100,17 @@ public class SwerveModule implements LogLocal {
 		);
 	}
 	
-	public void setSteerVoltage(double voltage) { steerMotor.setVoltage(voltage); }
+	public void setSteerVoltage(double voltage) {
+		steerMotor.setVoltage(voltage);
+	}
 	
-	public void setDriveVoltage(double voltage){ driveMotor.setVoltage(voltage); }
+	public void setDriveVoltage(double voltage){
+		driveMotor.setVoltage(voltage);
+	}
+	
+	@Override
+	public void close() throws Exception {
+		driveMotor.close();
+		steerMotor.close();
+	}
 }

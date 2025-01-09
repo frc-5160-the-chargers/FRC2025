@@ -1,12 +1,12 @@
 package frc.robot;
 
+import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import frc.chargers.utils.logging.FileBackend;
 import frc.chargers.utils.logging.NTBackend;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -14,7 +14,6 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.chargers.utils.AutoChooser;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.UtilExtensionMethods;
 import frc.robot.commands.AutoCommands;
@@ -88,7 +87,6 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 			SimulatedArena.getInstance().simulationPeriodic();
 			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
 			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
-			log("simulatedCoralAlgaeStackPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("CoralAlgaeStack"));
 		}
 	}
 }
