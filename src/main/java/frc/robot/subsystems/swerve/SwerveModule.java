@@ -70,7 +70,6 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		var currentAngle = Rotation2d.fromRadians(angleModulus(steerMotor.encoder().positionRad()));
 		state.optimize(currentAngle);
 		state.cosineScale(currentAngle);
-		log("targetState", state);
 		
 		steerMotor.moveToPosition(state.angle.getRadians());
 		if (closedLoop) {

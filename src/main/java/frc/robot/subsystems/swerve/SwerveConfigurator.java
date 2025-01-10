@@ -1,6 +1,6 @@
 package frc.robot.subsystems.swerve;
 
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.utils.PIDConstants;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -11,9 +11,8 @@ import frc.chargers.hardware.motorcontrol.Motor;
 import frc.robot.subsystems.swerve.SwerveDrive.ControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.HardwareConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
+import frc.robot.subsystems.swerve.SwerveDrive.SwerveCorner;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
-
-import java.util.List;
 
 import static edu.wpi.first.units.Units.*;
 import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TREAD;
@@ -21,8 +20,8 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 
-	public static SwerveDriveConfig defaultConfig() {
-		return new SwerveDriveConfig(
+	public static final SwerveDriveConfig DEFAULT_CONFIG =
+		new SwerveDriveConfig(
 			new HardwareConfig(
 				Inches.of(27), // trackwidth
 				Inches.of(27), // wheelbase
@@ -41,37 +40,28 @@ public class SwerveConfigurator {
 				new PIDConstants(5.0, 0.0, 0.0) // path rotation pid
 			),
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
-			getRealDriveMotors(), // real drive motor getter method
-			getRealTurnMotors(),  // real turn motor getter method
-			List.of() // encoders
+			SwerveConfigurator::getSteerMotor,
+			SwerveConfigurator::getDriveMotor,
+			corner -> new VoidEncoder()
 		);
+	
+	private static Motor getSteerMotor(SwerveCorner corner) {
+		var id = switch (corner) {
+			case TOP_LEFT -> 0;
+			case TOP_RIGHT -> 1;
+			case BOTTOM_LEFT -> 2;
+			case BOTTOM_RIGHT -> 3;
+		};
+		return ChargerSpark.max(id, null);
 	}
-
-	private static List<Motor> getRealTurnMotors() {
-		return List.of(
-			ChargerSpark.max(6, null),
-			ChargerSpark.max(7, null),
-			ChargerSpark.max(8, null),
-			ChargerSpark.max(9, null)
-		);
-	}
-
-	private static List<Motor> getRealDriveMotors() {
-		var tl = new ChargerTalonFX(20, null);
-		var tr = new ChargerTalonFX(21, null);
-		var bl = new ChargerTalonFX(22, null);
-		var br = new ChargerTalonFX(23, null);
-
-		for (var motor: List.of(tl, tr, bl, br)) {
-			motor.getConfigurator().apply(
-				new CurrentLimitsConfigs()
-					.withStatorCurrentLimit(50)
-					.withSupplyCurrentLimit(90)
-					.withStatorCurrentLimitEnable(true)
-					.withSupplyCurrentLimitEnable(true)
-			);
-		}
-
-		return List.of(tl, tr, bl, br);
+	
+	private static Motor getDriveMotor(SwerveCorner corner) {
+		var id = switch (corner) {
+			case TOP_LEFT -> 0;
+			case TOP_RIGHT -> 1;
+			case BOTTOM_LEFT -> 2;
+			case BOTTOM_RIGHT -> 3;
+		};
+		return new ChargerTalonFX(id, null);
 	}
 }

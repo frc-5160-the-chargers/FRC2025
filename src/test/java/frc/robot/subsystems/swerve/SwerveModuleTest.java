@@ -21,8 +21,8 @@ class SwerveModuleTest {
 	}
 
 	@Test
-	void setAngleTest() {
-		var drivetrain = new SwerveDrive(SwerveConfigurator.defaultConfig());
+	void setAngleTest() throws Exception {
+		var drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
 		var module = drivetrain.getSwerveModules()[0];
 		var scheduler = newCommandScheduler();
 		runUntilComplete(
@@ -31,11 +31,13 @@ class SwerveModuleTest {
 			Seconds.of(3)
 		);
 		assertEquals(2.0, module.currentState().angle.getRadians(), 0.05);
+		drivetrain.close();
+		scheduler.close();
 	}
 
 	@Test
-	void setVelocityTest() {
-		var drivetrain = new SwerveDrive(SwerveConfigurator.defaultConfig());
+	void setVelocityTest() throws Exception {
+		var drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
 		SimulatedArena.overrideInstance(new Arena2024Crescendo());
 		int ticks = timeToTicks(Seconds.of(3));
 		for (int i = 0; i < ticks; i++) {
@@ -48,5 +50,6 @@ class SwerveModuleTest {
 			}
 		}
 		assertEquals(2.0, drivetrain.getSwerveModules()[0].currentState().speedMetersPerSecond, 0.05);
+		drivetrain.close();
 	}
 }

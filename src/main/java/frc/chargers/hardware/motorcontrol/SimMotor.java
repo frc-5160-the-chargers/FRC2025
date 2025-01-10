@@ -27,6 +27,11 @@ import static edu.wpi.first.units.Units.*;
 /**
  * A Simulated motor that uses TalonFX sim as a backend,
  * while implementing MapleSim's SimulatedMotorController api.
+ * <h4>
+ *     Note: due to some issues with the TalonFX api, sim motors
+ *     that share an id with a ChargerTalonFX can be buggy.
+ *     Just for safety, make sure that real motors are not instantiated in sim.
+ * </h4>
  */
 public class SimMotor extends ChargerTalonFX {
 	@FunctionalInterface

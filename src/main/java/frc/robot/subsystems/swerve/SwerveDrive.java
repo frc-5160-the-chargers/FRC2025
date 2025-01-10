@@ -4,7 +4,6 @@ import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import choreo.util.ChoreoAllianceFlipUtil;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
-import com.ctre.phoenix6.hardware.DeviceIdentifier;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
@@ -42,7 +41,7 @@ import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
-import frc.chargers.utils.UtilExtensionMethods;
+import frc.chargers.utils.UtilMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -61,12 +60,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
-import static frc.chargers.utils.UtilMethods.pidControllerFrom;
 import static org.photonvision.PhotonUtils.getYawToPose;
 
 /**
@@ -74,17 +73,17 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  * Each turn motor can control the exact position of each drive motor,
  * allowing for omnidirectional movement and driving while turning.
  */
+@ExtensionMethod(UtilMethods.class)
 @SuppressWarnings("unused")
-@ExtensionMethod(UtilExtensionMethods.class)
 public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseable {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
 		ControlsConfig ofControls,
 		Supplier<Rotation2d> getRealGyroAngle,
-		List<? extends Motor> realDriveMotors,
-		List<? extends Motor> realSteerMotors,
-		List<Encoder> realAbsoluteEncoders
+		Function<SwerveCorner, Motor> realSteerMotorCreator,
+		Function<SwerveCorner, Motor> realDriveMotorCreator,
+		Function<SwerveCorner, Encoder> realAbsEncoderCreator
 	){}
 
 	/**
@@ -121,17 +120,20 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 		public final double steerGearRatio;
 		public final Distance wheelRadius;
 	}
+	
+	public enum SwerveCorner {
+		TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
+	}
 
 	private final SwerveDriveConfig config;
-	
 	private final SwerveDriveKinematics kinematics;
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
-	private final SwerveModule[] swerveModules = new SwerveModule[4];
-	private final RepulsorFieldPlanner fieldPlanner = new RepulsorFieldPlanner();
+	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
+	@Logged private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	// given dummy values in case called on real robot
-	@Getter private TalonFXConfigurator simDriveConfigurator = new TalonFXConfigurator(new DeviceIdentifier());
-	@Getter private TalonFXConfigurator simSteerConfigurator = new TalonFXConfigurator(new DeviceIdentifier());
+	@Getter private TalonFXConfigurator simDriveConfigurator = null;
+	@Getter private TalonFXConfigurator simSteerConfigurator = null;
 	
 	@Setter private boolean useExactVelocityInTeleop = false;
 	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
@@ -177,7 +179,7 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 			)
 		);
 		this.poseEstimator = new SwerveDrivePoseEstimator(
-			kinematics, Rotation2d.kZero, measuredModulePositions, new Pose2d()
+			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
 		);
 
 		var driveSimConfig =
@@ -209,10 +211,10 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 			);
 		}
 
-		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, new Pose2d());
-		this.xPoseController = pidControllerFrom(config.ofControls.pathTranslationPID);
-		this.yPoseController = pidControllerFrom(config.ofControls.pathTranslationPID);
-		this.rotationController = pidControllerFrom(config.ofControls.pathRotationPID);
+		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, Pose2d.kZero);
+		this.xPoseController = config.ofControls.pathTranslationPID.asController();
+		this.yPoseController = config.ofControls.pathTranslationPID.asController();
+		this.rotationController = config.ofControls.pathRotationPID.asController();
 		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
 		
 		for (int i = 0; i < 4; i++) {
@@ -230,9 +232,10 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 				);
 				absoluteEncoder = new VoidEncoder();
 			} else {
-				steerMotor = config.realSteerMotors().get(i);
-				driveMotor = config.realDriveMotors().get(i);
-				absoluteEncoder = config.realAbsoluteEncoders().get(i);
+				var corner = SwerveCorner.values()[i];
+				steerMotor = config.realSteerMotorCreator.apply(corner);
+				driveMotor = config.realDriveMotorCreator.apply(corner);
+				absoluteEncoder = config.realAbsEncoderCreator.apply(corner);
 			}
 			
 			steerMotor.setCommonConfig(
@@ -386,13 +389,15 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 	public Command pathfindCmd(Supplier<Pose2d> targetPose) {
 		return this.run(() -> {
 			var targetPoseVal = targetPose.get();
-			fieldPlanner.setGoal(targetPoseVal.getTranslation());
-			var goal = fieldPlanner.getCmd(
+			repulsor.setGoal(targetPoseVal.getTranslation());
+			var goal = repulsor.getRequest(
 				getPose(), config.ofHardware.maxVelocity.in(MetersPerSecond),
 				true, targetPoseVal.getRotation()
 			);
 			choreoCallback(goal);
-		});
+		})
+	       .until(() -> repulsor.atGoal(0.1))
+	       .withName("PathfindCmd");
 	}
 
 	/**

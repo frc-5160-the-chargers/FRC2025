@@ -19,10 +19,10 @@ public class Monologue {
    * cannot be used.
    * Will log under the "GlobalLog" namespace in datalog and networktables.
    */
-  public static final GlobalLogger GlobalLog = new GlobalLogger();
+  public static final BackendOfGlobalLog GlobalLog = new BackendOfGlobalLog();
   
-  public static class GlobalLogger implements LogLocal {
-    GlobalLogger() {}
+  public static class BackendOfGlobalLog implements LogLocal {
+    BackendOfGlobalLog() {}
     
     public void setRootPath(String path) {
       var pathList = LogLocal.registry.get(this);

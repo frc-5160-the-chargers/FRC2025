@@ -4,6 +4,8 @@ import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import frc.chargers.utils.UtilMethods;
 import frc.chargers.utils.logging.FileBackend;
 import frc.chargers.utils.logging.NTBackend;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -15,7 +17,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
-import frc.chargers.utils.UtilExtensionMethods;
 import frc.robot.commands.AutoCommands;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
@@ -26,7 +27,7 @@ import org.ironmaple.simulation.SimulatedArena;
 
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 
-@ExtensionMethod(UtilExtensionMethods.class)
+@ExtensionMethod(UtilMethods.class)
 public class DriverPracticeSim extends TimedRobot implements LogLocal {
 	@Logged public final SwerveDrive drivetrainOne = createSimBot(
 		new Pose2d(5.0, 7.0, Rotation2d.kZero)
@@ -35,7 +36,7 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 
 	private int currControllerId = 0;
 	private SwerveDrive createSimBot(Pose2d initialPose) {
-		var drivetrain = new SwerveDrive(SwerveConfigurator.defaultConfig());
+		var drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
 		drivetrain.resetPose(initialPose);
 
 		var controller = new CommandXboxController(currControllerId);
@@ -70,6 +71,9 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		SimulatedArena.getInstance().placeGamePiecesOnField();
 		mapAutoModes();
 		DriverStation.silenceJoystickConnectionWarning(true);
+		RobotModeTriggers.test().whileTrue(
+			drivetrainOne.pathfindCmd(() -> new Pose2d(6.0, 7.0, Rotation2d.fromDegrees(90)))
+		);
 	}
 
 	private void mapAutoModes() {

@@ -1,15 +1,33 @@
 package frc.chargers.utils;
 
-import edu.wpi.first.math.controller.PIDController;
+import com.revrobotics.REVLibError;
+import com.revrobotics.spark.SparkBase;
+import com.revrobotics.spark.config.SparkBaseConfig;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+/**
+ * <h2>A collection of various utility methods.</h2>
+ * <p>
+ * With <code>@ExtensionMethod(UtilMethods.class)</code> on your class,
+ * most of these functions(excluding equivalent() and createList())
+ * can be converted to extension methods as well.
+ * </p>
+ * <p>
+ * For instance, instead of <code>UtilMethods.methodName(a, b)</code>,
+ * you can simply call <code>a.methodName(b)</code>.
+ * </p>
+ */
 @SuppressWarnings("unused")
 public class UtilMethods {
 	private UtilMethods() {}
@@ -17,6 +35,7 @@ public class UtilMethods {
 	
 	/**
 	 * Checks if 2 doubles are equal; correcting for floating point error.
+	 * Note: cannot be used as extension due to the double type being primitive.
 	 * Usage: <code>equivalent(2.0, 3.0 - 1.0)</code>
 	 */
 	public static boolean equivalent(double a, double b) {
@@ -24,18 +43,37 @@ public class UtilMethods {
 	}
 	
 	/**
+	 * Runs toRun with the receiver, then returns the receiver.
+	 * Intended to be used as an extension method via @ExtensionMethod(UtilMethods.class)
+	 * Usage: <code>someValue.also(it -> it.instanceMethod());</code>
+	 */
+	public static <T> T also(T receiver, Consumer<T> toRun) {
+		toRun.accept(receiver);
+		return receiver;
+	}
+	
+	/** "Binds" an alert to a boolean supplier; pushing it to the dashboard when the condition returns true. */
+	public static void bind(Alert alert, BooleanSupplier condition) {
+		var trigger = condition instanceof Trigger t ? t : new Trigger(condition);
+		trigger
+			.onTrue(Commands.runOnce(() -> alert.set(true)))
+			.onFalse(Commands.runOnce(() -> alert.set(false)));
+	}
+	
+	/**
 	 * Gets a trigger that returns true once when the value changes.
 	 */
-	public static Trigger hasChangedEvent(Supplier<?> supplier) {
+	public static Trigger hasChanged(Supplier<?> supplier) {
 		var hasChangedHandler = new HasChangedHandler(supplier);
 		return new Trigger(hasChangedHandler::compute);
 	}
 	
 	/**
 	 * Creates a new trigger that returns true when the receiver is double-clicked.
-	 * Usage: <code>doubleClicked(controller.x()).onTrue(command)</code>
-	 * This method can also be converted to an extension method via
-	 * lombok's @ExtensionMethod({Triggers.class})
+	 * <p>
+	 * Usage: <code>doubleClicked(controller.x()).onTrue(command)</code> <br />
+	 * With @ExtensionMethod: <code>controller.x().doubleClicked().onTrue(command)</code>
+	 * </p>
 	 */
 	public static Trigger doubleClicked(Trigger receiver) {
 		return doubleClicked(receiver, 0.4);
@@ -43,18 +81,10 @@ public class UtilMethods {
 	
 	/**
 	 * Creates a new trigger that returns true when the receiver is double-clicked.
-	 * Usage: <code>doubleClicked(controller.x(), 0.5).onTrue(command)</code>
-	 * This method can also be converted to an extension method via
-	 * lombok's @ExtensionMethod({Triggers.class})
 	 */
 	public static Trigger doubleClicked(Trigger receiver, double maxLengthSeconds) {
 		var tracker = new DoublePressTracker(receiver, maxLengthSeconds);
 		return new Trigger(tracker::get);
-	}
-	
-	/** Creates a PID controller from PID constants. */
-	public static PIDController pidControllerFrom(PIDConstants constants) {
-		return new PIDController(constants.kP, constants.kI, constants.kD);
 	}
 	
 	/** Runs the toRun method immediately after the time has elapsed. */
@@ -63,6 +93,16 @@ public class UtilMethods {
 			.andThen(Commands.runOnce(toRun))
 			.ignoringDisable(true)
 			.schedule();
+	}
+	
+	/** Configures a spark motor with default ResetMode and PersistMode options. */
+	public static REVLibError resetAndConfigure(SparkBase receiver, SparkBaseConfig config) {
+		return receiver.configure(config, SparkBase.ResetMode.kResetSafeParameters, SparkBase.PersistMode.kPersistParameters);
+	}
+	
+	/** Gets the distance between 2 Pose2d's. */
+	public static double getDistance(Pose2d start, Pose2d end) {
+		return start.getTranslation().getDistance(end.getTranslation());
 	}
 	
 	@SuppressWarnings("unchecked")

@@ -18,8 +18,7 @@ import static com.revrobotics.spark.ClosedLoopSlot.kSlot1;
 import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kNoResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType;
-import static edu.wpi.first.math.util.Units.radiansToRotations;
-import static edu.wpi.first.math.util.Units.rotationsToRadians;
+import static edu.wpi.first.math.util.Units.*;
 import static edu.wpi.first.units.Units.Rotations;
 import static java.lang.Math.PI;
 
@@ -35,7 +34,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 		
 		@Override
 		public double velocityRadPerSec() {
-			return rotationsToRadians(baseEncoder.getVelocity());
+			return rotationsPerMinuteToRadiansPerSecond(baseEncoder.getVelocity());
 		}
 		
 		@Override

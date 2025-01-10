@@ -3,26 +3,24 @@ package frc.chargers.utils;
 import edu.wpi.first.networktables.BooleanEntry;
 import edu.wpi.first.networktables.DoubleEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.Setter;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 public class Tunables {
 	/** Whether to listen to networktables values. */
 	@Setter private static boolean tuningMode = false;
 	
-	public static class TunableDouble implements Cloneable {
+	public static class TunableDouble {
 		private final DoubleEntry entry;
 		private final double defaultValue;
 		
 		public TunableDouble(String path, double defaultValue) {
 			this.entry = NetworkTableInstance
 				             .getDefault()
-				             .getDoubleTopic(path)
+				             .getDoubleTopic("Tuning/" + path)
 				             .getEntry(defaultValue);
 			entry.setDefault(defaultValue);
 			this.defaultValue = defaultValue;
@@ -37,32 +35,20 @@ public class Tunables {
 			return tuningMode ? entry.get(defaultValue) : defaultValue;
 		}
 		
-		public void onChange(Consumer<Double> onChange) {
+		public Trigger changed() {
 			var previous = new AtomicReference<>(get());
-			new Trigger(() -> get() != previous.get())
-				.onTrue(
-					Commands.runOnce(() -> {
-						var value = get();
-						previous.set(value);
-						onChange.accept(value);
-					})
-				);
-		}
-		
-		@Override
-		public TunableDouble clone() {
-			return new TunableDouble(entry, defaultValue);
+			return new Trigger(() -> get() != previous.get());
 		}
 	}
 	
-	public static class TunableBoolean implements Cloneable {
+	public static class TunableBoolean {
 		private final BooleanEntry entry;
 		private final boolean defaultValue;
 		
 		public TunableBoolean(String path, boolean defaultValue) {
 			this.entry = NetworkTableInstance
 				             .getDefault()
-				             .getBooleanTopic(path)
+				             .getBooleanTopic("Tuning/" + path)
 				             .getEntry(defaultValue);
 			entry.setDefault(defaultValue);
 			this.defaultValue = defaultValue;
@@ -77,21 +63,9 @@ public class Tunables {
 			return tuningMode ? entry.get(defaultValue) : defaultValue;
 		}
 		
-		public void onChange(Consumer<Boolean> onChange) {
+		public Trigger changed() {
 			var previous = new AtomicReference<>(get());
-			new Trigger(() -> get() != previous.get())
-				.onTrue(
-					Commands.runOnce(() -> {
-						var value = get();
-						previous.set(value);
-						onChange.accept(value);
-					})
-				);
-		}
-		
-		@Override
-		public TunableBoolean clone() {
-			return new TunableBoolean(entry, defaultValue);
+			return new Trigger(() -> get() != previous.get());
 		}
 	}
 }

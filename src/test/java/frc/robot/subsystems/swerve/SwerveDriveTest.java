@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static edu.wpi.first.units.Units.Seconds;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SwerveDriveTest {
 	@BeforeEach
@@ -14,15 +15,18 @@ class SwerveDriveTest {
 	}
 	
 	@Test
-	void driveForward() throws Exception {
-		SwerveDrive swerveDrive = new SwerveDrive(SwerveConfigurator.defaultConfig());
+	void ensureRobotDoesntDrift() throws Exception {
+		SwerveDrive swerveDrive = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
 		var scheduler = CommandTestingUtil.newCommandScheduler();
 		
+		// initial angle is 0
 		CommandTestingUtil.runUntilComplete(
 			scheduler,
 			swerveDrive.driveCmd(() -> 1.0, () -> 0.0, () -> 0.0, true),
 			Seconds.of(5)
 		);
+		
+		assertEquals(swerveDrive.getPose().getRotation().getRadians(), 0.0, 0.2);
 		
 		scheduler.close();
 		swerveDrive.close();
