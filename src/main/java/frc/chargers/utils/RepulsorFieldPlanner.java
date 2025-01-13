@@ -2,6 +2,7 @@ package frc.chargers.utils;
 
 import choreo.trajectory.SwerveSample;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -19,8 +20,8 @@ import java.util.Optional;
 public class RepulsorFieldPlanner {
 	private static final double GOAL_STRENGTH = 0.65;
 	private static final List<Obstacle> FIELD_OBSTACLES = List.of(
-		new SnowmanObstacle(new Translation2d(4.49, 4), 1, true),
-		new SnowmanObstacle(new Translation2d(13.08, 4), 1, true)
+		new TeardropObstacle(new Translation2d(4.49, 4), 1.5, 2, 0.5, 1.3, 2),
+		new TeardropObstacle(new Translation2d(13.08, 4), 1.5, 2, 0.5, 1.3, 2)
 	);
 	private static final double FIELD_LENGTH = 16.42;
 	private static final double FIELD_WIDTH = 8.16;
@@ -87,7 +88,7 @@ public class RepulsorFieldPlanner {
 		}
 	}
 	
-	public static class SnowmanObstacle extends Obstacle {
+	static class SnowmanObstacle extends Obstacle {
 		Translation2d loc;
 		double radius = 0.5;
 		
@@ -116,6 +117,80 @@ public class RepulsorFieldPlanner {
 			double sideways = sidewaysMag * Math.signum(Math.sin(sidewaysTheta.getRadians()));
 			var sidewaysAngle = targetToLocAngle.rotateBy(Rotation2d.kCCW_90deg);
 			return new Translation2d(sideways, sidewaysAngle).plus(initial);
+		}
+	}
+	
+	public static class TeardropObstacle extends Obstacle {
+		final Translation2d loc;
+		final double primaryMaxRange;
+		final double primaryRadius;
+		final double tailStrength;
+		final double tailDistance;
+		
+		public TeardropObstacle(
+			Translation2d loc,
+			double primaryStrength,
+			double primaryMaxRange,
+			double primaryRadius,
+			double tailStrength,
+			double tailLength
+		) {
+			super(primaryStrength, true);
+			this.loc = loc;
+			this.primaryMaxRange = primaryMaxRange;
+			this.primaryRadius = primaryRadius;
+			this.tailStrength = tailStrength;
+			this.tailDistance = tailLength + primaryMaxRange;
+		}
+		
+		public Translation2d getForceAtPosition(Translation2d position, Translation2d target) {
+			var targetToLoc = loc.minus(target);
+			var targetToLocAngle = targetToLoc.getAngle();
+			var sidewaysPoint = new Translation2d(tailDistance, targetToLoc.getAngle()).plus(loc);
+			
+			var positionToLocation = position.minus(loc);
+			var positionToLocationDistance = positionToLocation.getNorm();
+			Translation2d outwardsForce;
+			if (positionToLocationDistance <= primaryMaxRange) {
+				outwardsForce =
+					new Translation2d(
+						distToForceMag(
+							Math.max(positionToLocationDistance - primaryRadius, 0),
+							primaryMaxRange - primaryRadius),
+						positionToLocation.getAngle());
+			} else {
+				outwardsForce = Translation2d.kZero;
+			}
+			
+			var positionToLine = position.minus(loc).rotateBy(targetToLocAngle.unaryMinus());
+			var distanceAlongLine = positionToLine.getX();
+			
+			Translation2d sidewaysForce;
+			var distanceScalar = distanceAlongLine / tailDistance;
+			if (distanceScalar >= 0 && distanceScalar <= 1) {
+				var secondaryMaxRange =
+					MathUtil.interpolate(primaryMaxRange, 0, distanceScalar * distanceScalar);
+				var distanceToLine = Math.abs(positionToLine.getY());
+				if (distanceToLine <= secondaryMaxRange) {
+					var sidewaysMag =
+						tailStrength
+							* (1 - distanceScalar * distanceScalar)
+							* (secondaryMaxRange - distanceToLine);
+					// flip the sidewaysMag based on which side of the goal-sideways circle the robot is on
+					var sidewaysTheta =
+						target.minus(position).getAngle().minus(position.minus(sidewaysPoint).getAngle());
+					sidewaysForce =
+						new Translation2d(
+							sidewaysMag * Math.signum(Math.sin(sidewaysTheta.getRadians())),
+							targetToLocAngle.rotateBy(Rotation2d.kCCW_90deg));
+				} else {
+					sidewaysForce = Translation2d.kZero;
+				}
+			} else {
+				sidewaysForce = Translation2d.kZero;
+			}
+			
+			return outwardsForce.plus(sidewaysForce);
 		}
 	}
 	
@@ -152,8 +227,8 @@ public class RepulsorFieldPlanner {
 	@Logged private double repulsorTimeS = 0.0;
 	@Logged private double forceLog = 0.0;
 	
-	private TunableBoolean useGoalInArrows = new TunableBoolean("RepulsorConfig/useGoalInArrows", false);
-	private TunableBoolean useObstaclesInArrows = new TunableBoolean("RepulsorConfig/useObstaclesInArrows", false);
+	private TunableBoolean useGoalInArrows = new TunableBoolean("RepulsorConfig/useGoalInArrows", true);
+	private TunableBoolean useObstaclesInArrows = new TunableBoolean("RepulsorConfig/useObstaclesInArrows", true);
 	private TunableBoolean useWallsInArrows = new TunableBoolean("RepulsorConfig/useWallsInArrows", false);
 	
 	private Pose2d arrowBackstage = new Pose2d(-10, -10, Rotation2d.kZero);

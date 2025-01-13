@@ -37,7 +37,8 @@ public class SwerveConfigurator {
 				new PIDConstants(2.0, 0.0, 0.01), // velocity pid
 				new SimpleMotorFeedforward(0.032, 2.73), // velocity feedforward
 				new PIDConstants(5.0, 0.0, 0.0), // path translation pid
-				new PIDConstants(5.0, 0.0, 0.0) // path rotation pid
+				new PIDConstants(5.0, 0.0, 0.0), // path rotation pid,
+				0.0 // kT
 			),
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
 			SwerveConfigurator::getSteerMotor,

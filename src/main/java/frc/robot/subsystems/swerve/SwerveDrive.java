@@ -4,32 +4,26 @@ import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import choreo.util.ChoreoAllianceFlipUtil;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
+import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.encoders.Encoder;
@@ -43,6 +37,7 @@ import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.UtilMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
+import frc.robot.subsystems.vision.VisionConsumer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -52,11 +47,8 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
-import org.photonvision.PhotonCamera;
-import org.photonvision.PhotonPoseEstimator;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -75,7 +67,7 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  */
 @ExtensionMethod(UtilMethods.class)
 @SuppressWarnings("unused")
-public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseable {
+public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseable, VisionConsumer {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
@@ -105,7 +97,8 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 		PIDConstants velocityPID,
 		SimpleMotorFeedforward velocityFeedforward,
 		PIDConstants pathTranslationPID,
-		PIDConstants pathRotationPID
+		PIDConstants pathRotationPID,
+		double forceKT
 	){}
 	
 	/** Use ModuleType.MK4iL2 and ModuleType.Mk4iL3. */
@@ -130,12 +123,13 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
 	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
-	@Logged private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
+	@Getter private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	// given dummy values in case called on real robot
 	@Getter private TalonFXConfigurator simDriveConfigurator = null;
 	@Getter private TalonFXConfigurator simSteerConfigurator = null;
 	
 	@Setter private boolean useExactVelocityInTeleop = false;
+	@Logged private boolean acceptVisionObservations = true;
 	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
 
@@ -143,7 +137,6 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 	private final PIDController yPoseController;
 	private final PIDController rotationController;
 
-	private final HashMap<String, PhotonPoseEstimator> visionEstimators = new HashMap<>();
 	private final Supplier<Rotation2d> getAngleFn;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
 	private Pose2d estimatedPose = Pose2d.kZero;
@@ -282,11 +275,21 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 			angleModulus(getPose().getRotation().getRadians()),
 			angleModulus(trajSample.heading)
 		);
-		driveCallback(
-			// do not apply alliance offset; choreo already flips it for you
-			ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, getPose().getRotation()),
-			true
+		var desiredModuleStates = getDesiredStates(
+			ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, getPose().getRotation())
 		);
+		for (int i = 0; i < 4; i++) {
+			var desiredState = desiredModuleStates[i];
+			double torqueFF = 0.0;
+			if (config.ofControls.forceKT != 0.0) {
+				double wheelTorqueNm = config.ofModules.wheelRadius.in(Meters) * (
+					desiredState.angle.getCos() * trajSample.moduleForcesX()[i] +
+					desiredState.angle.getSin() * trajSample.moduleForcesY()[i]
+				);
+				torqueFF = wheelTorqueNm / config.ofModules.driveGearRatio * config.ofControls.forceKT;
+			}
+			swerveModules[i].setDesiredState(desiredState, true, torqueFF);
+		}
 	}
 
 	@Logged private List<SwerveSample> trajSamples = List.of();
@@ -319,47 +322,32 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 		poseEstimator.resetPose(pose);
 	}
 
-	public void addVisionCamera(
-		PhotonCamera cam,
-		Transform3d robotToCamera,
-		PhotonPoseEstimator.PoseStrategy strategy
-	) {
-		visionEstimators.put(
-			cam.getName(),
-			new PhotonPoseEstimator(
-				// TODO change to reefscape
-				AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo),
-				strategy, cam, robotToCamera
-			)
-		);
-	}
-
 	@Logged
 	public ChassisSpeeds getMeasuredSpeeds() {
-		var speeds = getMeasuredSpeedsRobotRelative();
-		speeds = ChassisSpeeds.fromRobotRelativeSpeeds(
-			speeds,
+		return ChassisSpeeds.fromRobotRelativeSpeeds(
+			getMeasuredSpeedsRobotRelative(),
 			offsetWithAlliance(getPose().getRotation())
 		);
-		return speeds;
 	}
 
 	@Logged
 	public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
 		return kinematics.toChassisSpeeds(measuredModuleStates);
 	}
-
-	// closed loop allows for the robot to drive at an exact velocity.
-	private void driveCallback(ChassisSpeeds speeds, boolean closedLoop) {
+	
+	private SwerveModuleState[] getDesiredStates(ChassisSpeeds speeds) {
 		speeds = ChassisSpeeds.discretize(speeds, 0.02);
 		log("desiredSpeeds", speeds);
-
+		
 		var desiredStates = kinematics.toSwerveModuleStates(speeds);
 		SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, config.ofHardware.maxVelocity);
-		log("desiredStates", desiredStates);
 		for (int i = 0; i < 4; i++) {
-			swerveModules[i].setDesiredState(desiredStates[i], closedLoop);
+			var currentAngle = swerveModules[i].getSteerAngle();
+			desiredStates[i].optimize(currentAngle);
+			desiredStates[i].cosineScale(currentAngle);
 		}
+		log("desiredStates", desiredStates);
+		return desiredStates;
 	}
 
 	/**
@@ -375,15 +363,19 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 		boolean fieldRelative
 	) {
 		var maxSpeedMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
-		return this.run(() -> driveCallback(
-			ChassisSpeeds.fromFieldRelativeSpeeds(
-				getXPower.get() * maxSpeedMps,
-				getYPower.get() * maxSpeedMps,
-				getRotationPower.get() * maxSpeedMps,
-				fieldRelative ? offsetWithAlliance(getPose().getRotation()) : Rotation2d.kZero
-			),
-			useExactVelocityInTeleop
-		)).withName("SwerveDriveCmd" + (useExactVelocityInTeleop ? "(Closed Loop)" : "(Open Loop)"));
+		return this.run(() -> {
+			var desiredStates = getDesiredStates(
+				ChassisSpeeds.fromFieldRelativeSpeeds(
+					getXPower.get() * maxSpeedMps,
+					getYPower.get() * maxSpeedMps,
+					getRotationPower.get() * maxSpeedMps,
+					fieldRelative ? offsetWithAlliance(getPose().getRotation()) : Rotation2d.kZero
+				)
+			);
+			for (int i = 0; i < 4; i++) {
+				swerveModules[i].setDesiredState(desiredStates[i], useExactVelocityInTeleop, 0.0);
+			}
+		}).withName("SwerveDriveCmd" + (useExactVelocityInTeleop ? "(Closed Loop)" : "(Open Loop)"));
 	}
 	
 	public Command pathfindCmd(Supplier<Pose2d> targetPose) {
@@ -467,9 +459,18 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 			}
 		).withName("SwerveCharacterizeCmd");
 	}
-
-	@Override
-	public void periodic() {
+	
+	/**
+	 * Enables high-frequency odometry on this drivetrain.
+	 * <h4>You must enable high-frequency updating on your drive and steer motors yourself!</h4>
+	 */
+	public void enableHighFrequencyOdometry(TimedRobot robot, Time period) {
+		useHighFrequencyOdometry = true;
+		robot.addPeriodic(this::updateOdometry, period);
+	}
+	
+	private boolean useHighFrequencyOdometry = false;
+	private void updateOdometry() {
 		Rotation2d latestHeading = getAngleFn.get();
 		for (int i = 0; i < 4; i++) {
 			measuredModuleStates[i] = swerveModules[i].currentState();
@@ -480,84 +481,31 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 			}
 		}
 		estimatedPose = poseEstimator.update(latestHeading, measuredModulePositions);
-		
-		if (Math.abs(latestHeading.minus(prevHeadingCache).getDegrees() / 0.02) < 720) {
-			for (var name: visionEstimators.keySet()) {
-				var yawOfVisionEstimator =
-					visionEstimators.get(name)
-						.getRobotToCameraTransform()
-						.getRotation()
-						.getZ();
-				var data = visionEstimators.get(name).update();
-				if (data.isPresent()) {
-					var stdDevs = calculateVisionUncertainty(
-						getPose().getX(), latestHeading, Rotation2d.fromRadians(yawOfVisionEstimator)
-					);
-					log("vision/cameras/" + name + "/hasPose", true);
-					log("vision/cameras/" + name + "/pose", data.get().estimatedPose);
-					for (int i = 0; i < 3; i++) stdDevStore[i] = stdDevs.get(i, 0);
-					log("vision/cameras/" + name + "/stdDevs", stdDevStore);
-					poseEstimator.addVisionMeasurement(
-						data.get().estimatedPose.toPose2d(),
-						data.get().timestampSeconds,
-						stdDevs
-					);
-				} else {
-					log("vision/cameras/" + name + "/hasPose", false);
-					log("vision/cameras/" + name + "/pose", Pose3d.kZero);
-				}
-			}
-		}
+		// If robot is rotating too fast, ignore vision observations.
+		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;
 	}
 
-	// Credits: 6995
-	private static Matrix<N3, N1> calculateVisionUncertainty(
-		double poseX, Rotation2d heading, Rotation2d cameraYaw
-	) {
-		double maximumUncertainty = 3;
-		double minimumUncertainty = 0.1;
-		double a = 6;
-		double b = -1.3;
-		Rotation2d cameraWorldYaw = cameraYaw.rotateBy(heading);
-		boolean isCameraFacingFieldSideTags;
-		boolean facingRedAlliance;
-		double distanceFromTagSide;
-
-		if (-90 < cameraWorldYaw.getDegrees() && cameraWorldYaw.getDegrees() < 90) {
-			// camera facing towards red alliance
-			facingRedAlliance = true;
-			isCameraFacingFieldSideTags = poseX > 16.5 / 2;
-		} else {
-			// camera facing towards blue alliance
-			facingRedAlliance = false;
-			isCameraFacingFieldSideTags = poseX < 16.5 / 2;
-		}
-
-		if (isCameraFacingFieldSideTags) {
-			// uncertainty low
-			if (facingRedAlliance) {
-				distanceFromTagSide = 16.5 - poseX;
-			} else {
-				distanceFromTagSide = poseX;
-			}
-		} else {
-			// uncertainty high
-			if (!facingRedAlliance) {
-				distanceFromTagSide = poseX;
-			} else {
-				distanceFromTagSide = 16.5 - poseX;
-			}
-		}
-		double positionUncertainty =
-			((maximumUncertainty - minimumUncertainty)
-				 / (1 + Math.pow(Math.E, (a + (b * distanceFromTagSide)))))
-				+ minimumUncertainty;
-		return VecBuilder.fill(positionUncertainty, positionUncertainty, 10000);
-	}
+	@Override
+	public void periodic() { if (!useHighFrequencyOdometry) updateOdometry(); }
 	
 	@Override
 	public void close() throws Exception {
 		for (var mod: swerveModules) { mod.close(); }
+	}
+	
+	@Override
+	public void addPoseObservation(PoseObservation result) {
+		if (!acceptVisionObservations) return;
+		poseEstimator.addVisionMeasurement(
+			result.visionPose(),
+			result.timestampSecs(),
+			result.stdDevs()
+		);
+	}
+	
+	@Override
+	public void setPathfindingObstacles(List<Pose2d> obstacles) {
+		// TODO
 	}
 }

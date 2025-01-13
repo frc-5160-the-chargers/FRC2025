@@ -400,4 +400,17 @@ public interface LogLocal {
     }
     return value;
   }
+  
+  default <E extends Enum<E>> E log(String key, E value) {
+    if (Monologue.IS_DISABLED) return value;
+    if (!Monologue.hasBeenSetup()) {
+      Monologue.prematureLog(() -> log(key, value));
+      return value;
+    }
+    String slashkey = "/" + key;
+    for (LoggingNode node : getNodes(this)) {
+      Monologue.config.backend.log(node.getPath() + slashkey, value);
+    }
+    return value;
+  }
 }

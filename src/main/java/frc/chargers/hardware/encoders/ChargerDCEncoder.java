@@ -28,4 +28,7 @@ public class ChargerDCEncoder implements Encoder {
 	
 	@Override
 	public void setPositionReading(Angle angle) { offset = encoder.get();  }
+	
+	@Override
+	public void close() { encoder.close(); }
 }

@@ -9,11 +9,12 @@ import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
 @Logged
-public interface Encoder {
+public interface Encoder extends AutoCloseable {
 	double positionRad();
 	double velocityRadPerSec();
 	void setPositionReading(Angle angle);
 	
 	@NotLogged default Angle position() { return Radians.of(positionRad()); }
 	@NotLogged default AngularVelocity velocity() { return RadiansPerSecond.of(velocityRadPerSec()); }
+	default void close() {}
 }

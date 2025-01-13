@@ -21,13 +21,13 @@ class SwerveModuleTest {
 	}
 
 	@Test
-	void setAngleTest() throws Exception {
+	void setSteerAngleTest() throws Exception {
 		var drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
 		var module = drivetrain.getSwerveModules()[0];
 		var scheduler = newCommandScheduler();
 		runUntilComplete(
 			scheduler,
-			Commands.run(() -> module.setAngle(2.0), drivetrain),
+			Commands.run(() -> module.setSteerAngle(2.0), drivetrain),
 			Seconds.of(3)
 		);
 		assertEquals(2.0, module.currentState().angle.getRadians(), 0.05);
@@ -45,7 +45,8 @@ class SwerveModuleTest {
 			for (var module: drivetrain.getSwerveModules()) {
 				module.setDesiredState(
 					new SwerveModuleState(2.0, Rotation2d.kZero),
-					true
+					true,
+					0.0
 				);
 			}
 		}

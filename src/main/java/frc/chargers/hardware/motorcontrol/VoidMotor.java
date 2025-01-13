@@ -17,6 +17,4 @@ public class VoidMotor implements Motor {
 	public void setVoltage(double volts) {}
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {}
 	public void moveToPosition(double positionRads, double ffVolts) {}
-	public void setTorqueCurrent(double currentAmps) {}
-	public void close() {}
 }

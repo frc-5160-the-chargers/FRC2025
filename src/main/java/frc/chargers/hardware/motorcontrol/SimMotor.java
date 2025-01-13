@@ -85,7 +85,7 @@ public class SimMotor extends ChargerTalonFX {
 		sim = motorType.createSim(newConfig.gearRatio());
 	}
 	
-	public SimMotor setOrientation(ChassisReference orientation) {
+	public SimMotor withOrientation(ChassisReference orientation) {
 		this.talonSimApi.Orientation = orientation;
 		return this;
 	}
@@ -98,6 +98,12 @@ public class SimMotor extends ChargerTalonFX {
 			talonSimApi.setRotorVelocity(encoderVelocity);
 			return talonSimApi.getMotorVoltageMeasure();
 		};
+	}
+	
+	@Override
+	public SimMotor withPhoenixPro(boolean useTorqueControl) {
+		super.withPhoenixPro(useTorqueControl);
+		return this;
 	}
 	
 	private void periodicCallback() {

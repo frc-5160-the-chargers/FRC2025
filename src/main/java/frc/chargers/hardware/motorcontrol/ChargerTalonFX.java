@@ -4,8 +4,10 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
+import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
@@ -14,9 +16,11 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Frequency;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import frc.chargers.hardware.encoders.Encoder;
+import frc.chargers.utils.SignalAutoRefresher;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -28,27 +32,33 @@ import static java.lang.Math.PI;
 public class ChargerTalonFX implements Motor {
 	protected TalonFX baseMotor;
 	private boolean hasFusedSensor = false;
+	private boolean highFrequencyPosition = false;
+	private boolean useTorqueCurrentControl = false;
 	private final StatusSignal<Angle> positionSignal;
 	private final StatusSignal<AngularVelocity> velocitySignal;
 	private final StatusSignal<Voltage> voltageSignal;
 	private final StatusSignal<Current> currentSignal;
+	private final StatusSignal<Current> torqueCurrentSignal;
 	private final StatusSignal<Current> supplyCurrentSignal;
 	private final StatusSignal<Temperature> tempSignal;
 	
 	private final VoltageOut voltageRequest = new VoltageOut(0);
 	private final PositionVoltage setAngleRequest = new PositionVoltage(0).withSlot(0);
 	private final VelocityVoltage setVelocityRequest = new VelocityVoltage(0).withSlot(1);
-	private final TorqueCurrentFOC setCurrentRequest = new TorqueCurrentFOC(0);
+	private final PositionTorqueCurrentFOC setAngleWithTorqueRequest = new PositionTorqueCurrentFOC(0).withSlot(0);
+	private final VelocityTorqueCurrentFOC setVelocityWithTorqueRequest = new VelocityTorqueCurrentFOC(0).withSlot(1);
+	private final TorqueCurrentFOC setTorqueRequest = new TorqueCurrentFOC(0);
 	
 	private final Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
-			return rotationsToRadians(positionSignal.refresh().getValueAsDouble());
+			if (highFrequencyPosition) positionSignal.refresh();
+			return rotationsToRadians(positionSignal.getValueAsDouble());
 		}
 		
 		@Override
 		public double velocityRadPerSec() {
-			return rotationsToRadians(velocitySignal.refresh().getValueAsDouble());
+			return rotationsToRadians(velocitySignal.getValueAsDouble());
 		}
 		
 		@Override
@@ -65,17 +75,28 @@ public class ChargerTalonFX implements Motor {
 		this.currentSignal = baseMotor.getStatorCurrent();
 		this.supplyCurrentSignal = baseMotor.getSupplyCurrent();
 		this.tempSignal = baseMotor.getDeviceTemp();
+		this.torqueCurrentSignal = baseMotor.getTorqueCurrent();
+		SignalAutoRefresher.register(
+			positionSignal, velocitySignal, voltageSignal, currentSignal,
+			supplyCurrentSignal, tempSignal, torqueCurrentSignal
+		);
 		if (configureFn != null) configureFn.accept(baseMotor.getConfigurator());
 	}
 	
-	public TalonFXConfigurator getConfigurator() {
-		return baseMotor.getConfigurator();
-	}
+	public TalonFXConfigurator getConfigurator() { return baseMotor.getConfigurator(); }
 	
-	public ChargerTalonFX withPhoenixPro() {
+	public ChargerTalonFX withPhoenixPro(boolean useTorqueCurrentControl) {
 		voltageRequest.EnableFOC = true;
 		setAngleRequest.EnableFOC = true;
 		setVelocityRequest.EnableFOC = true;
+		this.useTorqueCurrentControl = useTorqueCurrentControl;
+		return this;
+	}
+	
+	public ChargerTalonFX withPositionUpdateFrequency(Frequency frequency) {
+		positionSignal.setUpdateFrequency(frequency);
+		SignalAutoRefresher.remove(positionSignal);
+		highFrequencyPosition = true;
 		return this;
 	}
 	
@@ -93,38 +114,43 @@ public class ChargerTalonFX implements Motor {
 	public Encoder encoder() { return encoder; }
 	
 	@Override
-	public double outputVoltage() { return voltageSignal.refresh().getValueAsDouble(); }
+	public double outputVoltage() { return voltageSignal.getValueAsDouble(); }
 	
 	@Override
-	public double statorCurrent() { return currentSignal.refresh().getValueAsDouble(); }
+	public double statorCurrent() { return currentSignal.getValueAsDouble(); }
 	
 	@Override
-	public double tempCelsius() { return tempSignal.refresh().getValueAsDouble(); }
+	public double tempCelsius() { return tempSignal.getValueAsDouble(); }
 	
 	@Override
 	public void setVoltage(double volts) {
-		voltageRequest.Output = volts;
-		baseMotor.setControl(voltageRequest);
+		baseMotor.setControl(voltageRequest.withOutput(volts));
 	}
 	
 	@Override
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {
-		setVelocityRequest.Velocity = radiansToRotations(velocityRadPerSec);
-		setVelocityRequest.FeedForward = ffVolts;
-		baseMotor.setControl(setVelocityRequest);
+		if (useTorqueCurrentControl) {
+			setVelocityWithTorqueRequest.Velocity = radiansToRotations(velocityRadPerSec);
+			setVelocityWithTorqueRequest.FeedForward = ffVolts;
+			baseMotor.setControl(setVelocityWithTorqueRequest);
+		} else {
+			setVelocityRequest.Velocity = radiansToRotations(velocityRadPerSec);
+			setVelocityRequest.FeedForward = ffVolts;
+			baseMotor.setControl(setVelocityRequest);
+		}
 	}
 	
 	@Override
 	public void moveToPosition(double positionRads, double ffVolts) {
-		setAngleRequest.Position = radiansToRotations(positionRads);
-		setAngleRequest.FeedForward = ffVolts;
-		baseMotor.setControl(setAngleRequest);
-	}
-	
-	@Override
-	public void setTorqueCurrent(double currentAmps) {
-		setCurrentRequest.Output = currentAmps;
-		baseMotor.setControl(setCurrentRequest);
+		if (useTorqueCurrentControl) {
+			setAngleWithTorqueRequest.Position = positionRads;
+			setAngleWithTorqueRequest.FeedForward = ffVolts;
+			baseMotor.setControl(setAngleWithTorqueRequest);
+		} else {
+			setAngleRequest.Position = radiansToRotations(positionRads);
+			setAngleRequest.FeedForward = ffVolts;
+			baseMotor.setControl(setAngleRequest);
+		}
 	}
 	
 	@Override
@@ -153,8 +179,14 @@ public class ChargerTalonFX implements Motor {
 	}
 	
 	@Override
-	public double supplyCurrent() {
-		return supplyCurrentSignal.refresh().getValueAsDouble();
+	public double supplyCurrent() { return supplyCurrentSignal.getValueAsDouble(); }
+	
+	@Override
+	public double torqueCurrent() { return torqueCurrentSignal.getValueAsDouble(); }
+	
+	@Override
+	public void setTorqueCurrent(double currentAmps) {
+		baseMotor.setControl(setTorqueRequest.withOutput(currentAmps));
 	}
 	
 	@Override

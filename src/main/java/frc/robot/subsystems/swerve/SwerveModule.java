@@ -7,6 +7,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.wpilibj.Alert;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
@@ -16,10 +17,13 @@ import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 
 import java.util.Optional;
 
-import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 
 public class SwerveModule implements LogLocal, AutoCloseable {
+	private static final Alert FF_ALERT = new Alert(
+		"Additional FF is > 0 in open loop drive mode",
+		Alert.AlertType.kWarning
+	);
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
 	@Logged private final Encoder absoluteEncoder;
@@ -66,36 +70,37 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		}
 	}
 	
-	public void setDesiredState(SwerveModuleState state, boolean closedLoop) {
-		var currentAngle = Rotation2d.fromRadians(angleModulus(steerMotor.encoder().positionRad()));
-		state.optimize(currentAngle);
-		state.cosineScale(currentAngle);
-		
+	public void setDesiredState(SwerveModuleState state, boolean closedLoop, double additionalFeedforward) {
 		steerMotor.moveToPosition(state.angle.getRadians());
 		if (closedLoop) {
 			var speedSetpoint = state.speedMetersPerSecond / wheelRadius.in(Meters);
-			driveMotor.setVelocity(speedSetpoint, velocityFF.calculate(speedSetpoint));
+			driveMotor.setVelocity(speedSetpoint, velocityFF.calculate(speedSetpoint) + additionalFeedforward);
 		} else {
+			FF_ALERT.set(additionalFeedforward > 0.0);
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
 			driveMotor.setVoltage(voltage);
 		}
 	}
 	
-	public void setAngle(double radians) {
+	public void setSteerAngle(double radians) {
 		steerMotor.moveToPosition(radians);
+	}
+	
+	public Rotation2d getSteerAngle() {
+		return Rotation2d.fromRadians(steerMotor.encoder().positionRad());
 	}
 	
 	public SwerveModuleState currentState() {
 		return new SwerveModuleState(
 			driveMotor.encoder().velocityRadPerSec() * wheelRadius.in(Meters),
-			Rotation2d.fromRadians(steerMotor.encoder().positionRad())
+			getSteerAngle()
 		);
 	}
 	
 	public SwerveModulePosition currentPosition() {
 		return new SwerveModulePosition(
 			driveMotor.encoder().positionRad() * wheelRadius.in(Meters),
-			Rotation2d.fromRadians(steerMotor.encoder().positionRad())
+			getSteerAngle()
 		);
 	}
 	
@@ -111,5 +116,6 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	public void close() throws Exception {
 		driveMotor.close();
 		steerMotor.close();
+		absoluteEncoder.close();
 	}
 }

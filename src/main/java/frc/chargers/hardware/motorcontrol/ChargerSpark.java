@@ -7,6 +7,7 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Time;
 import frc.chargers.hardware.encoders.Encoder;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -19,7 +20,7 @@ import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kNoResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType;
 import static edu.wpi.first.math.util.Units.*;
-import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.*;
 import static java.lang.Math.PI;
 
 public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
@@ -70,6 +71,13 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 		this.pidController = baseMotor.getClosedLoopController();
 	}
 	
+	public ChargerSpark<BaseMotor> withPositionUpdateRate(Time period) {
+		var config = new SparkMaxConfig();
+		config.signals.primaryEncoderPositionPeriodMs((int) period.in(Milliseconds));
+		baseMotor.configure(config, kNoResetSafeParameters, kPersistParameters);
+		return this;
+	}
+	
 	@Override
 	public Encoder encoder() { return encoder; }
 	
@@ -95,9 +103,6 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 			kSlot1
 		);
 	}
-	
-	@Override
-	public void setTorqueCurrent(double currentAmps) {}
 	
 	@Override
 	public void moveToPosition(double positionRads, double ffVolts) {

@@ -27,6 +27,7 @@
       "Robot/drivetrainTwo/rotationController": "PIDController",
       "Robot/drivetrainTwo/xPoseController": "PIDController",
       "Robot/drivetrainTwo/yPoseController": "PIDController",
+      "Robot/test/baseMotor": "Motor Controller",
       "field": "Field2d"
     },
     "windows": {
@@ -94,6 +95,9 @@
           },
           "open": true
         },
+        "StatusSignalCodes": {
+          "open": true
+        },
         "StructTest##v_/Robot/TestingTesting": {
           "open": true
         },
@@ -131,6 +135,9 @@
               },
               "open": true
             }
+          },
+          "bottomLeftModule": {
+            "open": true
           },
           "bottomRightModule": {
             "driveMotor": {

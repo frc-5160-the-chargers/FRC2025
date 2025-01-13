@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -110,6 +111,26 @@ public class UtilMethods {
 		var arr = new Object[size];
 		for (int i = 0; i < size; i++) arr[i] = generator.get();
 		return List.of((T[]) arr);
+	}
+	
+	public static int[] toIntArray(Collection<Integer> list) {
+		var arr = new int[list.size()];
+		int idx = 0;
+		for (var value: list) {
+			arr[idx] = value;
+			idx++;
+		}
+		return arr;
+	}
+	
+	public static double[] toDoubleArray(Collection<Double> list) {
+		var arr = new double[list.size()];
+		int idx = 0;
+		for (var value: list) {
+			arr[idx] = value;
+			idx++;
+		}
+		return arr;
 	}
 	
 	@RequiredArgsConstructor

@@ -4,7 +4,6 @@ import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.chargers.utils.UtilMethods;
 import frc.chargers.utils.logging.FileBackend;
 import frc.chargers.utils.logging.NTBackend;
@@ -26,6 +25,7 @@ import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 
 @ExtensionMethod(UtilMethods.class)
 public class DriverPracticeSim extends TimedRobot implements LogLocal {
@@ -71,8 +71,8 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		SimulatedArena.getInstance().placeGamePiecesOnField();
 		mapAutoModes();
 		DriverStation.silenceJoystickConnectionWarning(true);
-		RobotModeTriggers.test().whileTrue(
-			drivetrainOne.pathfindCmd(() -> new Pose2d(6.0, 7.0, Rotation2d.fromDegrees(90)))
+		test().whileTrue(
+			drivetrainOne.pathfindCmd(() -> new Pose2d(5.26, 5.21, Rotation2d.fromDegrees(-121.34)))
 		);
 	}
 
@@ -86,11 +86,13 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 
 	@Override
 	public void robotPeriodic() {
+		var startTime = System.nanoTime();
 		CommandScheduler.getInstance().run();
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().simulationPeriodic();
 			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
 			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
 		}
+		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 }
