@@ -79,8 +79,8 @@ public class SimMotor extends ChargerTalonFX {
 	}
 	
 	@Override
-	public void setCommonConfig(CommonConfig newConfig) {
-		super.setCommonConfig(newConfig);
+	public void setControlsConfig(ControlsConfig newConfig) {
+		super.setControlsConfig(newConfig);
 		currentGearRatio = newConfig.gearRatio();
 		sim = motorType.createSim(newConfig.gearRatio());
 	}

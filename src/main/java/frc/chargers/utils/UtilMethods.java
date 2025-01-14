@@ -1,11 +1,19 @@
 package frc.chargers.utils;
 
+import au.grapplerobotics.LaserCan;
 import com.revrobotics.REVLibError;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.config.SparkBaseConfig;
+import edu.wpi.first.epilogue.EpilogueConfiguration;
+import edu.wpi.first.epilogue.logging.EpilogueBackend;
+import edu.wpi.first.epilogue.logging.FileBackend;
+import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -133,6 +141,26 @@ public class UtilMethods {
 		return arr;
 	}
 	
+	public static void configureDefaultLogging(EpilogueConfiguration config) {
+		var fileOnlyBackend = new FileBackend(DataLogManager.getLog());
+		var fileAndNtBackend = EpilogueBackend.multi(
+			new NTEpilogueBackend(NetworkTableInstance.getDefault()),
+			fileOnlyBackend
+		);
+		config.backend = fileAndNtBackend;
+		DataLogManager.logNetworkTables(false);
+		new Trigger(DriverStation::isFMSAttached)
+			.onTrue(Commands.runOnce(() -> config.backend = fileOnlyBackend))
+			.onFalse(Commands.runOnce(() -> config.backend = fileAndNtBackend));
+		NetworkTableInstance.getDefault().startEntryDataLog(
+			DataLogManager.getLog(), "/SmartDashboard", "/SmartDashboard"
+		);
+	}
+	
+	public static boolean isOk(LaserCan.Measurement measurement) {
+		return measurement.status == 0;
+	}
+	
 	@RequiredArgsConstructor
 	private static class HasChangedHandler {
 		private final Supplier<?> supplier;
@@ -153,8 +181,8 @@ public class UtilMethods {
 	private static class DoublePressTracker {
 		private final Trigger trigger;
 		private final double maxLengthSecs;
-		
 		private final Timer resetTimer = new Timer();
+		
 		private DoublePressState state = DoublePressState.IDLE;
 		
 		public boolean get() {

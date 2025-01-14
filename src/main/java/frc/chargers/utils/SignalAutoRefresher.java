@@ -24,7 +24,7 @@ public class SignalAutoRefresher {
 			@Override
 			public void periodic() {
 				var latestStatus = BaseStatusSignal.refreshAll(allSignals.toArray(dummyArray));
-				GlobalLog.log("statusSignalLatestStatus", latestStatus);
+				GlobalLog.log("statusSignalLatestStatus", latestStatus.toString());
 			}
 		};
 	}

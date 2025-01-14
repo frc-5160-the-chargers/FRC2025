@@ -29,7 +29,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
-import frc.chargers.hardware.motorcontrol.Motor.CommonConfig;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
@@ -225,20 +224,21 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 				);
 				absoluteEncoder = new VoidEncoder();
 			} else {
+				// SwerveCorner.values() is TL, TR, BL, and BR(enums are defined in this order)
 				var corner = SwerveCorner.values()[i];
 				steerMotor = config.realSteerMotorCreator.apply(corner);
 				driveMotor = config.realDriveMotorCreator.apply(corner);
 				absoluteEncoder = config.realAbsEncoderCreator.apply(corner);
 			}
 			
-			steerMotor.setCommonConfig(
-				CommonConfig.EMPTY
+			steerMotor.setControlsConfig(
+				Motor.ControlsConfig.EMPTY
 					.withGearRatio(config.ofModules.steerGearRatio)
 					.withPositionPID(config.ofControls.steerPID)
 					.withContinuousInput(true)
 			);
-			driveMotor.setCommonConfig(
-				CommonConfig.EMPTY
+			driveMotor.setControlsConfig(
+				Motor.ControlsConfig.EMPTY
 					.withGearRatio(config.ofModules.driveGearRatio)
 					.withVelocityPID(config.ofControls.velocityPID)
 			);
@@ -376,6 +376,16 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 				swerveModules[i].setDesiredState(desiredStates[i], useExactVelocityInTeleop, 0.0);
 			}
 		}).withName("SwerveDriveCmd" + (useExactVelocityInTeleop ? "(Closed Loop)" : "(Open Loop)"));
+	}
+	
+	public Command stopCmd(boolean forever) {
+		Runnable runStop = () -> {
+			for (int i = 0; i < 4; i++) {
+				swerveModules[i].setDriveVoltage(0);
+				swerveModules[i].setSteerVoltage(0);
+			}
+		};
+		return forever ? this.run(runStop) : this.runOnce(runStop);
 	}
 	
 	public Command pathfindCmd(Supplier<Pose2d> targetPose) {

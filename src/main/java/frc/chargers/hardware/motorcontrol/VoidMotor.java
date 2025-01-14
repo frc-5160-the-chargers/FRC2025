@@ -13,7 +13,7 @@ public class VoidMotor implements Motor {
 	public double outputVoltage() { return 0; }
 	public double statorCurrent() { return 0; }
 	public double tempCelsius() { return 0; }
-	public void setCommonConfig(CommonConfig newConfig) {}
+	public void setControlsConfig(ControlsConfig newConfig) {}
 	public void setVoltage(double volts) {}
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {}
 	public void moveToPosition(double positionRads, double ffVolts) {}

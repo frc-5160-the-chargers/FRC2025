@@ -9,7 +9,6 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Time;
 import frc.chargers.hardware.encoders.Encoder;
-import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -20,11 +19,13 @@ import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kNoResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType;
 import static edu.wpi.first.math.util.Units.*;
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Milliseconds;
+import static edu.wpi.first.units.Units.Rotations;
 import static java.lang.Math.PI;
 
 public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
-	@Getter private final BaseMotor baseMotor;
+	// package-private for unit tests
+	final BaseMotor baseMotor;
 	private final RelativeEncoder baseEncoder;
 	private final SparkClosedLoopController pidController;
 	private final Encoder encoder = new Encoder() {
@@ -114,7 +115,7 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 	}
 	
 	@Override
-	public void setCommonConfig(CommonConfig newConfig) {
+	public void setControlsConfig(ControlsConfig newConfig) {
 		var baseConfig = new SparkMaxConfig();
 		if (newConfig.positionPID().kP != 0.0) {
 			baseConfig.closedLoop

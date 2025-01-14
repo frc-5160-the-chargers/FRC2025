@@ -30,7 +30,8 @@ import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static java.lang.Math.PI;
 
 public class ChargerTalonFX implements Motor {
-	protected TalonFX baseMotor;
+	// package-private for unit tests
+	final TalonFX baseMotor;
 	private boolean hasFusedSensor = false;
 	private boolean highFrequencyPosition = false;
 	private boolean useTorqueCurrentControl = false;
@@ -154,7 +155,7 @@ public class ChargerTalonFX implements Motor {
 	}
 	
 	@Override
-	public void setCommonConfig(CommonConfig newConfig) {
+	public void setControlsConfig(ControlsConfig newConfig) {
 		var motorConfig = new TalonFXConfiguration();
 		baseMotor.getConfigurator().refresh(motorConfig);
 		if (newConfig.gearRatio() != 1.0) {

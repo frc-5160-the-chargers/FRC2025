@@ -3,20 +3,15 @@ package frc.robot;
 import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.logging.EpilogueBackend;
-import frc.chargers.utils.UtilMethods;
-import frc.chargers.utils.logging.FileBackend;
-import frc.chargers.utils.logging.NTBackend;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
-import frc.robot.commands.AutoCommands;
+import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.experimental.ExtensionMethod;
@@ -24,8 +19,8 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
+import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 
 @ExtensionMethod(UtilMethods.class)
 public class DriverPracticeSim extends TimedRobot implements LogLocal {
@@ -63,25 +58,13 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		// logging config; do not remove
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
-		Epilogue.getConfig().backend = EpilogueBackend.multi(
-			new NTBackend().disableWhen(DriverStation::isFMSAttached),
-			new FileBackend(false)
-		);
+		configureDefaultLogging(Epilogue.getConfig());
 
 		SimulatedArena.getInstance().placeGamePiecesOnField();
-		mapAutoModes();
 		DriverStation.silenceJoystickConnectionWarning(true);
 		test().whileTrue(
 			drivetrainOne.pathfindCmd(() -> new Pose2d(5.26, 5.21, Rotation2d.fromDegrees(-121.34)))
 		);
-	}
-
-	private void mapAutoModes() {
-		var autoCommands = new AutoCommands(drivetrainOne.createAutoFactory());
-		autoChooser.addCmd("FourPiece", autoCommands::fourPiece);
-		autoChooser.addCmd("Characterize", drivetrainOne::characterizeFeedforwardCmd);
-		autonomous().whileTrue(autoChooser.selectedCommandScheduler().withName("AutoCmdScheduler"));
-		SmartDashboard.putData("AutoChooser", autoChooser);
 	}
 
 	@Override

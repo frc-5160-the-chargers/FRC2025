@@ -1,0 +1,83 @@
+package frc.robot.subsystems;
+
+import au.grapplerobotics.LaserCan;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.chargers.hardware.motorcontrol.ChargerSpark;
+import frc.chargers.hardware.motorcontrol.Motor;
+import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
+import frc.chargers.hardware.motorcontrol.SimMotor;
+import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
+import frc.chargers.utils.InputStream;
+import monologue.LogLocal;
+
+import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
+import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
+
+@Logged
+public class CoralIntake extends SubsystemBase implements LogLocal {
+	private static final double GEAR_RATIO = 1.0;
+	private static final int ID = -1000;
+	
+	private final LaserCan laserCan = new LaserCan(0);
+	private LaserCan.Measurement laserCanMeasurement = laserCan.getMeasurement();
+	private final Motor motor;
+	
+	/** Whether the coral intake has coral. */
+	public final Trigger hasCoral = new Trigger(
+		() -> laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < 20
+	);
+	
+	public CoralIntake() {
+		if (RobotBase.isSimulation()) {
+			motor = new SimMotor(
+				SimMotorType.DC(DCMotor.getNEO(1), 0.004),
+				null
+			);
+		} else {
+			motor = ChargerSpark.max(ID, configurator -> {
+				var config = new SparkMaxConfig();
+				config.signals
+					.absoluteEncoderPositionPeriodMs(65535)
+					.analogPositionPeriodMs(65535)
+					.analogVelocityPeriodMs(65535);
+				config
+					.smartCurrentLimit(60);
+				configurator.configure(config, kResetSafeParameters, kPersistParameters);
+			});
+		}
+		motor.setControlsConfig(
+			ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO)
+		);
+	}
+	
+	/**
+	 * Returns a Command that sets the elevator motors at a specific percent out.
+	 * A value of 1.0 is equivalent to 12 volts(and vise-versa for -1.0).
+	 */
+	public Command setPowerCmd(InputStream controllerInput) {
+		return this.run(() -> motor.setVoltage(controllerInput.get() * 12));
+	}
+	
+	public Command intakeCmd() {
+		return this.run(() -> motor.setVoltage(-12)).until(hasCoral);
+	}
+	
+	public Command outtakeCmd() {
+		return this.run(() -> motor.setVoltage(8)).until(hasCoral.negate());
+	}
+	
+	public Command idle() {
+		return this.run(() -> motor.setVoltage(0));
+	}
+	
+	@Override
+	public void periodic() {
+		laserCanMeasurement = laserCan.getMeasurement();
+	}
+}

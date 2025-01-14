@@ -213,7 +213,10 @@
       },
       "SmartDashboard": {
         "Alerts": {
-          "open": true
+          "open": true,
+          "string[]##v_/SmartDashboard/Alerts/infos": {
+            "open": true
+          }
         },
         "SwerveDrive": {
           "open": true

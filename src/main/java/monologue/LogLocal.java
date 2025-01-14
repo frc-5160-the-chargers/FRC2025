@@ -2,16 +2,15 @@ package monologue;
 
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Unit;
+import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.util.struct.StructFetcher;
 import edu.wpi.first.util.struct.StructSerializable;
+import monologue.LoggingTree.LoggingNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import edu.wpi.first.util.struct.Struct;
-import monologue.LoggingTree.LoggingNode;
 
 /**
  * Interface that allows an object to be manually logged.
@@ -397,19 +396,6 @@ public interface LogLocal {
     String slashkey = "/" + key;
     for (LoggingNode node : getNodes(this)) {
       Monologue.config.backend.log(node.getPath() + slashkey, value, struct);
-    }
-    return value;
-  }
-  
-  default <E extends Enum<E>> E log(String key, E value) {
-    if (Monologue.IS_DISABLED) return value;
-    if (!Monologue.hasBeenSetup()) {
-      Monologue.prematureLog(() -> log(key, value));
-      return value;
-    }
-    String slashkey = "/" + key;
-    for (LoggingNode node : getNodes(this)) {
-      Monologue.config.backend.log(node.getPath() + slashkey, value);
     }
     return value;
   }
