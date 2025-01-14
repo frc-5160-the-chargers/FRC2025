@@ -113,7 +113,7 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	}
 	
 	@Override
-	public void close() throws Exception {
+	public void close() {
 		driveMotor.close();
 		steerMotor.close();
 		absoluteEncoder.close();

@@ -3,10 +3,8 @@ package frc.robot.subsystems;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import monologue.LogLocal;
 
-public class CoralIntakePivot extends SubsystemBase implements LogLocal {
+public class CoralIntakePivot extends StandardSubsystem {
 	/*
 	Todo:
 	1. have command factory for moving the pivot to a certain angle

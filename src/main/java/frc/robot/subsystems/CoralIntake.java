@@ -6,7 +6,6 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -14,13 +13,12 @@ import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
-import monologue.LogLocal;
 
 import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
 
 @Logged
-public class CoralIntake extends SubsystemBase implements LogLocal {
+public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 1.0;
 	private static final int ID = -1000;
 	
@@ -79,5 +77,10 @@ public class CoralIntake extends SubsystemBase implements LogLocal {
 	@Override
 	public void periodic() {
 		laserCanMeasurement = laserCan.getMeasurement();
+	}
+	
+	@Override
+	public void close() {
+		motor.close();
 	}
 }

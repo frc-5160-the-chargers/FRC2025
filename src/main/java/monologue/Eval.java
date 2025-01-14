@@ -1,15 +1,16 @@
 package monologue;
 
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.NotLogged;
+import monologue.LoggingTree.LoggingNode;
+import monologue.LoggingTree.ObjectNode;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.NotLogged;
-import monologue.LoggingTree.*;
 
 class Eval {
   static List<Class<?>> getLoggedInHierarchy(Class<?> type, Class<?> stop) {

@@ -1,4 +1,4 @@
-package frc.robot.targeting;
+package frc.robot.positions;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.units.measure.Angle;

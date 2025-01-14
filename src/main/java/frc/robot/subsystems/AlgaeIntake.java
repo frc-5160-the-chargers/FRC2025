@@ -3,15 +3,13 @@ package frc.robot.subsystems;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
-import monologue.LogLocal;
 
 @Logged
-public class AlgaeIntake extends SubsystemBase implements LogLocal {
+public class AlgaeIntake extends StandardSubsystem {
 	private final Motor leftMotor = new SimMotor(
 		SimMotorType.DC(DCMotor.getNEO(1), 0.025),
 		null
@@ -34,5 +32,11 @@ public class AlgaeIntake extends SubsystemBase implements LogLocal {
 	
 	public Command intakeCmd() {
 		return setPowerCmd(() -> -0.95);
+	}
+	
+	@Override
+	public void close() {
+		leftMotor.close();
+		rightMotor.close();
 	}
 }

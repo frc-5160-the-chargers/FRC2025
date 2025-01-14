@@ -1,13 +1,13 @@
 package frc.robot.subsystems.swerve;
 
-import frc.chargers.hardware.encoders.VoidEncoder;
-import frc.chargers.utils.PIDConstants;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
+import frc.chargers.utils.PIDConstants;
 import frc.robot.subsystems.swerve.SwerveDrive.ControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.HardwareConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;

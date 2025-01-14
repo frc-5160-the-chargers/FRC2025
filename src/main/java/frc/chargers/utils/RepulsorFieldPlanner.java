@@ -6,7 +6,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import frc.chargers.utils.Tunables.TunableBoolean;
+import frc.chargers.utils.LiveData.NTBoolean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -227,9 +227,9 @@ public class RepulsorFieldPlanner {
 	@Logged private double repulsorTimeS = 0.0;
 	@Logged private double forceLog = 0.0;
 	
-	private TunableBoolean useGoalInArrows = new TunableBoolean("RepulsorConfig/useGoalInArrows", true);
-	private TunableBoolean useObstaclesInArrows = new TunableBoolean("RepulsorConfig/useObstaclesInArrows", true);
-	private TunableBoolean useWallsInArrows = new TunableBoolean("RepulsorConfig/useWallsInArrows", false);
+	private NTBoolean useGoalInArrows = NTBoolean.asTunable("RepulsorConfig/useGoalInArrows", true);
+	private NTBoolean useObstaclesInArrows = NTBoolean.asTunable("RepulsorConfig/useObstaclesInArrows", true);
+	private NTBoolean useWallsInArrows = NTBoolean.asTunable("RepulsorConfig/useWallsInArrows", false);
 	
 	private Pose2d arrowBackstage = new Pose2d(-10, -10, Rotation2d.kZero);
 	

@@ -19,6 +19,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Frequency;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.SignalAutoRefresher;
 import org.jetbrains.annotations.Nullable;
@@ -191,5 +192,8 @@ public class ChargerTalonFX implements Motor {
 	}
 	
 	@Override
-	public void close(){ baseMotor.close(); }
+	public void close() {
+		if (RobotBase.isReal()) return;
+		baseMotor.close();
+	}
 }

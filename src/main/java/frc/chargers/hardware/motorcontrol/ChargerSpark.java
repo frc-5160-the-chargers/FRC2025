@@ -8,6 +8,7 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import org.jetbrains.annotations.Nullable;
 
@@ -136,5 +137,8 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 	}
 	
 	@Override
-	public void close() { baseMotor.close(); }
+	public void close() {
+		if (RobotBase.isReal()) return;
+		baseMotor.close();
+	}
 }

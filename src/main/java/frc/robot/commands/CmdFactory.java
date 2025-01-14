@@ -8,8 +8,8 @@ import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import frc.robot.targeting.IntakePosition;
-import frc.robot.targeting.ScoringPosition;
+import frc.robot.positions.IntakePosition;
+import frc.robot.positions.ScoringPosition;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;

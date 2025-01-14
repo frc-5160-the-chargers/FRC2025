@@ -20,7 +20,6 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
@@ -28,14 +27,13 @@ import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
+import frc.chargers.utils.LiveData.NTDouble;
 import frc.chargers.utils.PIDConstants;
-import frc.chargers.utils.Tunables.TunableDouble;
-import monologue.LogLocal;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 
-public class Elevator extends SubsystemBase implements LogLocal {
+public class Elevator extends StandardSubsystem {
 	private static final double GEAR_RATIO = 0.0;
 	private static final Distance DRUM_RADIUS = Inches.of(2.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(2.0);
@@ -57,8 +55,8 @@ public class Elevator extends SubsystemBase implements LogLocal {
 		)
 	);
 	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
-	private final TunableDouble kPTunable = new TunableDouble("elevator/kP", ELEVATOR_KP);
-	private final TunableDouble kDTunable = new TunableDouble("elevator/kD", ELEVATOR_KD);
+	private final NTDouble kPTunable = NTDouble.asTunable("elevator/kP", ELEVATOR_KP);
+	private final NTDouble kDTunable = NTDouble.asTunable("elevator/kD", ELEVATOR_KD);
 	private final SysIdRoutine sysIdRoutine;
 	
 	public Elevator() {
@@ -171,5 +169,10 @@ public class Elevator extends SubsystemBase implements LogLocal {
 		config.CurrentLimits.StatorCurrentLimitEnable = true;
 		config.CurrentLimits.StatorCurrentLimit = 60;
 		return config;
+	}
+	
+	@Override
+	public void close() {
+		leaderMotor.close();
 	}
 }

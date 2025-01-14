@@ -25,7 +25,6 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -36,12 +35,12 @@ import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.UtilMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
-import frc.robot.subsystems.vision.VisionConsumer;
+import frc.robot.subsystems.StandardSubsystem;
+import frc.robot.vision.VisionConsumer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
-import monologue.LogLocal;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
@@ -66,7 +65,7 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  */
 @ExtensionMethod(UtilMethods.class)
 @SuppressWarnings("unused")
-public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseable, VisionConsumer {
+public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
@@ -500,7 +499,7 @@ public class SwerveDrive extends SubsystemBase implements LogLocal, AutoCloseabl
 	public void periodic() { if (!useHighFrequencyOdometry) updateOdometry(); }
 	
 	@Override
-	public void close() throws Exception {
+	public void close() {
 		for (var mod: swerveModules) { mod.close(); }
 	}
 	

@@ -1,4 +1,4 @@
-package frc.robot.subsystems.vision;
+package frc.robot.vision;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -11,7 +11,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
-import frc.robot.subsystems.vision.VisionConsumer.PoseObservation;
+import frc.robot.vision.VisionConsumer.PoseObservation;
 import lombok.Setter;
 import monologue.LogLocal;
 import org.photonvision.PhotonCamera;
