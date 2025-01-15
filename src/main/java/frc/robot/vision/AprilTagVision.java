@@ -11,7 +11,6 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
-import frc.robot.vision.VisionConsumer.PoseObservation;
 import lombok.Setter;
 import monologue.LogLocal;
 import org.photonvision.PhotonCamera;
@@ -119,12 +118,10 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				
-				visionConsumer.addPoseObservation(
-					new PoseObservation(
-						pose.toPose2d(),
-						result.get().timestampSeconds,
-						VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)
-					)
+				visionConsumer.addVisionPoseEstimate(
+					pose.toPose2d(),
+					result.get().timestampSeconds,
+					VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)
 				);
 			}
 		}

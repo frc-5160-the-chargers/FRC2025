@@ -5,6 +5,7 @@ import choreo.trajectory.SwerveSample;
 import choreo.util.ChoreoAllianceFlipUtil;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
@@ -15,6 +16,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
@@ -504,13 +507,9 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 	}
 	
 	@Override
-	public void addPoseObservation(PoseObservation result) {
+	public void addVisionPoseEstimate(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> stdDevs) {
 		if (!acceptVisionObservations) return;
-		poseEstimator.addVisionMeasurement(
-			result.visionPose(),
-			result.timestampSecs(),
-			result.stdDevs()
-		);
+		poseEstimator.addVisionMeasurement(visionPose, timestampSecs, stdDevs);
 	}
 	
 	@Override

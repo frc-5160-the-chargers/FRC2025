@@ -13,9 +13,6 @@ import java.util.List;
  * or apriltag vision results).
  */
 public interface VisionConsumer {
-	/** Represents a vision measurement from a camera. */
-	record PoseObservation(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> stdDevs) {}
-	
-	default void addPoseObservation(PoseObservation measurement) {}
+	default void addVisionPoseEstimate(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> stdDevs) {}
 	default void setPathfindingObstacles(List<Pose2d> positions) {}
 }

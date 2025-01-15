@@ -34,6 +34,10 @@ public class AlgaeIntake extends StandardSubsystem {
 		return setPowerCmd(() -> -0.95);
 	}
 	
+	public Command idleCmd() {
+		return setPowerCmd(() -> 0);
+	}
+	
 	@Override
 	public void close() {
 		leftMotor.close();

@@ -17,4 +17,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 	public Command setAngleCmd(Angle target) {
 		return Commands.print("TODO! - Pivot");
 	}
+	
+	public Command idleCmd() { return this.run(() -> {}); }
 }

@@ -70,7 +70,7 @@ public class CoralIntake extends StandardSubsystem {
 		return this.run(() -> motor.setVoltage(8)).until(hasCoral.negate());
 	}
 	
-	public Command idle() {
+	public Command idleCmd() {
 		return this.run(() -> motor.setVoltage(0));
 	}
 	
@@ -80,7 +80,8 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	@Override
-	public void close() {
+	public void close() throws Exception {
 		motor.close();
+		laserCan.close();
 	}
 }

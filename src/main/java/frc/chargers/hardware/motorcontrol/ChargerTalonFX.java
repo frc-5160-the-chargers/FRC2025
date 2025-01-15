@@ -1,5 +1,6 @@
 package frc.chargers.hardware.motorcontrol;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -70,6 +71,10 @@ public class ChargerTalonFX implements Motor {
 	};
 	
 	public ChargerTalonFX(int id, @Nullable Consumer<TalonFXConfigurator> configureFn) {
+		this(id, configureFn, true);
+	}
+	
+	public ChargerTalonFX(int id, @Nullable Consumer<TalonFXConfigurator> configureFn, boolean disableUnusedSignals) {
 		this.baseMotor = new TalonFX(id);
 		this.positionSignal = baseMotor.getPosition();
 		this.velocitySignal = baseMotor.getVelocity();
@@ -78,14 +83,17 @@ public class ChargerTalonFX implements Motor {
 		this.supplyCurrentSignal = baseMotor.getSupplyCurrent();
 		this.tempSignal = baseMotor.getDeviceTemp();
 		this.torqueCurrentSignal = baseMotor.getTorqueCurrent();
-		SignalAutoRefresher.register(
+		StatusSignal<?>[] allSignals = {
 			positionSignal, velocitySignal, voltageSignal, currentSignal,
 			supplyCurrentSignal, tempSignal, torqueCurrentSignal
-		);
+		};
+		SignalAutoRefresher.register(allSignals);
+		if (disableUnusedSignals) {
+			BaseStatusSignal.setUpdateFrequencyForAll(50.0, allSignals);
+			baseMotor.optimizeBusUtilization();
+		}
 		if (configureFn != null) configureFn.accept(baseMotor.getConfigurator());
 	}
-	
-	public TalonFXConfigurator getConfigurator() { return baseMotor.getConfigurator(); }
 	
 	public ChargerTalonFX withPhoenixPro(boolean useTorqueCurrentControl) {
 		voltageRequest.EnableFOC = true;

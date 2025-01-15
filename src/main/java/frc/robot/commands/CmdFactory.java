@@ -70,7 +70,7 @@ public class CmdFactory {
 	// A pathfind command variant that passively moves the elevator slightly along the way.
 	// This slightly reduces cycle times(as the elevator is already in a higher position).
 	private Command pathfindWithLift(Supplier<Pose2d> getTargetPose, Distance elevatorHeight) {
-		return drivetrain.pathfindCmd(getTargetPose)
-			       .deadlineFor(elevator.passiveLiftCmd(elevatorHeight));
+		return Commands.parallel(drivetrain.pathfindCmd(getTargetPose))
+			       .withDeadline(elevator.passiveLiftCmd(elevatorHeight));
 	}
 }

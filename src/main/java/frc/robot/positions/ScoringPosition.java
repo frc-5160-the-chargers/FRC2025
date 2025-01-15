@@ -48,9 +48,7 @@ public record ScoringPosition(int scoringLevel, int nodePosition) {
 	 *                     that directly faces the centerline/net. All other positions
 	 *                     are numbered in a clockwise manner. Can be -1 if the scoringLevel is 1.
 	 */
-	public ScoringPosition(int scoringLevel, int nodePosition) {
-		this.nodePosition = nodePosition;
-		this.scoringLevel = scoringLevel;
+	public ScoringPosition {
 		if ((nodePosition < 0 || nodePosition > 12) && scoringLevel != 1) {
 			throw new RuntimeException("Invalid node position: " + nodePosition);
 		}
