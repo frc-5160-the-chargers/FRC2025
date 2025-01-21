@@ -34,7 +34,8 @@ public class AlgaeIntake extends StandardSubsystem {
 		return setPowerCmd(() -> -0.95);
 	}
 	
-	public Command idleCmd() {
+	@Override
+	public Command stopCmd() {
 		return setPowerCmd(() -> 0);
 	}
 	

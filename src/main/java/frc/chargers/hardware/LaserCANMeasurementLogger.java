@@ -7,7 +7,7 @@ import edu.wpi.first.epilogue.logging.EpilogueBackend;
 
 @CustomLoggerFor(LaserCan.Measurement.class)
 public class LaserCANMeasurementLogger extends ClassSpecificLogger<LaserCan.Measurement> {
-	protected LaserCANMeasurementLogger() {
+	public LaserCANMeasurementLogger() {
 		super(LaserCan.Measurement.class);
 	}
 	

@@ -4,7 +4,36 @@
  "type":"Swerve",
  "variables":{
   "expressions":{},
-  "poses":{}
+  "poses":{
+   "test":{
+    "x":{
+     "exp":"144.003 in",
+     "val":3.6576762
+    },
+    "y":{
+     "exp":"158.5 in",
+     "val":4.0259
+    },
+    "heading":{
+     "exp":"180 deg",
+     "val":3.141592653589793
+    }
+   },
+   "hi":{
+    "x":{
+     "exp":"5 m",
+     "val":5.0
+    },
+    "y":{
+     "exp":"5 m",
+     "val":5.0
+    },
+    "heading":{
+     "exp":"30 deg",
+     "val":0.5235987755982988
+    }
+   }
+  }
  },
  "config":{
   "frontLeft":{

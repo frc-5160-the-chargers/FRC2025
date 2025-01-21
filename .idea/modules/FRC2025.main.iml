@@ -5,9 +5,4 @@
       <sourceFolder url="file://$MODULE_DIR$/../../build/generated/sources/annotationProcessor/java/main" isTestSource="false" generated="true" />
     </content>
   </component>
-  <component name="FacetManager">
-    <facet type="FRC_FACET" name="FRC">
-      <configuration />
-    </facet>
-  </component>
 </module>

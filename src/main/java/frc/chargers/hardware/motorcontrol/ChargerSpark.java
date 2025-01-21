@@ -5,31 +5,52 @@ import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.Consumer;
 
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot0;
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot1;
 import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kNoResetSafeParameters;
+import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType;
 import static edu.wpi.first.math.util.Units.*;
-import static edu.wpi.first.units.Units.Milliseconds;
 import static edu.wpi.first.units.Units.Rotations;
+import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static java.lang.Math.PI;
 
-public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
-	// package-private for unit tests
-	final BaseMotor baseMotor;
-	private final RelativeEncoder baseEncoder;
-	private final SparkClosedLoopController pidController;
-	private final Encoder encoder = new Encoder() {
+/**
+ * A TalonFX that implements the Motor interface.
+ * To access more low-level capabilities of the base api, inherit from this class.
+ * Here is an example:
+ * <pre><code>
+ *     class ArmHardware {
+ *         interface BaseArmMotor extends Motor {
+ *             default void setCoastMode(boolean on) {}
+ *         }
+ *
+ *         class RealArmMotor extends ChargerSpark implements BaseArmMotor {
+ *              public RealArmMotor() {
+ *                  super(5, SparkModel.SPARK_MAX);
+ *                  // Here, the baseApi is the SparkBase class
+ *                  baseApi.doSomething();
+ *              }
+ *              void setCoastMode(boolean on) { ... }
+ *         }
+ *
+ *         class SimArmMotor extends SimMotor {}
+ *     }
+ * </code></pre>
+ */
+public class ChargerSpark implements Motor {
+	protected final SparkBase baseApi;
+	protected final RelativeEncoder baseEncoder;
+	protected final SparkClosedLoopController pidController;
+	protected final Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
 			return rotationsToRadians(baseEncoder.getPosition());
@@ -46,38 +67,31 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 		}
 	};
 	
-	public static ChargerSpark<SparkMax> max(int id, @Nullable Consumer<SparkMax> configureFn) {
-		var baseMotor = new SparkMax(id, MotorType.kBrushless);
-		if (configureFn != null) configureFn.accept(baseMotor);
-		return new ChargerSpark<>(baseMotor);
-	}
-	
-	public static ChargerSpark<SparkFlex> flex(int id, @Nullable Consumer<SparkFlex> configureFn) {
-		var baseMotor = new SparkFlex(id, MotorType.kBrushless);
-		if (configureFn != null) configureFn.accept(baseMotor);
-		return new ChargerSpark<>(baseMotor);
-	}
-	
-	public static ChargerSpark<SparkMax> brushed(int id, @Nullable Consumer<SparkMax> configureFn) {
-		var baseMotor = new SparkMax(id, MotorType.kBrushed);
-		if (configureFn != null) configureFn.accept(baseMotor);
-		return new ChargerSpark<>(baseMotor);
-	}
-	
 	/**
-	 * Use {@link ChargerSpark#max} or {@link ChargerSpark#flex} instead.
+	 * A utility method to disable common unused signals.
+	 * @param config The current spark config to-apply.
 	 */
-	private ChargerSpark(BaseMotor baseMotor) {
-		this.baseMotor = baseMotor;
-		this.baseEncoder = baseMotor.getEncoder();
-		this.pidController = baseMotor.getClosedLoopController();
+	public static void optimizeBusUtilizationOn(SparkBaseConfig config) {
+		config.signals
+			.analogPositionPeriodMs(65535)
+			.analogVelocityPeriodMs(65535)
+			.externalOrAltEncoderPosition(65535)
+			.externalOrAltEncoderVelocity(65535)
+			.analogVoltagePeriodMs(65535)
+			.iAccumulationPeriodMs(65535);
 	}
 	
-	public ChargerSpark<BaseMotor> withPositionUpdateRate(Time period) {
-		var config = new SparkMaxConfig();
-		config.signals.primaryEncoderPositionPeriodMs((int) period.in(Milliseconds));
-		baseMotor.configure(config, kNoResetSafeParameters, kPersistParameters);
-		return this;
+	public enum SparkModel {
+		SPARK_MAX, SPARK_FLEX
+	}
+	
+	public ChargerSpark(int id, SparkModel model, @Nullable SparkBaseConfig config) {
+		this.baseApi = model == SparkModel.SPARK_MAX ? new SparkMax(id, MotorType.kBrushless) : new SparkFlex(id, MotorType.kBrushless);
+		this.baseEncoder = baseApi.getEncoder();
+		this.pidController = baseApi.getClosedLoopController();
+		if (config != null) {
+			tryUntilOk(baseApi, () -> baseApi.configure(config, kResetSafeParameters, kPersistParameters));
+		}
 	}
 	
 	@Override
@@ -85,17 +99,17 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 	
 	@Override
 	public double outputVoltage() {
-		return baseMotor.getAppliedOutput() * baseMotor.getBusVoltage();
+		return baseApi.getAppliedOutput() * baseApi.getBusVoltage();
 	}
 	
 	@Override
-	public double statorCurrent() { return baseMotor.getOutputCurrent(); }
+	public double statorCurrent() { return baseApi.getOutputCurrent(); }
 	
 	@Override
-	public double tempCelsius() { return baseMotor.getMotorTemperature(); }
+	public double tempCelsius() { return baseApi.getMotorTemperature(); }
 	
 	@Override
-	public void setVoltage(double volts) { baseMotor.setVoltage(volts); }
+	public void setVoltage(double volts) { baseApi.setVoltage(volts); }
 	
 	@Override
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {
@@ -133,12 +147,11 @@ public class ChargerSpark<BaseMotor extends SparkBase> implements Motor {
 				.positionConversionFactor(1 / newConfig.gearRatio())
 				.velocityConversionFactor(1 / newConfig.gearRatio());
 		}
-		baseMotor.configure(baseConfig, kNoResetSafeParameters, kPersistParameters);
+		tryUntilOk(baseApi, () -> baseApi.configure(baseConfig, kNoResetSafeParameters, kPersistParameters));
 	}
 	
 	@Override
 	public void close() {
-		if (RobotBase.isReal()) return;
-		baseMotor.close();
+		if (RobotBase.isSimulation()) baseApi.close();
 	}
 }

@@ -1,13 +1,15 @@
 package frc.chargers.hardware.motorcontrol;
 
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.wpilibj.Alert;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.PIDConstants;
 import lombok.With;
 
-import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
-
+/**
+ * A basic, controllable Motor.
+ * We use a common interface for motors to allow us to write code ahead of time
+ * (without knowing what kind of hardware we use).
+ */
 @Logged
 public interface Motor extends AutoCloseable {
 	@With
@@ -20,7 +22,6 @@ public interface Motor extends AutoCloseable {
 		public static final ControlsConfig EMPTY =
 			new ControlsConfig(1.0, PIDConstants.VOID, PIDConstants.VOID, false);
 	}
-	Alert torqueCtrlNotAvailable = new Alert("SetTorqueCurrent not implement on Motor", kError);
 	
 	Encoder encoder();
 	double outputVoltage();
@@ -39,6 +40,6 @@ public interface Motor extends AutoCloseable {
 		return statorCurrent() * outputVoltage() / 12.0;
 	}
 	default double torqueCurrent() { return 0.0; }
-	default void setTorqueCurrent(double currentAmps) { torqueCtrlNotAvailable.set(true); }
+	default void setTorqueCurrent(double currentAmps) {}
 	@Override default void close() {}
 }

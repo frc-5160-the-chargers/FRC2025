@@ -4,7 +4,6 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
@@ -24,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
@@ -41,8 +39,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double ANGULAR_STD_DEV_BASELINE = 0.06;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
 	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
-		new PhotonCamConfig("camera_0", 1.0, new Transform3d())
-			.withSim(new SimCameraProperties())
+		// TODO
 	);
 	private static final VisionSystemSim VISION_SYSTEM_SIM = new VisionSystemSim("main");
 	
@@ -65,7 +62,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	// defaults to empty vision consumer
 	@Setter private VisionConsumer visionConsumer = new VisionConsumer() {};
-	@Setter private Supplier<Pose2d> simPoseSupplier = () -> null;
 	private final Alert connectionAlert = new Alert("", kError);
 	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
 	@Logged private final List<Pose3d> rejectedPoses = new ArrayList<>();
@@ -80,25 +76,19 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		acceptedPoses.clear();
 		rejectedPoses.clear();
 		fiducialIds.clear();
-		
-		var simPose = simPoseSupplier.get();
-		if (simPose != null) VISION_SYSTEM_SIM.update(simPose);
-		
+		if (RobotBase.isSimulation()) VISION_SYSTEM_SIM.update(visionConsumer.getPose());
 		var disconnectedCamNames = new ArrayList<String>();
 		for (var cam: PHOTON_TAG_CAMERAS) {
 			if (!cam.photonCam.isConnected()) {
 				disconnectedCamNames.add(cam.photonCam.getName());
 				continue;
 			}
-			
 			for (var camData: cam.photonCam.getAllUnreadResults()) {
 				boolean ambiguityExceeded = camData.targets.size() == 1 && camData.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
 				if (!camData.hasTargets() || ambiguityExceeded) continue;
 				fiducialIds.addAll(camData.targets.stream().map(it -> it.fiducialId).toList());
-				
 				var result = cam.poseEstimator.update(camData);
 				if (result.isEmpty()) continue;
-				
 				var pose = result.get().estimatedPose;
 				if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters) // Must have realistic Z coordinate
 					    // Must be within the field boundaries
@@ -125,7 +115,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				);
 			}
 		}
-		
 		connectionAlert.setText("The following cameras are disconnected: " + disconnectedCamNames);
 		connectionAlert.set(!disconnectedCamNames.isEmpty());
 		log("disconnectedCameras", disconnectedCamNames.toArray(new String[0]));

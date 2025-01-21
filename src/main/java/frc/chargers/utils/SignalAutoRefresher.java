@@ -1,7 +1,6 @@
 package frc.chargers.utils;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.StatusSignal;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import java.util.HashSet;
@@ -15,27 +14,30 @@ import static monologue.Monologue.GlobalLog;
  * This reduces latency.
  */
 public class SignalAutoRefresher {
-	private static final Set<StatusSignal<?>> allSignals = new HashSet<>();
-	private static final StatusSignal<?>[] dummyArray = {};
+	private static final Set<BaseStatusSignal> allSignals = new HashSet<>();
 	
 	static {
 		// creates a dummy subsystem to update signals
 		new SubsystemBase() {
 			@Override
 			public void periodic() {
-				var latestStatus = BaseStatusSignal.refreshAll(allSignals.toArray(dummyArray));
+				var latestStatus = BaseStatusSignal.refreshAll(
+					allSignals.stream()
+						.filter(it -> it.getAppliedUpdateFrequency() == 50.0)
+						.toArray(BaseStatusSignal[]::new)
+				);
 				GlobalLog.log("statusSignalLatestStatus", latestStatus.toString());
 			}
 		};
 	}
 	
 	/** Refreshes the specified status signals automatically, at a rate of 0.02 seconds. */
-	public static void register(StatusSignal<?>... signals) {
+	public static void register(BaseStatusSignal... signals) {
 		allSignals.addAll(List.of(signals));
 	}
 	
 	/** Prevents these signals from automatically refreshing. */
-	public static void remove(StatusSignal<?>... signals) {
+	public static void remove(BaseStatusSignal... signals) {
 		for (var signal: signals) { allSignals.remove(signal); }
 	}
 }

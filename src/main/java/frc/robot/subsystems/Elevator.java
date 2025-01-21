@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DifferentialFollower;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -32,9 +31,10 @@ import frc.chargers.utils.PIDConstants;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
+import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class Elevator extends StandardSubsystem {
-	private static final double GEAR_RATIO = 0.0;
+	private static final double GEAR_RATIO = 1.0;
 	private static final Distance DRUM_RADIUS = Inches.of(2.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(2.0);
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(0.0);
@@ -42,8 +42,38 @@ public class Elevator extends StandardSubsystem {
 	private static final Angle TOLERANCE = Degrees.of(2.0);
 	private static final double ELEVATOR_KP = 5.0;
 	private static final double ELEVATOR_KD = 0.01;
-	private static final int LEFT_MOTOR_ID = -1000;
-	private static final int RIGHT_MOTOR_ID = -1000;
+	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
+	private static final int LEFT_MOTOR_ID = 5;
+	private static final int RIGHT_MOTOR_ID = 6;
+	
+	static {
+		ELEVATOR_CONFIG.CurrentLimits.StatorCurrentLimitEnable = true;
+		ELEVATOR_CONFIG.CurrentLimits.StatorCurrentLimit = 60;
+		ELEVATOR_CONFIG.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+	}
+	
+	private static class RealElevatorMotor extends ChargerTalonFX {
+		private final TalonFX follower;
+		
+		public RealElevatorMotor() {
+			super(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
+			follower = new TalonFX(RIGHT_MOTOR_ID);
+			follower.setControl(new DifferentialFollower(LEFT_MOTOR_ID, false));
+			tryUntilOk(follower, () -> follower.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
+			
+			disabled()
+				.onTrue(Commands.runOnce(() -> {
+					var newConfig = ELEVATOR_CONFIG.MotorOutput.withNeutralMode(NeutralModeValue.Coast);
+					super.baseApi.getConfigurator().apply(newConfig);
+					follower.getConfigurator().apply(newConfig);
+				}))
+				.onFalse(Commands.runOnce(() -> {
+					var newConfig = ELEVATOR_CONFIG.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
+					super.baseApi.getConfigurator().apply(newConfig);
+					follower.getConfigurator().apply(newConfig);
+				}));
+		}
+	}
 	
 	@Logged
 	private final Motor leaderMotor;
@@ -61,33 +91,14 @@ public class Elevator extends StandardSubsystem {
 	
 	public Elevator() {
 		if (RobotBase.isSimulation()) {
-			// sim motor uses talonfx backend
 			leaderMotor = new SimMotor(
 				SimMotorType.elevator(DCMotor.getKrakenX60(2), ELEVATOR_MASS),
-				configurator -> configurator.apply(this.getConfig())
+				ELEVATOR_CONFIG
 			);
 		} else {
-			// allows the right motor to follow the left motor.
-			// TalonFX is the vendor class, while ChargerTalonFX is our custom wrapper
-			var followerMotor = new TalonFX(RIGHT_MOTOR_ID);
-			followerMotor.getConfigurator().apply(this.getConfig());
-			followerMotor.setControl(new DifferentialFollower(LEFT_MOTOR_ID, false));
-			
-			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, configurator -> {
-				configurator.apply(this.getConfig());
-				disabled()
-					.onTrue(Commands.runOnce(() -> {
-						var coastConfig = new MotorOutputConfigs().withNeutralMode(NeutralModeValue.Coast);
-						configurator.apply(coastConfig);
-						followerMotor.getConfigurator().apply(coastConfig);
-					}))
-					.onFalse(Commands.runOnce(() -> {
-						var coastConfig = new MotorOutputConfigs().withNeutralMode(NeutralModeValue.Brake);
-						configurator.apply(coastConfig);
-						followerMotor.getConfigurator().apply(coastConfig);
-					}));
-			});
+			leaderMotor = new RealElevatorMotor();
 		}
+		
 		sysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
 				null, null, null,
@@ -115,7 +126,7 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	@Logged
-	public double extensionDistMeters() {
+	public double extensionHeight() {
 		return leaderMotor.encoder().positionRad() * DRUM_RADIUS.in(Meters);
 	}
 	
@@ -137,12 +148,13 @@ public class Elevator extends StandardSubsystem {
 	
 	public Command passiveLiftCmd(Distance maxHeight) {
 		return this.run(() -> leaderMotor.setVoltage(1))
-			       .until(() -> Math.abs(extensionDistMeters() - maxHeight.in(Meters)) < 0.1)
-			       .andThen(idle(false));
+			       .until(() -> Math.abs(extensionHeight() - maxHeight.in(Meters)) < 0.1)
+			       .andThen(stopCmd());
 	}
 	
-	public Command idle(boolean forever) {
-		return forever ? this.run(() -> leaderMotor.setVoltage(0)) : this.runOnce(() -> leaderMotor.setVoltage(0));
+	@Override
+	public Command stopCmd() {
+		return this.runOnce(() -> leaderMotor.setVoltage(0));
 	}
 	
 	public Command sysIdCmd() {
@@ -158,17 +170,10 @@ public class Elevator extends StandardSubsystem {
 		log(
 			"elevatorPosition3d",
 			new Pose3d(
-				new Translation3d(0.0, 0.0, extensionDistMeters()),
+				new Translation3d(0.0, 0.0, extensionHeight()),
 				Rotation3d.kZero
 			)
 		);
-	}
-	
-	private TalonFXConfiguration getConfig() {
-		var config = new TalonFXConfiguration();
-		config.CurrentLimits.StatorCurrentLimitEnable = true;
-		config.CurrentLimits.StatorCurrentLimit = 60;
-		return config;
 	}
 	
 	@Override

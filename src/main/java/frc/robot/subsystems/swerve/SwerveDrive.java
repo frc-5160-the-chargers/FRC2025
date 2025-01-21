@@ -3,7 +3,7 @@ package frc.robot.subsystems.swerve;
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import choreo.util.ChoreoAllianceFlipUtil;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
@@ -48,6 +48,7 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -76,7 +77,9 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 		Supplier<Rotation2d> getRealGyroAngle,
 		Function<SwerveCorner, Motor> realSteerMotorCreator,
 		Function<SwerveCorner, Motor> realDriveMotorCreator,
-		Function<SwerveCorner, Encoder> realAbsEncoderCreator
+		Function<SwerveCorner, Encoder> realAbsEncoderCreator,
+		@Nullable TalonFXConfiguration simSteerConfig,
+		@Nullable TalonFXConfiguration simDriveConfig
 	){}
 
 	/**
@@ -125,9 +128,6 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 	private final SwerveDriveSimulation mapleSim;
 	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
 	@Getter private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
-	// given dummy values in case called on real robot
-	@Getter private TalonFXConfigurator simDriveConfigurator = null;
-	@Getter private TalonFXConfigurator simSteerConfigurator = null;
 	
 	@Setter private boolean useExactVelocityInTeleop = false;
 	@Logged private boolean acceptVisionObservations = true;
@@ -218,11 +218,11 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 			if (RobotBase.isSimulation()) {
 				steerMotor = new SimMotor(
 					SimMotorType.DC(DCMotor.getNEO(1), 0.004),
-					configurator -> this.simSteerConfigurator = configurator
+					config.simSteerConfig
 				);
 				driveMotor = new SimMotor(
 					SimMotorType.DC(DCMotor.getNEO(1), 0.025),
-					configurator -> this.simDriveConfigurator = configurator
+					config.simDriveConfig
 				);
 				absoluteEncoder = new VoidEncoder();
 			} else {
@@ -311,6 +311,7 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 	}
 
 	@Logged
+	@Override
 	public Pose2d getPose() {
 		if (RobotBase.isSimulation()) {
 			return mapleSim.getSimulatedDriveTrainPose();
@@ -380,14 +381,14 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 		}).withName("SwerveDriveCmd" + (useExactVelocityInTeleop ? "(Closed Loop)" : "(Open Loop)"));
 	}
 	
-	public Command stopCmd(boolean forever) {
-		Runnable runStop = () -> {
+	@Override
+	public Command stopCmd() {
+		return this.runOnce(() -> {
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDriveVoltage(0);
 				swerveModules[i].setSteerVoltage(0);
 			}
-		};
-		return forever ? this.run(runStop) : this.runOnce(runStop);
+		});
 	}
 	
 	public Command pathfindCmd(Supplier<Pose2d> targetPose) {

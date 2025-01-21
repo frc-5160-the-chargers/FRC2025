@@ -2,6 +2,7 @@ package frc.chargers.hardware.encoders;
 
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import edu.wpi.first.wpilibj.RobotBase;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
@@ -30,5 +31,7 @@ public class ChargerDCEncoder implements Encoder {
 	public void setPositionReading(Angle angle) { offset = encoder.get();  }
 	
 	@Override
-	public void close() { encoder.close(); }
+	public void close() {
+		if (RobotBase.isSimulation()) encoder.close();
+	}
 }

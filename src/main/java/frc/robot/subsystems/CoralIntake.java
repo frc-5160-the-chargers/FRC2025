@@ -1,23 +1,21 @@
 package frc.robot.subsystems;
 
 import au.grapplerobotics.LaserCan;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
+import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
 
-import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
-import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
-
-@Logged
+//@Logged
 public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 1.0;
 	private static final int ID = -1000;
@@ -26,10 +24,10 @@ public class CoralIntake extends StandardSubsystem {
 	private LaserCan.Measurement laserCanMeasurement = laserCan.getMeasurement();
 	private final Motor motor;
 	
-	/** Whether the coral intake has coral. */
 	public final Trigger hasCoral = new Trigger(
 		() -> laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < 20
 	);
+	public final Trigger hasNoCoral = hasCoral.negate();
 	
 	public CoralIntake() {
 		if (RobotBase.isSimulation()) {
@@ -38,16 +36,13 @@ public class CoralIntake extends StandardSubsystem {
 				null
 			);
 		} else {
-			motor = ChargerSpark.max(ID, configurator -> {
-				var config = new SparkMaxConfig();
-				config.signals
-					.absoluteEncoderPositionPeriodMs(65535)
-					.analogPositionPeriodMs(65535)
-					.analogVelocityPeriodMs(65535);
-				config
-					.smartCurrentLimit(60);
-				configurator.configure(config, kResetSafeParameters, kPersistParameters);
-			});
+			var config = new SparkMaxConfig();
+			ChargerSpark.optimizeBusUtilizationOn(config);
+			config
+				.smartCurrentLimit(60)
+				.idleMode(IdleMode.kBrake)
+				.voltageCompensation(12.0);
+			motor = new ChargerSpark(ID, SparkModel.SPARK_MAX, config);
 		}
 		motor.setControlsConfig(
 			ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO)
@@ -70,13 +65,15 @@ public class CoralIntake extends StandardSubsystem {
 		return this.run(() -> motor.setVoltage(8)).until(hasCoral.negate());
 	}
 	
-	public Command idleCmd() {
+	@Override
+	public Command stopCmd() {
 		return this.run(() -> motor.setVoltage(0));
 	}
 	
 	@Override
 	public void periodic() {
-		laserCanMeasurement = laserCan.getMeasurement();
+		var newestMeasurement = laserCan.getMeasurement();
+		if (newestMeasurement != null) laserCanMeasurement = newestMeasurement;
 	}
 	
 	@Override

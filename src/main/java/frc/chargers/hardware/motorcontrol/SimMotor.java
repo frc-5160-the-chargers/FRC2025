@@ -1,6 +1,6 @@
 package frc.chargers.hardware.motorcontrol;
 
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.hal.HAL;
@@ -19,8 +19,6 @@ import edu.wpi.first.wpilibj.simulation.LinearSystemSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.Consumer;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -62,17 +60,17 @@ public class SimMotor extends ChargerTalonFX {
 		}
 	}
 	
-	private final SimMotorType motorType;
-	private final TalonFXSimState talonSimApi;
+	protected final SimMotorType motorType;
+	protected final TalonFXSimState talonSimApi;
 	
 	private static int dummyId = 0;
-	private LinearSystemSim<N2, N1, N2> sim;
-	private double currentGearRatio;
-	private boolean isMapleSim = false;
+	protected LinearSystemSim<N2, N1, N2> sim;
+	protected double currentGearRatio;
+	protected boolean isMapleSim = false;
 	
-	public SimMotor(SimMotorType motorType, @Nullable Consumer<TalonFXConfigurator> configureFn) {
-		super(dummyId++, configureFn);
-		this.talonSimApi = baseMotor.getSimState();
+	public SimMotor(SimMotorType motorType, @Nullable TalonFXConfiguration simConfig) {
+		super(dummyId++, false, simConfig);
+		this.talonSimApi = baseApi.getSimState();
 		this.motorType = motorType;
 		this.sim = motorType.createSim(1.0); // default to a gear ratio of 1.0
 		HAL.registerSimPeriodicAfterCallback(this::periodicCallback);
@@ -101,8 +99,8 @@ public class SimMotor extends ChargerTalonFX {
 	}
 	
 	@Override
-	public SimMotor withPhoenixPro(boolean useTorqueControl) {
-		super.withPhoenixPro(useTorqueControl);
+	public SimMotor enablePhoenixPro(boolean useTorqueControl) {
+		super.enablePhoenixPro(useTorqueControl);
 		return this;
 	}
 	

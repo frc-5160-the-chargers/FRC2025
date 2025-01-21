@@ -4,14 +4,16 @@ import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.chargers.utils.LiveData;
+import frc.robot.commands.RobotCommands;
 import frc.robot.subsystems.AlgaeIntake;
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.CoralIntake;
@@ -22,8 +24,10 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import frc.robot.vision.AprilTagVision;
 import monologue.LogLocal;
 import monologue.Monologue;
+import org.ironmaple.simulation.SimulatedArena;
 
 import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
+import static frc.chargers.utils.UtilMethods.scheduleSequentially;
 
 @Logged
 public class Robot extends TimedRobot implements LogLocal {
@@ -38,11 +42,10 @@ public class Robot extends TimedRobot implements LogLocal {
 	@NotLogged private final CommandPS5Controller driverController = new CommandPS5Controller(0);
 	@NotLogged private final CommandXboxController manualOperatorController = new CommandXboxController(1);
 	
+	// logging doesnt really work for sendables
 	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
 	
-	private String formatCommandData(Command cmd) {
-		return cmd.getName() + "; Requirements: " + cmd.getRequirements();
-	}
+	private final RobotCommands cmdFactory = new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator);
 	
 	public Robot() {
 		// logging setup
@@ -52,13 +55,10 @@ public class Robot extends TimedRobot implements LogLocal {
 		// enables tuning mode
 		LiveData.setTuningMode(true);
 		
-		var scheduler = CommandScheduler.getInstance();
-		scheduler.onCommandInitialize(cmd -> SmartDashboard.putBoolean(cmd.getName(), true));
-		scheduler.onCommandInterrupt(cmd -> SmartDashboard.putBoolean(cmd.getName(), false));
-		scheduler.onCommandFinish(cmd -> SmartDashboard.putBoolean(cmd.getName(), false));
-		
 		mapTriggers();
 		mapDefaultCommands();
+		mapAutoModes();
+		vision.setVisionConsumer(drivetrain);
 	}
 	
 	private void mapTriggers() {
@@ -74,11 +74,29 @@ public class Robot extends TimedRobot implements LogLocal {
 				true
 			)
 		);
-		// TODO - Change these to appropriate commands
-		algaeIntake.setDefaultCommand(algaeIntake.idleCmd());
-		coralIntake.setDefaultCommand(coralIntake.idleCmd());
-		climber.setDefaultCommand(Commands.idle(climber));
-		coralIntakePivot.setDefaultCommand(coralIntakePivot.idleCmd());
-		elevator.setDefaultCommand(Commands.idle(elevator));
+		// TODO - Set other default commands here
+	}
+	
+	private void mapAutoModes() {
+		// TODO
+		autoChooser.addCmd("Testing", () -> scheduleSequentially(
+			Commands.print("A"),
+			Commands.print("B"),
+			Commands.print("C")
+		));
+		SmartDashboard.putData("AutoChooser", autoChooser);
+		RobotModeTriggers.autonomous().onTrue(autoChooser.selectedCommandScheduler());
+	}
+	
+	@Override
+	public void robotPeriodic() {
+		var startTime = System.nanoTime();
+		CommandScheduler.getInstance().run();
+		if (RobotBase.isSimulation()) {
+			SimulatedArena.getInstance().simulationPeriodic();
+//			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
+//			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
+		}
+		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 }

@@ -86,5 +86,15 @@
       <option name="name" value="WPIb5e23f0a-dac9-4ad2-8dd6-02767c520aca_0Release" />
       <option name="url" value="https://lib.choreo.autos/dep" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="WPILocal" />
+      <option name="name" value="WPILocal" />
+      <option name="url" value="file:/$PROJECT_DIR$/../../../Public/wpilib/2025/maven/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="WPI8ef3423d-9532-4665-8339-206dae1d7168_0Release" />
+      <option name="name" value="WPI8ef3423d-9532-4665-8339-206dae1d7168_0Release" />
+      <option name="url" value="https://storage.googleapis.com/grapple-frc-maven" />
+    </remote-repository>
   </component>
 </project>

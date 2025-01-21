@@ -1,6 +1,7 @@
 package frc.chargers.utils;
 
-import au.grapplerobotics.LaserCan;
+import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.hardware.ParentDevice;
 import com.revrobotics.REVLibError;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.config.SparkBaseConfig;
@@ -15,15 +16,22 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
+import static monologue.Monologue.GlobalLog;
 
 /**
  * <h2>A collection of various utility methods.</h2>
@@ -41,6 +49,7 @@ import java.util.function.Supplier;
 public class UtilMethods {
 	private UtilMethods() {}
 	private static final double EPSILON = 1E-9;
+	private static final int MAX_CONFIG_RETRIES = 4;
 	
 	/**
 	 * Checks if 2 doubles are equal; correcting for floating point error.
@@ -152,13 +161,60 @@ public class UtilMethods {
 		new Trigger(DriverStation::isFMSAttached)
 			.onTrue(Commands.runOnce(() -> config.backend = fileOnlyBackend))
 			.onFalse(Commands.runOnce(() -> config.backend = fileAndNtBackend));
+		
 		NetworkTableInstance.getDefault().startEntryDataLog(
 			DataLogManager.getLog(), "/SmartDashboard", "/SmartDashboard"
 		);
+		
+		var scheduler = CommandScheduler.getInstance();
+		scheduler.onCommandInitialize(cmd -> GlobalLog.log("commands/" + cmd.getName(), true));
+		scheduler.onCommandInterrupt(cmd -> GlobalLog.log("commands/" + cmd.getName(), false));
+		scheduler.onCommandFinish(cmd -> GlobalLog.log("commands/" + cmd.getName(), false));
 	}
 	
-	public static boolean isOk(LaserCan.Measurement measurement) {
-		return measurement.status == 0;
+	/** Runs a CTRE configure call up to 4 times, stopping if it returns an ok status. */
+	public static StatusCode tryUntilOk(ParentDevice device, Supplier<StatusCode> configureFn) {
+		var result = StatusCode.OK;
+		for (int i = 0; i < MAX_CONFIG_RETRIES; i++) {
+			result = configureFn.get();
+			if (result.isOK()) return result;
+		}
+		new Alert(device.getClass().getSimpleName() + " with id " + device.getDeviceID() + " didn't configure: " + result, kError)
+			.set(true);
+		return result;
+	}
+	
+	public static REVLibError tryUntilOk(SparkBase device, Supplier<REVLibError> configureFn) {
+		var result = REVLibError.kOk;
+		for (int i = 0; i < MAX_CONFIG_RETRIES; i++) {
+			result = configureFn.get();
+			if (result == REVLibError.kOk) return result;
+		}
+		new Alert("Spark with id " + device.getDeviceId() + " didn't configure: " + result, kError).set(true);
+		return result;
+	}
+	
+	/**
+	 * A command that schedules the commands one after another,
+	 * scheduling one after the previous command is finished.
+	 * <br />
+	 * This is different than a regular sequence made with <code>andThen</code>,
+	 * as a regular sequence will require the subsystems of each command throughout its entire execution.
+	 * For instance, if you have a <code>shoot().andThen(drive(), intake())</code> command,
+	 * a command requiring the drivetrain cannot run while the robot is shooting(even though
+	 * the drivetrain isn't necessary to shoot). This solves the problem.
+	 * <h2>Only use this within auto routines.</h2>
+	 */
+	public static Command scheduleSequentially(Command... commands) {
+		return new SequentialCommandGroup() {
+			{
+				var commandList = new ArrayList<Command>();
+				for (var cmd: commands) {
+					commandList.add(cmd.handleInterrupt(this::cancel).asProxy());
+				}
+				addCommands(commandList.toArray(new Command[0]));
+			}
+		};
 	}
 	
 	@RequiredArgsConstructor

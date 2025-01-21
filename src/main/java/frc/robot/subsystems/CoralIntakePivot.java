@@ -18,5 +18,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 		return Commands.print("TODO! - Pivot");
 	}
 	
-	public Command idleCmd() { return this.run(() -> {}); }
+	@Override
+	public Command stopCmd() { return this.runOnce(() -> {}); }
 }

@@ -15,4 +15,5 @@ import java.util.List;
 public interface VisionConsumer {
 	default void addVisionPoseEstimate(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> stdDevs) {}
 	default void setPathfindingObstacles(List<Pose2d> positions) {}
+	default Pose2d getPose() { return Pose2d.kZero; }
 }

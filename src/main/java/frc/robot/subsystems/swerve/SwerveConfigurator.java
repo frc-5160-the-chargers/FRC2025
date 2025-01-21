@@ -5,6 +5,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
+import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.utils.PIDConstants;
@@ -43,7 +44,8 @@ public class SwerveConfigurator {
 			Rotation2d::new, // Dummy gyro angle supplier because sim only
 			SwerveConfigurator::getSteerMotor,
 			SwerveConfigurator::getDriveMotor,
-			corner -> new VoidEncoder()
+			corner -> new VoidEncoder(),
+			null, null
 		);
 	
 	private static Motor getSteerMotor(SwerveCorner corner) {
@@ -53,7 +55,7 @@ public class SwerveConfigurator {
 			case BOTTOM_LEFT -> 2;
 			case BOTTOM_RIGHT -> 3;
 		};
-		return ChargerSpark.max(id, null);
+		return new ChargerSpark(id, SparkModel.SPARK_MAX, null);
 	}
 	
 	private static Motor getDriveMotor(SwerveCorner corner) {
@@ -63,6 +65,6 @@ public class SwerveConfigurator {
 			case BOTTOM_LEFT -> 2;
 			case BOTTOM_RIGHT -> 3;
 		};
-		return new ChargerTalonFX(id, null);
+		return new ChargerTalonFX(id, true, null);
 	}
 }
