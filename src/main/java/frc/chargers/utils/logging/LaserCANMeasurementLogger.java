@@ -1,4 +1,4 @@
-package frc.chargers.hardware;
+package frc.chargers.utils.logging;
 
 import au.grapplerobotics.LaserCan;
 import edu.wpi.first.epilogue.CustomLoggerFor;
@@ -13,6 +13,12 @@ public class LaserCANMeasurementLogger extends ClassSpecificLogger<LaserCan.Meas
 	
 	@Override
 	protected void update(EpilogueBackend logger, LaserCan.Measurement measurement) {
+		if (measurement == null) {
+			logger.log("isPresent", false);
+			return;
+		} else {
+			logger.log("isPresent", true);
+		}
 		logger.log("distanceMm", measurement.distance_mm);
 		logger.log("hasObject", measurement.distance_mm < 0.0);
 		logger.log("status", switch (measurement.status) {

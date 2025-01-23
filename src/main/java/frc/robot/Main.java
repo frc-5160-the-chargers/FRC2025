@@ -1,6 +1,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.RobotBase;
+import frc.chargers.choreo.ChoreoVariableWriter;
 
 /**
  * Warning: Do not edit this class
@@ -9,6 +10,6 @@ import edu.wpi.first.wpilibj.RobotBase;
  */
 public class Main {
     public static void main(String[] args) {
-        RobotBase.startRobot(Robot::new);
+        RobotBase.startRobot(ChoreoVariableWriter::new);
     }
 }

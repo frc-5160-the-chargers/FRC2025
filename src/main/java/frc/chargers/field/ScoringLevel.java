@@ -11,7 +11,7 @@ import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 
-public class ScoringLevel {
+public record ScoringLevel(int value) {
 	private static final Map<Integer, Distance> LEVEL_TO_ELEVATOR_HEIGHT_MAP = new HashMap<>();
 	private static final Map<Integer, Angle> LEVEL_TO_PIVOT_ANGLE_MAP = new HashMap<>();
 	private static final Distance DEFAULT_ELEVATOR_HEIGHT = Meters.of(0);
@@ -30,13 +30,10 @@ public class ScoringLevel {
 		LEVEL_TO_PIVOT_ANGLE_MAP.put(4, Radians.of(3));
 	}
 	
-	public final int value;
-	
-	public ScoringLevel(int value) {
+	public ScoringLevel {
 		if (value < 1 || value > 4) {
 			new Alert("Invalid scoring level: " + value, kError).set(true);
 		}
-		this.value = value;
 	}
 	
 	public Distance elevatorHeight() {

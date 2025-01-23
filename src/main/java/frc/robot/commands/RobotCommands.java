@@ -33,7 +33,7 @@ public class RobotCommands {
 	public Command prepareToScore(ScoringLevel level) {
 		return Commands.parallel(
 			elevator.moveToHeightCmd(level.elevatorHeight()),
-			Commands.runOnce(() -> GlobalLog.log("scoringPosition/scoringLevel", level.value)),
+			Commands.runOnce(() -> GlobalLog.log("scoringPosition/scoringLevel", level.value())),
 			coralIntakePivot.setAngleCmd(level.pivotAngle())
 		).withName("prepareToScore");
 	}
