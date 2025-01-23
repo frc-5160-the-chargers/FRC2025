@@ -31,15 +31,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
-import frc.chargers.hardware.motorcontrol.SimMotor;
-import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.UtilMethods;
 import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import frc.robot.subsystems.StandardSubsystem;
-import frc.robot.vision.VisionConsumer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -52,7 +49,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -69,7 +65,7 @@ import static org.photonvision.PhotonUtils.getYawToPose;
  */
 @ExtensionMethod(UtilMethods.class)
 @SuppressWarnings("unused")
-public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
+public class SwerveDrive extends StandardSubsystem {
 	public record SwerveDriveConfig(
 		HardwareConfig ofHardware,
 		ModuleType ofModules,
@@ -216,14 +212,10 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 			Motor driveMotor;
 			Encoder absoluteEncoder;
 			if (RobotBase.isSimulation()) {
-				steerMotor = new SimMotor(
-					SimMotorType.DC(DCMotor.getNEO(1), 0.004),
-					config.simSteerConfig
-				);
-				driveMotor = new SimMotor(
-					SimMotorType.DC(DCMotor.getNEO(1), 0.025),
-					config.simDriveConfig
-				);
+				var moduleSim = mapleSim.getModules()[i];
+				// useSteerMotorController and useDriveMotorController return the passed in DummyMotor.
+				steerMotor = moduleSim.useSteerMotorController(new SwerveModule.DummyMotor(null));
+				driveMotor = moduleSim.useDriveMotorController(new SwerveModule.DummyMotor(null));
 				absoluteEncoder = new VoidEncoder();
 			} else {
 				// SwerveCorner.values() is TL, TR, BL, and BR(enums are defined in this order)
@@ -245,10 +237,7 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 					.withVelocityPID(config.ofControls.velocityPID)
 			);
 			
-			this.swerveModules[i] = new SwerveModule(
-				config, absoluteEncoder, steerMotor,
-				driveMotor, RobotBase.isSimulation() ? Optional.of(mapleSim.getModules()[i]) : Optional.empty()
-			);
+			this.swerveModules[i] = new SwerveModule(driveMotor, steerMotor, absoluteEncoder, config);
 		}
 		if (RobotBase.isSimulation()) {
 			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
@@ -311,7 +300,6 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 	}
 
 	@Logged
-	@Override
 	public Pose2d getPose() {
 		if (RobotBase.isSimulation()) {
 			return mapleSim.getSimulatedDriveTrainPose();
@@ -498,6 +486,15 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;
 	}
+	
+	public void addVisionPoseEstimate(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> standardDeviations) {
+		if (!acceptVisionObservations) return;
+		poseEstimator.addVisionMeasurement(visionPose, timestampSecs, standardDeviations);
+	}
+	
+	public void setPathfindingObstacles(List<Pose2d> obstacles) {
+		// TODO
+	}
 
 	@Override
 	public void periodic() { if (!useHighFrequencyOdometry) updateOdometry(); }
@@ -505,16 +502,5 @@ public class SwerveDrive extends StandardSubsystem implements VisionConsumer {
 	@Override
 	public void close() {
 		for (var mod: swerveModules) { mod.close(); }
-	}
-	
-	@Override
-	public void addVisionPoseEstimate(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> stdDevs) {
-		if (!acceptVisionObservations) return;
-		poseEstimator.addVisionMeasurement(visionPose, timestampSecs, stdDevs);
-	}
-	
-	@Override
-	public void setPathfindingObstacles(List<Pose2d> obstacles) {
-		// TODO
 	}
 }

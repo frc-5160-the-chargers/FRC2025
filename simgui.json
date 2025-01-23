@@ -16,6 +16,7 @@
       "/SmartDashboard/ChoreoAlert": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
+      "/SmartDashboard/VisionSystemSim-main/Sim Field": "Field2d",
       "Robot/Dummy Field": "PIDController",
       "Robot/autoChooser": "String Chooser",
       "Robot/drivetrain/rotationController": "PIDController",
@@ -113,6 +114,9 @@
         "arm": {
           "open": true
         },
+        "driverController": {
+          "open": true
+        },
         "driverController1": {
           "open": true
         },
@@ -157,6 +161,12 @@
           "repulsor": {
             "open": true
           }
+        },
+        "elevator": {
+          "leaderMotor": {
+            "open": true
+          },
+          "open": true
         },
         "field": {
           "double[]##v_/Robot/field//Robot": {

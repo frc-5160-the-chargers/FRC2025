@@ -4,6 +4,8 @@ import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -12,7 +14,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import frc.chargers.utils.InputStream;
 import frc.chargers.utils.LiveData;
+import frc.chargers.utils.StatusSignalRefresher;
 import frc.robot.commands.RobotCommands;
 import frc.robot.subsystems.AlgaeIntake;
 import frc.robot.subsystems.Climber;
@@ -26,6 +30,7 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
+import static edu.wpi.first.units.Units.Meters;
 import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 import static frc.chargers.utils.UtilMethods.scheduleSequentially;
 
@@ -48,6 +53,8 @@ public class Robot extends TimedRobot implements LogLocal {
 	private final RobotCommands cmdFactory = new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator);
 	
 	public Robot() {
+		// Required for ChargerTalonFX and ChargerCANcoder to work
+		StatusSignalRefresher.startPeriodic(this);
 		// logging setup
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
@@ -58,7 +65,25 @@ public class Robot extends TimedRobot implements LogLocal {
 		mapTriggers();
 		mapDefaultCommands();
 		mapAutoModes();
-		vision.setVisionConsumer(drivetrain);
+		vision.setDataConsumer(drivetrain::addVisionPoseEstimate);
+		vision.setSimPoseSupplier(drivetrain::getPose);
+		if (RobotBase.isSimulation()) {
+			SimulatedArena.getInstance().placeGamePiecesOnField();
+			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+		}
+	}
+	
+	@Override
+	public void robotPeriodic() {
+		// All of this code is required
+		var startTime = System.nanoTime();
+		CommandScheduler.getInstance().run();
+		if (RobotBase.isSimulation()) {
+			SimulatedArena.getInstance().simulationPeriodic();
+			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
+			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
+		}
+		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 	
 	private void mapTriggers() {
@@ -68,11 +93,20 @@ public class Robot extends TimedRobot implements LogLocal {
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
 			drivetrain.driveCmd(
-				driverController::getLeftX,
-				driverController::getLeftY,
-				driverController::getRightX,
+				InputStream.of(driverController::getLeftY)
+					.negate()
+					.log("driverController/xOutput"),
+				InputStream.of(driverController::getLeftX)
+					.negate()
+					.log("driverController/yOutput"),
+				InputStream.of(driverController::getRightX)
+					.negate()
+					.log("driverController/rotationOutput"),
 				true
 			)
+		);
+		elevator.setDefaultCommand(
+			elevator.moveToHeightCmd(Meters.of(3))
 		);
 		// TODO - Set other default commands here
 	}
@@ -86,17 +120,5 @@ public class Robot extends TimedRobot implements LogLocal {
 		));
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		RobotModeTriggers.autonomous().onTrue(autoChooser.selectedCommandScheduler());
-	}
-	
-	@Override
-	public void robotPeriodic() {
-		var startTime = System.nanoTime();
-		CommandScheduler.getInstance().run();
-		if (RobotBase.isSimulation()) {
-			SimulatedArena.getInstance().simulationPeriodic();
-//			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
-//			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
-		}
-		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 }

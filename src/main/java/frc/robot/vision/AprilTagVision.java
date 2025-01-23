@@ -4,6 +4,7 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
@@ -12,6 +13,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import lombok.Setter;
 import monologue.LogLocal;
+import org.jetbrains.annotations.Nullable;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
@@ -23,14 +25,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
-/**
- * Important: std dev = standard deviation
- */
 @SuppressWarnings("unused")
 public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.3;
@@ -61,7 +61,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	}
 	
 	// defaults to empty vision consumer
-	@Setter private VisionConsumer visionConsumer = new VisionConsumer() {};
+	@Setter private PoseEstimateConsumer dataConsumer = (pose, time, deviations) -> {};
+	@Nullable @Setter private Supplier<Pose2d> simPoseSupplier = null;
 	private final Alert connectionAlert = new Alert("", kError);
 	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
 	@Logged private final List<Pose3d> rejectedPoses = new ArrayList<>();
@@ -76,7 +77,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		acceptedPoses.clear();
 		rejectedPoses.clear();
 		fiducialIds.clear();
-		if (RobotBase.isSimulation()) VISION_SYSTEM_SIM.update(visionConsumer.getPose());
+		if (RobotBase.isSimulation() && simPoseSupplier != null) {
+			VISION_SYSTEM_SIM.update(simPoseSupplier.get());
+		}
 		var disconnectedCamNames = new ArrayList<String>();
 		for (var cam: PHOTON_TAG_CAMERAS) {
 			if (!cam.photonCam.isConnected()) {
@@ -108,7 +111,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				
-				visionConsumer.addVisionPoseEstimate(
+				dataConsumer.addData(
 					pose.toPose2d(),
 					result.get().timestampSeconds,
 					VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)

@@ -1,5 +1,3 @@
-package frc.robot.field;
-
 // Copyright (c) 2025 FRC 6328
 // http://github.com/Mechanical-Advantage
 //
@@ -7,18 +5,14 @@ package frc.robot.field;
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
+package frc.chargers.field;
+
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.Distance;
-import lombok.RequiredArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static edu.wpi.first.units.Units.*;
 
 /**
  * Contains various field dimensions and useful reference points. All units are in meters and poses
@@ -26,10 +20,10 @@ import static edu.wpi.first.units.Units.*;
  */
 @SuppressWarnings("unused")
 public class FieldConstants {
-	public static final Distance fieldLength = Inches.of(690.876);
-	public static final Distance fieldWidth = Inches.of(317);
-	public static final Distance startingLineX =
-		Inches.of(299.438); // Measured from the inside of starting line
+	public static final double fieldLength = Units.inchesToMeters(690.876);
+	public static final double fieldWidth = Units.inchesToMeters(317);
+	public static final double startingLineX =
+		Units.inchesToMeters(299.438); // Measured from the inside of starting line
 	
 	public static class Processor {
 		public static final Pose2d centerFace =
@@ -45,8 +39,8 @@ public class FieldConstants {
 			new Translation2d(Units.inchesToMeters(345.428), Units.inchesToMeters(199.947));
 		
 		// Measured from floor to bottom of cage
-		public static final Distance deepHeight = Inches.of(3.125);
-		public static final Distance shallowHeight = Inches.of(30.125);
+		public static final double deepHeight = Units.inchesToMeters(3.125);
+		public static final double shallowHeight = Units.inchesToMeters(30.125);
 	}
 	
 	public static class CoralStation {
@@ -125,10 +119,10 @@ public class FieldConstants {
 								poseDirection
 									.transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
 									.getY(),
-								level.height.in(Meters)),
+								level.height),
 							new Rotation3d(
 								0,
-								level.pitch.in(Radians),
+								Units.degreesToRadians(level.pitch),
 								poseDirection.getRotation().getRadians())));
 					fillLeft.put(
 						level,
@@ -140,14 +134,14 @@ public class FieldConstants {
 								poseDirection
 									.transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
 									.getY(),
-								level.height.in(Meters)),
+								level.height),
 							new Rotation3d(
 								0,
-								Units.degreesToRadians(level.pitch.in(Radians)),
+								Units.degreesToRadians(level.pitch),
 								poseDirection.getRotation().getRadians())));
 				}
-				branchPositions.add((face * 2) + 1, fillRight);
-				branchPositions.add((face * 2) + 2, fillLeft);
+				branchPositions.add(fillRight);
+				branchPositions.add(fillLeft);
 			}
 		}
 	}
@@ -162,25 +156,18 @@ public class FieldConstants {
 			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(86.5), new Rotation2d());
 	}
 	
-	@RequiredArgsConstructor
 	public enum ReefHeight {
-		L4(4, Inches.of(72), Degrees.of(-90)),
-		L3(3, Inches.of(47.625), Degrees.of(-35)),
-		L2(2, Inches.of(31.875), Degrees.of(-35)),
-		L1(1, Inches.of(18), Degrees.zero());
+		L4(Units.inchesToMeters(72), -90),
+		L3(Units.inchesToMeters(47.625), -35),
+		L2(Units.inchesToMeters(31.875), -35),
+		L1(Units.inchesToMeters(18), 0);
 		
-		public final int num;
-		public final Distance height;
-		public final Angle pitch;
-		
-		public static ReefHeight fromNum(int target) {
-			return switch (target) {
-				case 1 -> L1;
-				case 2 -> L2;
-				case 3 -> L3;
-				case 4 -> L4;
-				default -> throw new RuntimeException("Invalid number.");
-			};
+		ReefHeight(double height, double pitch) {
+			this.height = height;
+			this.pitch = pitch; // in degrees
 		}
+		
+		public final double height;
+		public final double pitch;
 	}
 }

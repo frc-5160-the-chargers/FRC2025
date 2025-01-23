@@ -1,5 +1,7 @@
 package frc.robot.subsystems.swerve;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -45,7 +47,14 @@ public class SwerveConfigurator {
 			SwerveConfigurator::getSteerMotor,
 			SwerveConfigurator::getDriveMotor,
 			corner -> new VoidEncoder(),
-			null, null
+			null,
+			new TalonFXConfiguration().withCurrentLimits(
+				new CurrentLimitsConfigs()
+					.withSupplyCurrentLimit(90)
+					.withSupplyCurrentLimitEnable(true)
+					.withStatorCurrentLimit(100)
+					.withStatorCurrentLimitEnable(true)
+			)
 		);
 	
 	private static Motor getSteerMotor(SwerveCorner corner) {

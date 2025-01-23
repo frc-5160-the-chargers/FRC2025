@@ -8,7 +8,7 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
-import frc.chargers.utils.SignalAutoRefresher;
+import frc.chargers.utils.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
@@ -23,7 +23,7 @@ public class ChargerCANcoder implements Encoder {
 		this.baseEncoder = new CANcoder(id);
 		this.positionSignal = baseEncoder.getAbsolutePosition();
 		this.velocitySignal = baseEncoder.getVelocity();
-		SignalAutoRefresher.register(positionSignal, velocitySignal);
+		StatusSignalRefresher.addSignals(positionSignal, velocitySignal);
 		BaseStatusSignal.setUpdateFrequencyForAll(50, positionSignal, velocitySignal);
 		if (optimizeBusUtilization) baseEncoder.optimizeBusUtilization();
 		if (config != null) tryUntilOk(baseEncoder, () -> baseEncoder.getConfigurator().apply(config, 0.01));

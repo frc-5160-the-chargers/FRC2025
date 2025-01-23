@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.simulation.LinearSystemSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
-import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
 
 import static edu.wpi.first.units.Units.*;
@@ -43,11 +42,11 @@ public class SimMotor extends ChargerTalonFX {
 			);
 		}
 		
-		static SimMotorType elevator(DCMotor motorKind, Mass mass) {
+		static SimMotorType elevator(DCMotor motorKind, Mass mass, boolean simulateGravity) {
 			return gearRatio -> new ElevatorSim(
 				motorKind, gearRatio, mass.in(Kilograms), 1.0,
-				Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY,
-				true, 0.0
+				0.0, Double.POSITIVE_INFINITY,
+				simulateGravity, 0.0
 			);
 		}
 		
@@ -60,17 +59,20 @@ public class SimMotor extends ChargerTalonFX {
 		}
 	}
 	
+	private static int dummyId = 0;
+	/** Fetches a dummy ID for simulation-only motors. */
+	public static int getDummyId() {
+		return dummyId++;
+	}
+	
 	protected final SimMotorType motorType;
 	protected final TalonFXSimState talonSimApi;
-	
-	private static int dummyId = 0;
 	protected LinearSystemSim<N2, N1, N2> sim;
-	protected double currentGearRatio;
-	protected boolean isMapleSim = false;
+	protected double currentGearRatio = 1.0;
 	
 	public SimMotor(SimMotorType motorType, @Nullable TalonFXConfiguration simConfig) {
-		super(dummyId++, false, simConfig);
-		this.talonSimApi = baseApi.getSimState();
+		super(SimMotor.getDummyId(), false, simConfig);
+		this.talonSimApi = super.baseApi.getSimState();
 		this.motorType = motorType;
 		this.sim = motorType.createSim(1.0); // default to a gear ratio of 1.0
 		HAL.registerSimPeriodicAfterCallback(this::periodicCallback);
@@ -83,19 +85,9 @@ public class SimMotor extends ChargerTalonFX {
 		sim = motorType.createSim(newConfig.gearRatio());
 	}
 	
-	public SimMotor withOrientation(ChassisReference orientation) {
-		this.talonSimApi.Orientation = orientation;
+	public SimMotor setOrientation(ChassisReference orientation) {
+		talonSimApi.Orientation = orientation;
 		return this;
-	}
-	
-	public SimulatedMotorController getMapleSimApi() {
-		return (mechAngle, mechVelocity, encoderAngle, encoderVelocity) -> {
-			isMapleSim = true;
-			talonSimApi.setSupplyVoltage(12.0);
-			talonSimApi.setRawRotorPosition(encoderAngle);
-			talonSimApi.setRotorVelocity(encoderVelocity);
-			return talonSimApi.getMotorVoltageMeasure();
-		};
 	}
 	
 	@Override
@@ -105,7 +97,7 @@ public class SimMotor extends ChargerTalonFX {
 	}
 	
 	private void periodicCallback() {
-		if (isMapleSim || RobotBase.isReal()) return;
+		if (RobotBase.isReal()) return;
 		sim.setInput(MathUtil.clamp(talonSimApi.getMotorVoltage(), -12, 12));
 		sim.update(0.02);
 		

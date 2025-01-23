@@ -1,29 +1,34 @@
 package frc.robot.subsystems.swerve;
 
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Alert;
 import frc.chargers.hardware.encoders.Encoder;
+import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
+import lombok.RequiredArgsConstructor;
 import monologue.LogLocal;
-import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
+import org.ironmaple.simulation.motorsims.SimulatedMotorController;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 
-import static edu.wpi.first.units.Units.*;
-
+// creates a constructor w/ all variables marked final(i.e driveMotor, steerMotor, etc.)
+@RequiredArgsConstructor
 public class SwerveModule implements LogLocal, AutoCloseable {
-	private static final Alert FF_ALERT = new Alert(
-		"Additional FF is > 0 in open loop drive mode",
-		Alert.AlertType.kWarning
-	);
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
 	@Logged private final Encoder absoluteEncoder;
@@ -31,43 +36,47 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	private final LinearVelocity maxVelocity;
 	private final SimpleMotorFeedforward velocityFF;
 	
-	public SwerveModule(
-		SwerveDriveConfig config,
-		Encoder absoluteEncoder,
-		Motor steerMotor,
-		Motor driveMotor,
-		Optional<SwerveModuleSimulation> mapleSim
-	) {
-		this(
-			config.ofModules().wheelRadius,
-			config.ofHardware().maxVelocity(),
-			config.ofControls().velocityFeedforward(),
-			absoluteEncoder, steerMotor, driveMotor, mapleSim
-		);
+	private static final Alert FF_ALERT = new Alert(
+		"Additional FF is > 0 in open loop drive mode",
+		Alert.AlertType.kWarning
+	);
+	
+	/**
+	 * A dummy motor that accepts maple sim data via maplesim's SimulatedMotorController,
+	 * using a sim talon fx to calculate other values and run pid control.
+	 */
+	public static class DummyMotor extends ChargerTalonFX implements SimulatedMotorController {
+		private final TalonFXSimState talonSimApi;
+		
+		public DummyMotor(@Nullable TalonFXConfiguration config) {
+			super(SimMotor.getDummyId(), false, config);
+			talonSimApi = super.baseApi.getSimState();
+		}
+		
+		@Override
+		public Voltage updateControlSignal(
+			Angle angle, AngularVelocity angularVelocity,
+			Angle encoderAngle, AngularVelocity encoderVelocity
+		) {
+			talonSimApi.setSupplyVoltage(12.0);
+			talonSimApi.setRawRotorPosition(encoderAngle);
+			talonSimApi.setRotorVelocity(encoderVelocity);
+			return talonSimApi.getMotorVoltageMeasure();
+		}
 	}
 	
 	public SwerveModule(
-		Distance wheelRadius,
-		LinearVelocity maxVelocity,
-		SimpleMotorFeedforward velocityFF,
-		Encoder absoluteEncoder,
-		Motor steerMotor,
 		Motor driveMotor,
-		Optional<SwerveModuleSimulation> mapleSim
+		Motor steerMotor,
+		Encoder absoluteEncoder,
+		SwerveDriveConfig config
 	) {
-		this.wheelRadius = wheelRadius;
-		this.maxVelocity = maxVelocity;
-		this.velocityFF = velocityFF;
-		this.steerMotor = steerMotor;
-		this.driveMotor = driveMotor;
-		this.absoluteEncoder = absoluteEncoder;
-		if (mapleSim.isPresent() && steerMotor instanceof SimMotor sm && driveMotor instanceof SimMotor dm) {
-			mapleSim.get().useSteerMotorController(sm.getMapleSimApi());
-			mapleSim.get().useDriveMotorController(dm.getMapleSimApi());
-		} else {
-			steerMotor.encoder().setPositionReading(absoluteEncoder.position());
-			driveMotor.encoder().setPositionReading(Degrees.zero());
-		}
+		this(
+			driveMotor, steerMotor, absoluteEncoder,
+			config.ofModules().wheelRadius,
+			config.ofHardware().maxVelocity(),
+			config.ofControls().velocityFeedforward()
+		);
 	}
 	
 	public void setDesiredState(SwerveModuleState state, boolean closedLoop, double additionalFeedforward) {
@@ -80,10 +89,6 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
 			driveMotor.setVoltage(voltage);
 		}
-	}
-	
-	public void setSteerAngle(double radians) {
-		steerMotor.moveToPosition(radians);
 	}
 	
 	public Rotation2d getSteerAngle() {

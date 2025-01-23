@@ -1,6 +1,5 @@
 package frc.robot;
 
-import choreo.auto.AutoChooser;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -11,6 +10,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
+import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
@@ -27,7 +27,6 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 	@Logged public final SwerveDrive drivetrainOne = createSimBot(
 		new Pose2d(5.0, 7.0, Rotation2d.kZero)
 	);
-	private final AutoChooser autoChooser = new AutoChooser();
 
 	private int currControllerId = 0;
 	private SwerveDrive createSimBot(Pose2d initialPose) {
@@ -55,6 +54,8 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 	}
 
 	public DriverPracticeSim() {
+		// Required for ChargerTalonFX and ChargerCANcoder to work
+		StatusSignalRefresher.startPeriodic(this);
 		// logging config; do not remove
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());

@@ -4,13 +4,13 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.field.ScoringLevel;
-import frc.robot.field.ScoringPoses;
+import frc.chargers.field.IntakePosition;
+import frc.chargers.field.ScoringLevel;
+import frc.chargers.field.ScoringPoses;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import frc.robot.field.IntakePosition;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;

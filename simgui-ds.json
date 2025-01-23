@@ -16,16 +16,11 @@
           "incKey": 83
         },
         {
-          "decayRate": 0.0,
-          "keyRate": 0.009999999776482582
-        },
-        {},
-        {
           "decKey": 69,
           "incKey": 82
         }
       ],
-      "axisCount": 5,
+      "axisCount": 6,
       "buttonCount": 4,
       "buttonKeys": [
         90,

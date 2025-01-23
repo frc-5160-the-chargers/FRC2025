@@ -34,13 +34,13 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class Elevator extends StandardSubsystem {
-	private static final double GEAR_RATIO = 1.0;
+	private static final double GEAR_RATIO = 54.0 / 8.0;
 	private static final Distance DRUM_RADIUS = Inches.of(2.0);
-	private static final Mass ELEVATOR_MASS = Kilograms.of(2.0);
-	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(0.0);
-	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(0.0);
+	private static final Mass ELEVATOR_MASS = Kilograms.of(0.05);
+	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(6.0);
+	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(6.0);
 	private static final Angle TOLERANCE = Degrees.of(2.0);
-	private static final double ELEVATOR_KP = 5.0;
+	private static final double ELEVATOR_KP = 8.0;
 	private static final double ELEVATOR_KD = 0.01;
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
@@ -53,11 +53,9 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	private static class RealElevatorMotor extends ChargerTalonFX {
-		private final TalonFX follower;
-		
 		public RealElevatorMotor() {
 			super(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
-			follower = new TalonFX(RIGHT_MOTOR_ID);
+			var follower = new TalonFX(RIGHT_MOTOR_ID);
 			follower.setControl(new DifferentialFollower(LEFT_MOTOR_ID, false));
 			tryUntilOk(follower, () -> follower.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
 			
@@ -90,10 +88,15 @@ public class Elevator extends StandardSubsystem {
 	private final SysIdRoutine sysIdRoutine;
 	
 	public Elevator() {
+		this(true);
+	}
+	
+	// package-private; for unit tests
+	Elevator(boolean simulateGravity) {
 		if (RobotBase.isSimulation()) {
 			leaderMotor = new SimMotor(
-				SimMotorType.elevator(DCMotor.getKrakenX60(2), ELEVATOR_MASS),
-				ELEVATOR_CONFIG
+				SimMotorType.elevator(DCMotor.getKrakenX60(2), ELEVATOR_MASS, simulateGravity),
+				null
 			);
 		} else {
 			leaderMotor = new RealElevatorMotor();
@@ -130,8 +133,16 @@ public class Elevator extends StandardSubsystem {
 		return leaderMotor.encoder().positionRad() * DRUM_RADIUS.in(Meters);
 	}
 	
+	@Logged
+	public Pose3d robotRelativePose() {
+		return new Pose3d(
+			new Translation3d(0.0, 0.0, extensionHeight()),
+			Rotation3d.kZero
+		);
+	}
+	
 	public Command setPowerCmd(InputStream controllerInput) {
-		return this.run(() -> leaderMotor.setVoltage(controllerInput.get() * 12));
+		return this.run(() -> leaderMotor.setVoltage(controllerInput.get() * 12)).withName("SetPowerCmd(Elevator)");
 	}
 	
 	public Command moveToHeightCmd(Distance targetHeight) {
@@ -140,6 +151,7 @@ public class Elevator extends StandardSubsystem {
 		var goalState = new TrapezoidProfile.State(radiansTarget, 0.0);
 		return this.run(() -> {
 			profileState = trapezoidProfile.calculate(0.02, profileState, goalState);
+			log("motionProfileState/positionRad", profileState.position);
 			leaderMotor.moveToPosition(profileState.position);
 		}).until(
 			() -> Math.abs(radiansTarget - leaderMotor.encoder().positionRad()) < TOLERANCE.in(Radians)
@@ -149,7 +161,8 @@ public class Elevator extends StandardSubsystem {
 	public Command passiveLiftCmd(Distance maxHeight) {
 		return this.run(() -> leaderMotor.setVoltage(1))
 			       .until(() -> Math.abs(extensionHeight() - maxHeight.in(Meters)) < 0.1)
-			       .andThen(stopCmd());
+			       .andThen(stopCmd())
+			       .withName("PassiveLiftCmd");
 	}
 	
 	@Override
@@ -163,17 +176,6 @@ public class Elevator extends StandardSubsystem {
 			sysIdRoutine.dynamic(Direction.kForward),
 			sysIdRoutine.dynamic(Direction.kReverse)
         );
-	}
-	
-	@Override
-	public void periodic() {
-		log(
-			"elevatorPosition3d",
-			new Pose3d(
-				new Translation3d(0.0, 0.0, extensionHeight()),
-				Rotation3d.kZero
-			)
-		);
 	}
 	
 	@Override

@@ -17,7 +17,7 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
-import frc.chargers.utils.SignalAutoRefresher;
+import frc.chargers.utils.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
 
 import static edu.wpi.first.math.util.Units.radiansToRotations;
@@ -99,7 +99,7 @@ public class ChargerTalonFX implements Motor {
 			positionSignal, velocitySignal, voltageSignal, currentSignal,
 			supplyCurrentSignal, tempSignal, torqueCurrentSignal
 		};
-		SignalAutoRefresher.register(allSignals);
+		StatusSignalRefresher.addSignals(allSignals);
 		BaseStatusSignal.setUpdateFrequencyForAll(50, allSignals);
 		if (optimizeBusUtilization) baseApi.optimizeBusUtilization();
 		if (config != null) tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(config, 0.01));
