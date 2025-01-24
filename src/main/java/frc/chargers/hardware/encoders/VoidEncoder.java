@@ -3,7 +3,7 @@ package frc.chargers.hardware.encoders;
 import edu.wpi.first.units.measure.Angle;
 
 /**
- * Represents a null encoder.
+ * An encoder that returns nothing.
  */
 public class VoidEncoder implements Encoder {
 	public double positionRad() { return 0; }

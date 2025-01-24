@@ -4,7 +4,6 @@ import au.grapplerobotics.LaserCan;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -16,6 +15,7 @@ import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
 import frc.chargers.utils.InputStream;
+import frc.chargers.utils.LaserCanUtil;
 
 @Logged
 public class CoralIntake extends StandardSubsystem {
@@ -24,10 +24,10 @@ public class CoralIntake extends StandardSubsystem {
 	
 	private final Motor motor;
 	private final LaserCan laserCan = new LaserCan(0);
-	private LaserCan.Measurement laserCanMeasurement = laserCan.getMeasurement();
+	private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
 	
 	public final Trigger hasCoral = new Trigger(
-		() -> laserCanMeasurement != null && laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < 20
+		() -> laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < 20
 	);
 	
 	public CoralIntake() {
@@ -74,6 +74,9 @@ public class CoralIntake extends StandardSubsystem {
 	@Override
 	public void periodic() {
 		laserCanMeasurement = laserCan.getMeasurement();
+		if (laserCanMeasurement == null) {
+			laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
+		}
 	}
 	
 	@Override

@@ -16,14 +16,11 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -76,14 +73,6 @@ public class UtilMethods {
 		trigger
 			.onTrue(Commands.runOnce(() -> alert.set(true)))
 			.onFalse(Commands.runOnce(() -> alert.set(false)));
-	}
-	
-	/**
-	 * Gets a trigger that returns true once when the value changes.
-	 */
-	public static Trigger hasChanged(Supplier<?> supplier) {
-		var hasChangedHandler = new HasChangedHandler(supplier);
-		return new Trigger(hasChangedHandler::compute);
 	}
 	
 	/**
@@ -162,10 +151,6 @@ public class UtilMethods {
 			.onTrue(Commands.runOnce(() -> config.backend = fileOnlyBackend))
 			.onFalse(Commands.runOnce(() -> config.backend = fileAndNtBackend));
 		
-		NetworkTableInstance.getDefault().startEntryDataLog(
-			DataLogManager.getLog(), "/SmartDashboard", "/SmartDashboard"
-		);
-		
 		var scheduler = CommandScheduler.getInstance();
 		scheduler.onCommandInitialize(cmd -> GlobalLog.log("commands/" + cmd.getName(), true));
 		scheduler.onCommandInterrupt(cmd -> GlobalLog.log("commands/" + cmd.getName(), false));
@@ -192,45 +177,6 @@ public class UtilMethods {
 		}
 		new Alert("Spark with id " + device.getDeviceId() + " didn't configure: " + result, kError).set(true);
 		return result;
-	}
-	
-	/**
-	 * A command that schedules the commands one after another,
-	 * scheduling one after the previous command is finished.
-	 * <br />
-	 * This is different than a regular sequence made with <code>andThen</code>,
-	 * as a regular sequence will require the subsystems of each command throughout its entire execution.
-	 * For instance, if you have a <code>shoot().andThen(drive(), intake())</code> command,
-	 * a command requiring the drivetrain cannot run while the robot is shooting(even though
-	 * the drivetrain isn't necessary to shoot). This solves the problem.
-	 * <h2>Only use this within auto routines.</h2>
-	 */
-	public static Command scheduleSequentially(Command... commands) {
-		return new SequentialCommandGroup() {
-			{
-				var commandList = new ArrayList<Command>();
-				for (var cmd: commands) {
-					commandList.add(cmd.handleInterrupt(this::cancel).asProxy());
-				}
-				addCommands(commandList.toArray(new Command[0]));
-			}
-		};
-	}
-	
-	@RequiredArgsConstructor
-	private static class HasChangedHandler {
-		private final Supplier<?> supplier;
-		private Object value = null;
-		
-		public boolean compute() {
-			var current = supplier.get();
-			if (value != current) {
-				value = current;
-				return value != null;
-			} else {
-				return false;
-			}
-		}
 	}
 	
 	@RequiredArgsConstructor

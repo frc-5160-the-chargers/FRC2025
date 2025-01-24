@@ -4,7 +4,7 @@ import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 
 /**
- * An null motor.
+ * A motor that does nothing.
  */
 public class VoidMotor implements Motor {
 	private static final Encoder ENCODER = new VoidEncoder();

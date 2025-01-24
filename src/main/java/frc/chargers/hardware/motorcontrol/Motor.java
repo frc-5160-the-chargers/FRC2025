@@ -6,12 +6,12 @@ import frc.chargers.utils.PIDConstants;
 import lombok.With;
 
 /**
- * A basic, controllable Motor.
- * We use a common interface for motors to allow us to write code ahead of time
- * (without knowing what kind of hardware we use).
+ * A type that represents a modern motor controller.
  */
 @Logged
 public interface Motor extends AutoCloseable {
+	// provides a "withX()" method for every property -
+	// config.withGearRatio(double), config.withPositionPID(constants), etc.
 	@With
 	record ControlsConfig(
 		double gearRatio,

@@ -1,13 +1,10 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DifferentialFollower;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
@@ -56,7 +53,7 @@ public class Elevator extends StandardSubsystem {
 		public RealElevatorMotor() {
 			super(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
 			var follower = new TalonFX(RIGHT_MOTOR_ID);
-			follower.setControl(new DifferentialFollower(LEFT_MOTOR_ID, false));
+			follower.setControl(new Follower(LEFT_MOTOR_ID, false));
 			tryUntilOk(follower, () -> follower.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
 			
 			disabled()
@@ -131,14 +128,6 @@ public class Elevator extends StandardSubsystem {
 	@Logged
 	public double extensionHeight() {
 		return leaderMotor.encoder().positionRad() * DRUM_RADIUS.in(Meters);
-	}
-	
-	@Logged
-	public Pose3d robotRelativePose() {
-		return new Pose3d(
-			new Translation3d(0.0, 0.0, extensionHeight()),
-			Rotation3d.kZero
-		);
 	}
 	
 	public Command setPowerCmd(InputStream controllerInput) {

@@ -80,6 +80,9 @@
         },
         "open": true
       },
+      "Metadata": {
+        "open": true
+      },
       "RadioStatus": {
         "open": true
       },
@@ -165,8 +168,7 @@
         "elevator": {
           "leaderMotor": {
             "open": true
-          },
-          "open": true
+          }
         },
         "field": {
           "double[]##v_/Robot/field//Robot": {

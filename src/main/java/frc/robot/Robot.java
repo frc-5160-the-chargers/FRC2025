@@ -10,13 +10,13 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.LiveData;
 import frc.chargers.utils.StatusSignalRefresher;
+import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.subsystems.AlgaeIntake;
 import frc.robot.subsystems.Climber;
@@ -29,10 +29,9 @@ import frc.robot.vision.AprilTagVision;
 import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
+import org.jetbrains.annotations.Nullable;
 
-import static edu.wpi.first.units.Units.Meters;
 import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
-import static frc.chargers.utils.UtilMethods.scheduleSequentially;
 
 @Logged
 public class Robot extends TimedRobot implements LogLocal {
@@ -49,8 +48,15 @@ public class Robot extends TimedRobot implements LogLocal {
 	
 	// logging doesnt really work for sendables
 	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
+	@Nullable private final MechanismVisualizer mechViz = RobotBase.isSimulation()
+		? new MechanismVisualizer(elevator::extensionHeight, () -> 0.0)
+		: null;
 	
-	private final RobotCommands cmdFactory = new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator);
+	private final RobotCommands botCommands = new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator);
+	private final AutoCommands autoCommands = new AutoCommands(
+		botCommands, drivetrain.createAutoFactory(),
+		coralIntake, coralIntakePivot, elevator
+	);
 	
 	public Robot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -65,12 +71,14 @@ public class Robot extends TimedRobot implements LogLocal {
 		mapTriggers();
 		mapDefaultCommands();
 		mapAutoModes();
+		logMetadata();
 		vision.setDataConsumer(drivetrain::addVisionPoseEstimate);
 		vision.setSimPoseSupplier(drivetrain::getPose);
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
 		}
+		log("hasInitialized", true);
 	}
 	
 	@Override
@@ -105,19 +113,20 @@ public class Robot extends TimedRobot implements LogLocal {
 				true
 			)
 		);
-		elevator.setDefaultCommand(
-			elevator.moveToHeightCmd(Meters.of(3))
-		);
 		// TODO - Set other default commands here
+	}
+	
+	private void logMetadata() {
+		// TODO add AdvantageScope PR that fixes metadata not showing up
+		log("Metadata/GitDate", BuildConstants.GIT_DATE);
+		log("Metadata/GitBranch", BuildConstants.GIT_BRANCH);
+		log("Metadata/GitDirty", Integer.toString(BuildConstants.DIRTY));
+		log("Metadata/GitSHA", BuildConstants.GIT_SHA);
 	}
 	
 	private void mapAutoModes() {
 		// TODO
-		autoChooser.addCmd("Testing", () -> scheduleSequentially(
-			Commands.print("A"),
-			Commands.print("B"),
-			Commands.print("C")
-		));
+		autoChooser.addCmd("MultiPieceCenter", autoCommands::multiPieceCenter);
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		RobotModeTriggers.autonomous().onTrue(autoChooser.selectedCommandScheduler());
 	}

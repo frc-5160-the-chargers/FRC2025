@@ -35,11 +35,9 @@ import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.UtilMethods;
-import frc.chargers.utils.commands.SimpleFeedforwardCharacterization;
 import frc.robot.subsystems.StandardSubsystem;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
@@ -90,7 +88,11 @@ public class SwerveDrive extends StandardSubsystem {
 		LinearVelocity maxVelocity,
 		double coefficientOfFriction,
 		Mass robotMass
-	){}
+	){
+		public Distance drivebaseRadius() {
+			return Meters.of(Math.hypot(trackWidth.in(Meters) / 2, wheelBase.in(Meters) / 2));
+		}
+	}
 	
 	public record ControlsConfig(
 		PIDConstants steerPID,
@@ -118,16 +120,15 @@ public class SwerveDrive extends StandardSubsystem {
 		TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
 	}
 
-	private final SwerveDriveConfig config;
-	private final SwerveDriveKinematics kinematics;
+	@Getter private final SwerveDriveConfig config;
+	@Getter private final SwerveDriveKinematics kinematics;
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
 	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
-	@Getter private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
+	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
-	@Setter private boolean useExactVelocityInTeleop = false;
 	@Logged private boolean acceptVisionObservations = true;
-	@Getter @Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
+	@Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
 
 	private final PIDController xPoseController;
@@ -364,9 +365,9 @@ public class SwerveDrive extends StandardSubsystem {
 				)
 			);
 			for (int i = 0; i < 4; i++) {
-				swerveModules[i].setDesiredState(desiredStates[i], useExactVelocityInTeleop, 0.0);
+				swerveModules[i].setDesiredState(desiredStates[i], false, 0.0);
 			}
-		}).withName("SwerveDriveCmd" + (useExactVelocityInTeleop ? "(Closed Loop)" : "(Open Loop)"));
+		}).withName("SwerveDriveCmd(Open Loop)");
 	}
 	
 	@Override
@@ -438,27 +439,6 @@ public class SwerveDrive extends StandardSubsystem {
 			log("headingLockOutput", output);
 			return output;
 		};
-	}
-
-	/**
-	 * Runs feedforward characterization forever until interrupt.
-	 * On end, prints feedforward numbers.
-	 */
-	public Command characterizeFeedforwardCmd() {
-		return new SimpleFeedforwardCharacterization(
-			this,
-			volts -> {
-				for (var module: swerveModules) {
-					module.setDriveVoltage(volts);
-					module.setSteerVoltage(0.0);
-				}
-			},
-			() -> {
-				double totalVel = 0.0;
-				for (var module: swerveModules) { totalVel += module.currentState().speedMetersPerSecond; }
-				return totalVel / 4.0;
-			}
-		).withName("SwerveCharacterizeCmd");
 	}
 	
 	/**
