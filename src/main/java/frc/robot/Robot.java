@@ -64,7 +64,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		// logging setup
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
-		configureDefaultLogging(Epilogue.getConfig());
+		//configureDefaultLogging(Epilogue.getConfig());
 		// enables tuning mode
 		LiveData.setTuningMode(true);
 		

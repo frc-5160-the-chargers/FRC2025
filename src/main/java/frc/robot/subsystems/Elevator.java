@@ -42,34 +42,34 @@ public class Elevator extends StandardSubsystem {
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final int RIGHT_MOTOR_ID = 6;
-	
+
 	static {
 		ELEVATOR_CONFIG.CurrentLimits.StatorCurrentLimitEnable = true;
 		ELEVATOR_CONFIG.CurrentLimits.StatorCurrentLimit = 60;
 		ELEVATOR_CONFIG.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 	}
-	
+
 	private static class RealElevatorMotor extends ChargerTalonFX {
 		public RealElevatorMotor() {
 			super(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
 			var follower = new TalonFX(RIGHT_MOTOR_ID);
 			follower.setControl(new Follower(LEFT_MOTOR_ID, false));
 			tryUntilOk(follower, () -> follower.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
-			
+
 			disabled()
-				.onTrue(Commands.runOnce(() -> {
-					var newConfig = ELEVATOR_CONFIG.MotorOutput.withNeutralMode(NeutralModeValue.Coast);
-					super.baseApi.getConfigurator().apply(newConfig);
-					follower.getConfigurator().apply(newConfig);
-				}))
-				.onFalse(Commands.runOnce(() -> {
-					var newConfig = ELEVATOR_CONFIG.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
-					super.baseApi.getConfigurator().apply(newConfig);
-					follower.getConfigurator().apply(newConfig);
-				}));
+					.onTrue(Commands.runOnce(() -> {
+						var newConfig = ELEVATOR_CONFIG.MotorOutput.withNeutralMode(NeutralModeValue.Coast);
+						super.baseApi.getConfigurator().apply(newConfig);
+						follower.getConfigurator().apply(newConfig);
+					}))
+					.onFalse(Commands.runOnce(() -> {
+						var newConfig = ELEVATOR_CONFIG.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
+						super.baseApi.getConfigurator().apply(newConfig);
+						follower.getConfigurator().apply(newConfig);
+					}));
 		}
 	}
-	
+
 	@Logged
 	private final Motor leaderMotor;
 	// convert to angular constraints
@@ -87,53 +87,54 @@ public class Elevator extends StandardSubsystem {
 	public Elevator() {
 		this(true);
 	}
-	
+
 	// package-private; for unit tests
 	Elevator(boolean simulateGravity) {
+		log("init", true);
 		if (RobotBase.isSimulation()) {
 			leaderMotor = new SimMotor(
 				SimMotorType.elevator(DCMotor.getKrakenX60(2), ELEVATOR_MASS, simulateGravity),
 				null
 			);
 		} else {
-			leaderMotor = new RealElevatorMotor();
+			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, null);
 		}
-		
+
 		sysIdRoutine = new SysIdRoutine(
-			new SysIdRoutine.Config(
-				null, null, null,
-				state -> log("sysIdRoutineState", state.toString())
-			),
-			new SysIdRoutine.Mechanism(
-				voltage -> leaderMotor.setVoltage(voltage.in(Volts)),
-				null,
-				this,
-				"Elevator routine"
-			)
+				new SysIdRoutine.Config(
+						null, null, null,
+						state -> log("sysIdRoutineState", state.toString())
+				),
+				new SysIdRoutine.Mechanism(
+						voltage -> leaderMotor.setVoltage(voltage.in(Volts)),
+						null,
+						this,
+						"Elevator routine"
+				)
 		);
 		setMotorCommonConfig();
 		leaderMotor.encoder().setPositionReading(Radians.zero());
 		kPTunable.changed().or(kDTunable.changed())
-			.onTrue(Commands.runOnce(this::setMotorCommonConfig));
+				.onTrue(Commands.runOnce(this::setMotorCommonConfig));
 	}
-	
+
 	private void setMotorCommonConfig() {
 		leaderMotor.setControlsConfig(
-			Motor.ControlsConfig.EMPTY
-				.withGearRatio(GEAR_RATIO)
-				.withPositionPID(new PIDConstants(kPTunable.get(), 0.0, kDTunable.get()))
+				Motor.ControlsConfig.EMPTY
+						.withGearRatio(GEAR_RATIO)
+						.withPositionPID(new PIDConstants(kPTunable.get(), 0.0, kDTunable.get()))
 		);
 	}
-	
+
 	@Logged
 	public double extensionHeight() {
 		return leaderMotor.encoder().positionRad() * DRUM_RADIUS.in(Meters);
 	}
-	
+
 	public Command setPowerCmd(InputStream controllerInput) {
 		return this.run(() -> leaderMotor.setVoltage(controllerInput.get() * 12)).withName("SetPowerCmd(Elevator)");
 	}
-	
+
 	public Command moveToHeightCmd(Distance targetHeight) {
 		log("targetHeight", targetHeight);
 		var radiansTarget = targetHeight.in(Meters) / DRUM_RADIUS.in(Meters);
@@ -143,30 +144,30 @@ public class Elevator extends StandardSubsystem {
 			log("motionProfileState/positionRad", profileState.position);
 			leaderMotor.moveToPosition(profileState.position);
 		}).until(
-			() -> Math.abs(radiansTarget - leaderMotor.encoder().positionRad()) < TOLERANCE.in(Radians)
+				() -> Math.abs(radiansTarget - leaderMotor.encoder().positionRad()) < TOLERANCE.in(Radians)
 		);
 	}
-	
+
 	public Command passiveLiftCmd(Distance maxHeight) {
 		return this.run(() -> leaderMotor.setVoltage(1))
-			       .until(() -> Math.abs(extensionHeight() - maxHeight.in(Meters)) < 0.1)
-			       .andThen(stopCmd())
-			       .withName("PassiveLiftCmd");
+				.until(() -> Math.abs(extensionHeight() - maxHeight.in(Meters)) < 0.1)
+				.andThen(stopCmd())
+				.withName("PassiveLiftCmd");
 	}
-	
+
 	@Override
 	public Command stopCmd() {
 		return this.runOnce(() -> leaderMotor.setVoltage(0));
 	}
-	
+
 	public Command sysIdCmd() {
 		return sysIdRoutine.quasistatic(Direction.kForward).andThen(
-			sysIdRoutine.quasistatic(Direction.kReverse),
-			sysIdRoutine.dynamic(Direction.kForward),
-			sysIdRoutine.dynamic(Direction.kReverse)
-        );
+				sysIdRoutine.quasistatic(Direction.kReverse),
+				sysIdRoutine.dynamic(Direction.kForward),
+				sysIdRoutine.dynamic(Direction.kReverse)
+		);
 	}
-	
+
 	@Override
 	public void close() {
 		leaderMotor.close();

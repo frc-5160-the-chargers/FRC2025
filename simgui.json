@@ -221,6 +221,9 @@
         },
         "test": {
           "open": true
+        },
+        "vision": {
+          "open": true
         }
       },
       "SmartDashboard": {
@@ -231,6 +234,11 @@
           }
         },
         "SwerveDrive": {
+          "open": true
+        }
+      },
+      "TunableValues": {
+        "elevator": {
           "open": true
         }
       }
