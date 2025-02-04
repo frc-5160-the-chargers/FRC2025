@@ -79,6 +79,8 @@ public class Robot extends TimedRobot implements LogLocal {
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
 		}
 		log("hasInitialized", true);
+
+		autoChooser.addCmd("figure eight", autoCommands::figureEight);
 	}
 	
 	@Override

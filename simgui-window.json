@@ -30,7 +30,7 @@
     },
     "###/SmartDashboard/AutoChooser": {
       "Collapsed": "0",
-      "Pos": "27,1171",
+      "Pos": "38,1229",
       "Size": "469,78"
     },
     "###/SmartDashboard/SwerveDrive/fieldViz": {
@@ -40,8 +40,8 @@
     },
     "###FMS": {
       "Collapsed": "0",
-      "Pos": "379,157",
-      "Size": "495,212"
+      "Pos": "363,151",
+      "Size": "302,304"
     },
     "###Joysticks": {
       "Collapsed": "0",
@@ -55,8 +55,8 @@
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "961,51",
-      "Size": "1480,1389"
+      "Pos": "1547,150",
+      "Size": "885,299"
     },
     "###NetworkTables Info": {
       "Collapsed": "1",
@@ -79,9 +79,9 @@
       "Size": "241,222"
     },
     "###field": {
-      "Collapsed": "0",
-      "Pos": "22,950",
-      "Size": "161,37"
+      "Collapsed": "1",
+      "Pos": "1665,600",
+      "Size": "488,304"
     },
     "Debug##Default": {
       "Collapsed": "0",
