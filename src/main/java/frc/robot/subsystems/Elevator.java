@@ -54,10 +54,14 @@ public class Elevator extends StandardSubsystem {
 		ELEVATOR_CONFIG.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 	}
 	
-	private static class RealElevatorMotor extends ChargerTalonFX {
+	/**
+	 * A controller for the leader and follower motors of the elevator.
+	 * The left motor is the leader, while the right motor is the follower.
+	 */
+	private static class ElevatorMotorGroup extends ChargerTalonFX {
 		private final TalonFX follower = new TalonFX(RIGHT_MOTOR_ID);
 		
-		public RealElevatorMotor(Elevator elevator) {
+		public ElevatorMotorGroup(Elevator elevator) {
 			super(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
 			tryUntilOk(follower, () -> follower.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
 			follower.setControl(new Follower(LEFT_MOTOR_ID, false));
@@ -102,7 +106,7 @@ public class Elevator extends StandardSubsystem {
 				null
 			);
 		} else {
-			leaderMotor = new RealElevatorMotor(this);
+			leaderMotor = new ElevatorMotorGroup(this);
 		}
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0);
 		readyForMovement = movingUp.negate().and(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
@@ -138,20 +142,26 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	public Command setPowerCmd(InputStream controllerInput) {
-		return this.run(() -> leaderMotor.setVoltage(controllerInput.get() * 12)).withName("SetPowerCmd(Elevator)");
+		return this.run(() -> leaderMotor.setVoltage(controllerInput.get() * 12))
+			       .withName("SetPowerCmd(Elevator)");
+	}
+	
+	public Command syncStateCmd() {
+		return Commands.runOnce(() -> profileState = new TrapezoidProfile.State(extensionHeight(), 0))
+			       .withName("SyncStateCmd(Elevator)");
 	}
 	
 	public Command moveToHeightCmd(Distance targetHeight) {
 		log("targetHeight", targetHeight);
 		var radiansTarget = targetHeight.in(Meters) / DRUM_RADIUS.in(Meters);
 		var goalState = new TrapezoidProfile.State(radiansTarget, 0.0);
-		return this.runOnce(() -> profileState = new TrapezoidProfile.State()).andThen(
+		return syncStateCmd().andThen(
 			this.run(() -> {
-			profileState = trapezoidProfile.calculate(0.02, profileState, goalState);
-			log("motionProfileState/positionRad", profileState.position);
-			leaderMotor.moveToPosition(profileState.position);
-		})
-			).until(() -> Math.abs(radiansTarget - leaderMotor.encoder().positionRad()) < TOLERANCE.in(Radians));
+				profileState = trapezoidProfile.calculate(0.02, profileState, goalState);
+				log("motionProfileState/positionRad", profileState.position);
+				leaderMotor.moveToPosition(profileState.position);
+			}).until(() -> Math.abs(radiansTarget - leaderMotor.encoder().positionRad()) < TOLERANCE.in(Radians))
+		).withName("MoveToHeightCmd");
 	}
 	
 	public Command passiveLiftCmd(Distance maxHeight) {
@@ -163,7 +173,7 @@ public class Elevator extends StandardSubsystem {
 	
 	@Override
 	public Command stopCmd() {
-		return this.runOnce(() -> leaderMotor.setVoltage(0));
+		return this.runOnce(() -> leaderMotor.setVoltage(0)).withName("StopCmd(Elevator)");
 	}
 	
 	public Command sysIdCmd() {
@@ -171,12 +181,13 @@ public class Elevator extends StandardSubsystem {
 			sysIdRoutine.quasistatic(Direction.kReverse),
 			sysIdRoutine.dynamic(Direction.kForward),
 			sysIdRoutine.dynamic(Direction.kReverse)
-        );
+        ).withName("ElevatorSysId");
 	}
 	
 	@Override
 	public void periodic() {
 		followerMotorLogger.run();
+		// logs relative positions for advantagescope visualization
 		double currentHeight = extensionHeight();
 		log("stage1Position", Pose3d.kZero);
 		log("stage2Position", new Pose3d(0, 0, Math.max(currentHeight - 0.4, 0.0), Rotation3d.kZero));
