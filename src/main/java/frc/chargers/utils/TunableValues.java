@@ -12,30 +12,19 @@ import java.util.concurrent.atomic.AtomicReference;
  * An API to read data from NetworkTables.
  * Can be used for replay, receiving data, or tunable values.
  */
-public class LiveData {
+public class TunableValues {
 	@Setter private static boolean tuningMode = false;
 	
-	/** A wrapper over networktables that reads live double values. */
-	public static class NTDouble {
+	/** A number that can be tuned from the dashboard. */
+	public static class TunableNum {
 		private final DoubleEntry entry;
 		private final double defaultValue;
 		boolean respectTuningMode = false;
 		
-		/**
-		 * Creates a NTDouble that always returns its default value
-		 * unless LiveData.setTuningMode(true) is called.
-		 * It also places the path under the "Tunables" section.
-		 */
-		public static NTDouble asTunable(String path, double defaultValue) {
-			var obj = new NTDouble("TunableValues/" + path, defaultValue);
-			obj.respectTuningMode = true;
-			return obj;
-		}
-		
-		public NTDouble(String path, double defaultValue) {
+		public TunableNum(String path, double defaultValue) {
 			this.entry = NetworkTableInstance
 				             .getDefault()
-				             .getDoubleTopic(path)
+				             .getDoubleTopic("/TunableValues/" + path)
 				             .getEntry(defaultValue);
 			entry.setDefault(defaultValue);
 			this.defaultValue = defaultValue;
@@ -48,42 +37,31 @@ public class LiveData {
 		public Trigger changed() {
 			if (!respectTuningMode) return new Trigger(() -> false);
 			var previous = new AtomicReference<>(get());
-			return new Trigger(() -> get() != previous.get());
+			return new Trigger(() -> tuningMode && get() != previous.get());
 		}
 	}
 	
-	public static class NTBoolean {
+	/** A boolean that can be tuned from the dashboard. */
+	public static class TunableBool {
 		private final BooleanEntry entry;
 		private final boolean defaultValue;
-		boolean respectTuningMode = false;
 		
-		/**
-		 * Creates a NTBoolean that always returns its default value
-		 * unless LiveData.setTuningMode(true) is called.
-		 */
-		public static NTBoolean asTunable(String path, boolean defaultValue) {
-			var obj = new NTBoolean("TunableValues/" + path, defaultValue);
-			obj.respectTuningMode = true;
-			return obj;
-		}
-		
-		public NTBoolean(String path, boolean defaultValue) {
+		public TunableBool(String path, boolean defaultValue) {
 			this.entry = NetworkTableInstance
 				             .getDefault()
-				             .getBooleanTopic(path)
+				             .getBooleanTopic("/TunableValues/" + path)
 				             .getEntry(defaultValue);
 			entry.setDefault(defaultValue);
 			this.defaultValue = defaultValue;
 		}
 		
 		public boolean get() {
-			return respectTuningMode && tuningMode ? entry.get(defaultValue) : defaultValue;
+			return tuningMode ? entry.get(defaultValue) : defaultValue;
 		}
 		
 		public Trigger changed() {
-			if (!respectTuningMode) return new Trigger(() -> false);
 			var previous = new AtomicReference<>(get());
-			return new Trigger(() -> get() != previous.get());
+			return new Trigger(() -> tuningMode && get() != previous.get());
 		}
 	}
 }

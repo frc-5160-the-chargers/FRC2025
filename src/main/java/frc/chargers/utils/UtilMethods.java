@@ -4,7 +4,6 @@ import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.revrobotics.REVLibError;
 import com.revrobotics.spark.SparkBase;
-import com.revrobotics.spark.config.SparkBaseConfig;
 import edu.wpi.first.epilogue.EpilogueConfiguration;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
@@ -100,11 +99,6 @@ public class UtilMethods {
 			.andThen(Commands.runOnce(toRun))
 			.ignoringDisable(true)
 			.schedule();
-	}
-	
-	/** Configures a spark motor with default ResetMode and PersistMode options. */
-	public static REVLibError resetAndConfigure(SparkBase receiver, SparkBaseConfig config) {
-		return receiver.configure(config, SparkBase.ResetMode.kResetSafeParameters, SparkBase.PersistMode.kPersistParameters);
 	}
 	
 	/** Gets the distance between 2 Pose2d's. */

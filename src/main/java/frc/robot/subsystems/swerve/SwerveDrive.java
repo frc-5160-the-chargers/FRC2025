@@ -5,7 +5,6 @@ import choreo.trajectory.SwerveSample;
 import choreo.util.ChoreoAllianceFlipUtil;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
@@ -16,17 +15,13 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
-import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
@@ -36,6 +31,8 @@ import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.StandardSubsystem;
+import frc.robot.vision.GlobalPoseEstimate;
+import frc.robot.vision.SingleTagPoseEstimate;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.ExtensionMethod;
@@ -100,7 +97,8 @@ public class SwerveDrive extends StandardSubsystem {
 		SimpleMotorFeedforward velocityFeedforward,
 		PIDConstants pathTranslationPID,
 		PIDConstants pathRotationPID,
-		double forceKT
+		double forceKT,
+		PoseEstimationMode poseEstimationMode
 	){}
 	
 	/** Use ModuleType.MK4iL2 and ModuleType.Mk4iL3. */
@@ -119,12 +117,16 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum SwerveCorner {
 		TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
 	}
+	
+	public enum PoseEstimationMode {
+		AUTOMATIC, SELF_RUN
+	}
 
 	@Getter private final SwerveDriveConfig config;
 	@Getter private final SwerveDriveKinematics kinematics;
+	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SwerveDriveSimulation mapleSim;
-	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
 	@Logged private boolean acceptVisionObservations = true;
@@ -137,7 +139,6 @@ public class SwerveDrive extends StandardSubsystem {
 
 	private final Supplier<Rotation2d> getAngleFn;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
-	private Pose2d estimatedPose = Pose2d.kZero;
 	private final double[] stdDevStore = new double[3];
 
 	// workaround before array logging comes around
@@ -177,6 +178,7 @@ public class SwerveDrive extends StandardSubsystem {
 			DriveTrainSimulationConfig.Default()
 				.withTrackLengthTrackWidth(config.ofHardware.trackWidth, config.ofHardware.trackWidth)
 				.withRobotMass(config.ofHardware.robotMass)
+				.withGyro(COTS.ofPigeon2())
 				.withBumperSize(
 					config.ofHardware.trackWidth.plus(Inches.of(3)),
 					config.ofHardware.wheelBase.plus(Inches.of(3))
@@ -241,7 +243,7 @@ public class SwerveDrive extends StandardSubsystem {
 			this.swerveModules[i] = new SwerveModule(driveMotor, steerMotor, absoluteEncoder, config);
 		}
 		if (RobotBase.isSimulation()) {
-			this.getAngleFn = mapleSim.getGyroSimulation()::getGyroReading;
+			this.getAngleFn = () -> mapleSim.getSimulatedDriveTrainPose().getRotation();
 			SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
 		} else {
 			this.getAngleFn = config.getRealGyroAngle;
@@ -259,38 +261,53 @@ public class SwerveDrive extends StandardSubsystem {
 	private Rotation2d offsetWithAlliance(Rotation2d base) {
 		return isRedAlliance() ? base.plus(Rotation2d.k180deg) : base;
 	}
-
-	private void choreoCallback(SwerveSample trajSample) {
-		var vx = trajSample.vx + xPoseController.calculate(getPose().getX(), trajSample.x);
-		var vy = trajSample.vy + yPoseController.calculate(getPose().getY(), trajSample.y);
+	
+	/** Obtains desired module states from a ChassisSpeeds target. */
+	private SwerveModuleState[] toDesiredModuleStates(ChassisSpeeds speeds, boolean limitVelocity) {
+		speeds = ChassisSpeeds.discretize(speeds, 0.02);
+		log("desiredSpeeds", speeds);
+		var desiredStates = kinematics.toSwerveModuleStates(speeds);
+		if (limitVelocity) SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, config.ofHardware.maxVelocity);
+		for (int i = 0; i < 4; i++) {
+			var currentAngle = swerveModules[i].getSteerAngle();
+			desiredStates[i].optimize(currentAngle);
+			desiredStates[i].cosineScale(currentAngle);
+		}
+		log("desiredStates", desiredStates);
+		return desiredStates;
+	}
+	
+	/** Obtains desired module states from a choreo trajectory sample. */
+	private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample) {
+		var vx = trajSample.vx + xPoseController.calculate(poseEstimate().getX(), trajSample.x);
+		var vy = trajSample.vy + yPoseController.calculate(poseEstimate().getY(), trajSample.y);
 		var rotationV = trajSample.omega + rotationController.calculate(
-			angleModulus(getPose().getRotation().getRadians()),
+			angleModulus(poseEstimate().getRotation().getRadians()),
 			angleModulus(trajSample.heading)
 		);
-		var desiredModuleStates = getDesiredStates(
-			ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, getPose().getRotation())
-		);
-		for (int i = 0; i < 4; i++) {
-			var desiredState = desiredModuleStates[i];
-			double torqueFF = 0.0;
-			if (config.ofControls.forceKT != 0.0) {
-				double wheelTorqueNm = config.ofModules.wheelRadius.in(Meters) * (
-					desiredState.angle.getCos() * trajSample.moduleForcesX()[i] +
-					desiredState.angle.getSin() * trajSample.moduleForcesY()[i]
-				);
-				torqueFF = wheelTorqueNm / config.ofModules.driveGearRatio * config.ofControls.forceKT;
-			}
-			swerveModules[i].setDesiredState(desiredState, true, torqueFF);
-		}
+		return ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, poseEstimate().getRotation());
 	}
-
+	
 	@Logged private List<SwerveSample> trajSamples = List.of();
-
+	
+	/** Creates a choreo AutoFactory. You should cache this in your Robot or AutoCommands class. */
 	public AutoFactory createAutoFactory() {
 		return new AutoFactory(
-			this::getPose,
+			this::poseEstimate,
 			this::resetPose,
-			this::choreoCallback,
+			// a function that runs trajectory following
+			(SwerveSample trajSample) -> {
+				var desiredModuleStates = toDesiredModuleStates(toDesiredSpeeds(trajSample), false);
+				for (int i = 0; i < 4; i++) {
+					var desiredState = desiredModuleStates[i];
+					double wheelTorqueNm = config.ofModules.wheelRadius.in(Meters) * (
+						desiredState.angle.getCos() * trajSample.moduleForcesX()[i] +
+							desiredState.angle.getSin() * trajSample.moduleForcesY()[i]
+					);
+					double torqueFF = wheelTorqueNm / config.ofModules.driveGearRatio * config.ofControls.forceKT;
+					swerveModules[i].setDesiredState(desiredState, true, torqueFF);
+				}
+			},
 			true,
 			this,
 			(trajectory, isStart) -> {
@@ -299,13 +316,26 @@ public class SwerveDrive extends StandardSubsystem {
 			}
 		);
 	}
-
+	
+	/** Gets the drivetrain's calculated pose estimate. */
 	@Logged
-	public Pose2d getPose() {
+	public Pose2d poseEstimate() {
+		return poseEstimator.getEstimatedPosition();
+	}
+	
+	/**
+	 * In simulation, gets the actual pose of the drivetrain
+	 * (ignoring simulated motor drift, collisions, and inaccuracy) - calculated by maple sim
+	 * On the real robot, returns the same thing as poseEstimate(). <br />
+	 * Note that you shouldn't use this method most of the time, as we want to simulate
+	 * encoder drift in sim.
+	 */
+	@Logged(name = "actualPose(if run in sim)")
+	public Pose2d bestPose() {
 		if (RobotBase.isSimulation()) {
 			return mapleSim.getSimulatedDriveTrainPose();
 		} else {
-			return estimatedPose;
+			return poseEstimate();
 		}
 	}
 
@@ -318,7 +348,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public ChassisSpeeds getMeasuredSpeeds() {
 		return ChassisSpeeds.fromRobotRelativeSpeeds(
 			getMeasuredSpeedsRobotRelative(),
-			offsetWithAlliance(getPose().getRotation())
+			offsetWithAlliance(poseEstimate().getRotation())
 		);
 	}
 
@@ -326,27 +356,13 @@ public class SwerveDrive extends StandardSubsystem {
 	public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
 		return kinematics.toChassisSpeeds(measuredModuleStates);
 	}
-	
-	private SwerveModuleState[] getDesiredStates(ChassisSpeeds speeds) {
-		speeds = ChassisSpeeds.discretize(speeds, 0.02);
-		log("desiredSpeeds", speeds);
-		
-		var desiredStates = kinematics.toSwerveModuleStates(speeds);
-		SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, config.ofHardware.maxVelocity);
-		for (int i = 0; i < 4; i++) {
-			var currentAngle = swerveModules[i].getSteerAngle();
-			desiredStates[i].optimize(currentAngle);
-			desiredStates[i].cosineScale(currentAngle);
-		}
-		log("desiredStates", desiredStates);
-		return desiredStates;
-	}
 
 	/**
 	 * Creates a Command that, when scheduled,
 	 * drives the robot forever at the requested x, y, and rotation powers.
 	 * Does not move the robot at an exact velocity; so best used in teleop
 	 * where exact velocities are not important.
+	 * @see InputStream
 	 */
 	public Command driveCmd(
 		InputStream getXPower,
@@ -356,13 +372,14 @@ public class SwerveDrive extends StandardSubsystem {
 	) {
 		var maxSpeedMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
 		return this.run(() -> {
-			var desiredStates = getDesiredStates(
+			var desiredStates = toDesiredModuleStates(
 				ChassisSpeeds.fromFieldRelativeSpeeds(
 					getXPower.get() * maxSpeedMps,
 					getYPower.get() * maxSpeedMps,
 					getRotationPower.get() * maxSpeedMps,
-					fieldRelative ? offsetWithAlliance(getPose().getRotation()) : Rotation2d.kZero
-				)
+					fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
+				),
+				true
 			);
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], false, 0.0);
@@ -380,15 +397,41 @@ public class SwerveDrive extends StandardSubsystem {
 		});
 	}
 	
-	public Command pathfindCmd(Supplier<Pose2d> targetPose) {
+	/**
+	 * Returns a command that pathfinds the drivetrain to the correct pose.
+	 * @param targetPose A function that returns the target pose.
+	 * @param setpointGenerator Can be null. If not, will use the setpoint generator to generate
+	 *                          smoother pathfinding setpoints, reducing slipping.
+	 * @return a Command
+	 */
+	public Command pathfindCmd(
+		Supplier<Pose2d> targetPose,
+		@Nullable SwerveSetpointGenerator setpointGenerator
+	) {
+		// you cannot reassign variables in a lambda function, thus, you must use an AtomicReference
+		var currentSetpointRef = new AtomicReference<>(SwerveSetpointGenerator.SwerveSetpoint.ZERO);
+		double maxVelocityMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
+		
 		return this.run(() -> {
 			var targetPoseVal = targetPose.get();
 			repulsor.setGoal(targetPoseVal.getTranslation());
-			var goal = repulsor.getRequest(
-				getPose(), config.ofHardware.maxVelocity.in(MetersPerSecond),
-				true, targetPoseVal.getRotation()
+			var desiredSpeeds = toDesiredSpeeds(
+				repulsor.getRequest(poseEstimate(), maxVelocityMps, true, targetPoseVal.getRotation())
 			);
-			choreoCallback(goal);
+			SwerveModuleState[] desiredStates;
+			if (setpointGenerator != null) {
+				currentSetpointRef.set(
+					setpointGenerator.generateSetpoint(
+						currentSetpointRef.get(), desiredSpeeds, 0.02, 12.0
+					)
+				);
+				desiredStates = currentSetpointRef.get().moduleStates();
+			} else {
+				desiredStates = toDesiredModuleStates(desiredSpeeds, true);
+			}
+			for (int i = 0; i < 4; i++) {
+				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
+			}
 		})
 	       .until(() -> repulsor.atGoal(0.1))
 	       .withName("PathfindCmd");
@@ -409,7 +452,7 @@ public class SwerveDrive extends StandardSubsystem {
 		return () -> log(
 			"headingLockOutput",
 			rotationController.calculate(
-				getPose().getRotation().getRadians(),
+				poseEstimate().getRotation().getRadians(),
 				targetHeading.in(Radians)
 			)
 		);
@@ -433,25 +476,15 @@ public class SwerveDrive extends StandardSubsystem {
 				actualPose.set(shouldFlip ? ChoreoAllianceFlipUtil.flip(pose) : pose);
 			}
 			double output = rotationController.calculate(
-				getPose().getRotation().getRadians(),
-				getYawToPose(getPose(), actualPose.get()).getRadians()
+				poseEstimate().getRotation().getRadians(),
+				getYawToPose(poseEstimate(), actualPose.get()).getRadians()
 			);
 			log("headingLockOutput", output);
 			return output;
 		};
 	}
 	
-	/**
-	 * Enables high-frequency odometry on this drivetrain.
-	 * <h4>You must enable high-frequency updating on your drive and steer motors yourself!</h4>
-	 */
-	public void enableHighFrequencyOdometry(TimedRobot robot, Time period) {
-		useHighFrequencyOdometry = true;
-		robot.addPeriodic(this::updateOdometry, period);
-	}
-	
-	private boolean useHighFrequencyOdometry = false;
-	private void updateOdometry() {
+	public void updateOdometry() {
 		Rotation2d latestHeading = getAngleFn.get();
 		for (int i = 0; i < 4; i++) {
 			measuredModuleStates[i] = swerveModules[i].currentState();
@@ -461,15 +494,19 @@ public class SwerveDrive extends StandardSubsystem {
 				swerveModules[i].setSteerVoltage(0.0);
 			}
 		}
-		estimatedPose = poseEstimator.update(latestHeading, measuredModulePositions);
+		poseEstimator.update(latestHeading, measuredModulePositions);
 		// If robot is rotating too fast, ignore vision observations.
 		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;
 	}
 	
-	public void addVisionPoseEstimate(Pose2d visionPose, double timestampSecs, Matrix<N3, N1> standardDeviations) {
+	public void addVisionData(GlobalPoseEstimate estimate) {
 		if (!acceptVisionObservations) return;
-		poseEstimator.addVisionMeasurement(visionPose, timestampSecs, standardDeviations);
+		poseEstimator.addVisionMeasurement(estimate.pose(), estimate.timestampSecs(), estimate.standardDeviations());
+	}
+	
+	public void addVisionData(SingleTagPoseEstimate singleTagEstimate) {
+		// TODO
 	}
 	
 	public void setPathfindingObstacles(List<Pose2d> obstacles) {
@@ -477,7 +514,9 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 
 	@Override
-	public void periodic() { if (!useHighFrequencyOdometry) updateOdometry(); }
+	public void periodic() {
+		if (config.ofControls.poseEstimationMode == PoseEstimationMode.AUTOMATIC) updateOdometry();
+	}
 	
 	@Override
 	public void close() {

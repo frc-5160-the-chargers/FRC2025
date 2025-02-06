@@ -14,6 +14,7 @@
       "/SmartDashboard/AutoChooser": "String Chooser",
       "/SmartDashboard/Choreo Alerts": "Alerts",
       "/SmartDashboard/ChoreoAlert": "Alerts",
+      "/SmartDashboard/Monologue Alerts": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
       "/SmartDashboard/VisionSystemSim-main/Sim Field": "Field2d",
@@ -115,6 +116,9 @@
           "open": true
         },
         "arm": {
+          "open": true
+        },
+        "coralIntake": {
           "open": true
         },
         "driverController": {

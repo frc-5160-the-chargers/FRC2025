@@ -13,20 +13,19 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.chargers.utils.TunableValues.TunableNum;
+import frc.robot.subsystems.swerve.SwerveDrive;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 import java.util.function.DoubleSupplier;
-
-import frc.chargers.utils.LiveData.NTDouble;
-import frc.robot.subsystems.swerve.SwerveDrive;
-import lombok.RequiredArgsConstructor;
 
 import static edu.wpi.first.units.Units.Meters;
 import static monologue.Monologue.GlobalLog;
 
 public class WheelRadiusCharacterization extends Command {
-	private static final NTDouble characterizationSpeed =
-		NTDouble.asTunable("WheelRadiusCharacterization/SpeedRadsPerSec", 0.1);
+	private static final TunableNum characterizationSpeed =
+		new TunableNum("WheelRadiusCharacterization/SpeedRadsPerSec", 0.1);
 	
 	@RequiredArgsConstructor
 	public enum Direction {
@@ -52,7 +51,7 @@ public class WheelRadiusCharacterization extends Command {
 	public WheelRadiusCharacterization(SwerveDrive drive, Direction omegaDirection) {
 		this.drive = drive;
 		this.omegaDirection = omegaDirection;
-		this.gyroYawRadsSupplier = () -> drive.getPose().getRotation().getRadians();
+		this.gyroYawRadsSupplier = () -> drive.poseEstimate().getRotation().getRadians();
 		this.driveBaseRadius = drive.getConfig().ofHardware().drivebaseRadius();
 		addRequirements(drive);
 	}

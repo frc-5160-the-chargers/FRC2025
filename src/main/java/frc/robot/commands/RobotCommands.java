@@ -11,6 +11,7 @@ import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
+import frc.robot.subsystems.swerve.SwerveSetpointGenerator;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Supplier;
@@ -28,6 +29,7 @@ public class RobotCommands {
 	private final CoralIntake coralIntake;
 	private final CoralIntakePivot coralIntakePivot;
 	private final Elevator elevator;
+	private final SwerveSetpointGenerator setpointGen;
 	
 	// Note: Commands.parallel runs parallel until everything in it finishes.
 	public Command prepareToScore(ScoringLevel level) {
@@ -50,7 +52,7 @@ public class RobotCommands {
 		return Commands.runOnce(() -> targetPose.ifPresent(it -> GlobalLog.log("targetPose", it)))
 			       .andThen(
 				       pathfindWithLift(
-						   () -> targetPose.orElseGet(drivetrain::getPose),
+						   () -> targetPose.orElseGet(drivetrain::poseEstimate),
 					       position.elevatorHeight()
 				       ),
 					   prepareToScore(position)
@@ -60,7 +62,7 @@ public class RobotCommands {
 	
 	public Command pathfindThenSourceIntake(IntakePosition position) {
 		return Commands.parallel(
-			drivetrain.pathfindCmd(() -> position.pose),
+			drivetrain.pathfindCmd(() -> position.pose, setpointGen),
 			sourceIntake(),
 			Commands.runOnce(() -> GlobalLog.log("intakePosition", position.toString()))
 		).withName("pathfindThenSourceIntake");
@@ -86,6 +88,6 @@ public class RobotCommands {
 	// Note: CommandA.withDeadline(CommandB) runs A and B parallel and stops until B finishes.
 	private Command pathfindWithLift(Supplier<Pose2d> getTargetPose, Distance elevatorHeight) {
 		return elevator.passiveLiftCmd(elevatorHeight)
-			       .withDeadline(drivetrain.pathfindCmd(getTargetPose));
+			       .withDeadline(drivetrain.pathfindCmd(getTargetPose, setpointGen));
 	}
 }

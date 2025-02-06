@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.Meters;
@@ -39,7 +40,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double ANGULAR_STD_DEV_BASELINE = 0.06;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
 	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
-		// TODO
+		new PhotonCamConfig("ABC", 1.0, new Transform3d())
 	);
 	private static final VisionSystemSim VISION_SYSTEM_SIM = new VisionSystemSim("main");
 	
@@ -52,6 +53,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			this.photonCam = new PhotonCamera(cameraName);
 			this.stdDevFactor = stdDevFactor;
 			this.poseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCamera);
+			poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 		}
 		
 		public PhotonCamConfig withSim(SimCameraProperties props) {
@@ -60,8 +62,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		}
 	}
 	
-	// defaults to empty vision consumer
-	@Setter private PoseEstimateConsumer dataConsumer = (pose, time, deviations) -> {};
+	@Setter private Consumer<GlobalPoseEstimate> globalEstimateConsumer = estimate -> {};
+	@Setter private Consumer<SingleTagPoseEstimate> singleTagEstimateConsumer = estimate -> {};
 	@Nullable @Setter private Supplier<Pose2d> simPoseSupplier = null;
 	private final Alert connectionAlert = new Alert("", kError);
 	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
@@ -111,10 +113,12 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				
-				dataConsumer.addData(
-					pose.toPose2d(),
-					result.get().timestampSeconds,
-					VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)
+				globalEstimateConsumer.accept(
+					new GlobalPoseEstimate(
+						pose.toPose2d(),
+						result.get().timestampSeconds,
+						VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)
+					)
 				);
 			}
 		}
