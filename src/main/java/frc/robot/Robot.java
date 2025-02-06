@@ -18,11 +18,7 @@ import frc.chargers.utils.LiveData;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
-import frc.robot.subsystems.AlgaeIntake;
-import frc.robot.subsystems.Climber;
-import frc.robot.subsystems.CoralIntake;
-import frc.robot.subsystems.CoralIntakePivot;
-import frc.robot.subsystems.Elevator;
+import frc.robot.subsystems.*;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import frc.robot.vision.AprilTagVision;
@@ -42,7 +38,7 @@ public class Robot extends TimedRobot implements LogLocal {
 	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot();
 	private final Elevator elevator = new Elevator();
 	private final AprilTagVision vision = new AprilTagVision(this);
-	
+
 	@NotLogged private final CommandPS5Controller driverController = new CommandPS5Controller(0);
 	@NotLogged private final CommandXboxController manualOperatorController = new CommandXboxController(1);
 	

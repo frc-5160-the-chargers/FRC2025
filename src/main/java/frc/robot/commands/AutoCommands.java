@@ -34,7 +34,7 @@ public class AutoCommands {
 	 */
 	private static void chain(AutoTrajectory step1, Command step2, AutoTrajectory step3) {
 		step1.done().onTrue(
-			step2.andThen(new ScheduleCommand(step3.cmd()))
+			step2.andThen(Commands.runOnce(() -> step3.cmd().schedule()))
 		);
 	}
 	
@@ -80,6 +80,7 @@ public class AutoCommands {
 
 		return routine.cmd();
 	}
+
 
 	
 }

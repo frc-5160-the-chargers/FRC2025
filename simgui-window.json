@@ -6,13 +6,13 @@
     "GLOBAL": {
       "font": "Proggy Dotted",
       "fps": "120",
-      "height": "1459",
-      "maximized": "1",
+      "height": "1444",
+      "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "2560",
-      "xpos": "0",
-      "ypos": "45"
+      "width": "934",
+      "xpos": "1624",
+      "ypos": "58"
     }
   },
   "Table": {
@@ -24,43 +24,43 @@
   },
   "Window": {
     "###/SmartDashboard/Alerts": {
-      "Collapsed": "0",
-      "Pos": "937,41",
+      "Collapsed": "1",
+      "Pos": "348,41",
       "Size": "446,895"
     },
     "###/SmartDashboard/AutoChooser": {
       "Collapsed": "0",
-      "Pos": "38,1229",
+      "Pos": "1,311",
       "Size": "469,78"
     },
     "###/SmartDashboard/SwerveDrive/fieldViz": {
       "Collapsed": "1",
-      "Pos": "514,78",
+      "Pos": "348,78",
       "Size": "1511,884"
     },
     "###FMS": {
-      "Collapsed": "0",
-      "Pos": "363,151",
-      "Size": "302,304"
+      "Collapsed": "1",
+      "Pos": "915,208",
+      "Size": "495,212"
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "348,838",
-      "Size": "1516,336"
+      "Pos": "6,891",
+      "Size": "928,392"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
-      "Pos": "937,121",
+      "Pos": "435,450",
       "Size": "397,433"
     },
     "###NetworkTables": {
-      "Collapsed": "0",
-      "Pos": "1547,150",
-      "Size": "885,299"
+      "Collapsed": "1",
+      "Pos": "343,112",
+      "Size": "885,484"
     },
     "###NetworkTables Info": {
       "Collapsed": "1",
-      "Pos": "514,112",
+      "Pos": "322,176",
       "Size": "1500,290"
     },
     "###Other Devices": {
@@ -70,17 +70,17 @@
     },
     "###System Joysticks": {
       "Collapsed": "0",
-      "Pos": "46,422",
+      "Pos": "18,497",
       "Size": "354,362"
     },
     "###Timing": {
-      "Collapsed": "0",
-      "Pos": "606,504",
-      "Size": "241,222"
+      "Collapsed": "1",
+      "Pos": "348,322",
+      "Size": "241,187"
     },
     "###field": {
       "Collapsed": "1",
-      "Pos": "1665,600",
+      "Pos": "915,278",
       "Size": "488,304"
     },
     "Debug##Default": {
