@@ -1,7 +1,7 @@
 /*
 Credits: 6328(AdvantageScope)
  */
-import { Decoder, Encoder } from "@msgpack/msgpack";
+import {Decoder, Encoder} from "@msgpack/msgpack";
 
 const typestrIdxLookup: { [id: string]: number } = {
     boolean: 0,

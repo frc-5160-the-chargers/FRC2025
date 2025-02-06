@@ -1,0 +1,40 @@
+{
+  "name": "Robot_PennState",
+  "sourceUrl": "model.glb",
+  "rotations": [
+    {
+      "axis": "y",
+      "degrees": 180
+    }
+  ],
+  "cameras": [],
+  "components": [
+    {
+      "zeroedRotations": [
+        {
+          "axis": "y",
+          "degrees": 180
+        }
+      ],
+      "zeroedPosition": [0.3, 0.3, 0]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "y",
+          "degrees": 180
+        }
+      ],
+      "zeroedPosition": [0.3, 0.3, 0]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "y",
+          "degrees": 180
+        }
+      ],
+      "zeroedPosition": [0, 0, 0]
+    }
+  ]
+}
