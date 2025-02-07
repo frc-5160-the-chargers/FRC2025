@@ -44,7 +44,7 @@ public class SingleTagPoseEstimator {
 	}
 	
 	// Pose Estimation Members
-	@Getter private Pose2d odometryPose = new Pose2d();
+	@Getter private Pose2d odometryPose = Pose2d.kZero;
 	
 	private final TimeInterpolatableBuffer<Pose2d> poseBuffer =
 		TimeInterpolatableBuffer.createBuffer(poseBufferSizeSec);
@@ -58,7 +58,7 @@ public class SingleTagPoseEstimator {
 			new SwerveModulePosition()
 		};
 	// Assume gyro starts at zero
-	private Rotation2d gyroOffset = new Rotation2d();
+	private Rotation2d gyroOffset = Rotation2d.kZero;
 	private final Map<Integer, TxTyPoseRecord> txTyPoses = new HashMap<>();
 	
 	private record TxTyPoseRecord(Pose2d pose, double timestamp) {}
@@ -66,7 +66,7 @@ public class SingleTagPoseEstimator {
 	public SingleTagPoseEstimator(SwerveDriveKinematics kinematics, Matrix<N3, N1> odometryStateStdDevs) {
 		this.kinematics = kinematics;
 		for (int i = 1; i <= AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape).getTags().size(); i++) {
-			txTyPoses.put(i, new TxTyPoseRecord(new Pose2d(), -1.0));
+			txTyPoses.put(i, new TxTyPoseRecord(Pose2d.kZero, -1.0));
 		}
 	}
 	

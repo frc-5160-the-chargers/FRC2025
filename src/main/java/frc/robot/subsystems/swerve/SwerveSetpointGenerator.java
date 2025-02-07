@@ -263,7 +263,7 @@ public class SwerveSetpointGenerator {
 		}
 		
 		// Enforce drive wheel torque limits
-		Translation2d chassisForceVec = new Translation2d();
+		var chassisForceVec = Translation2d.kZero;
 		double chassisTorque = 0.0;
 		for (int m = 0; m < 4; m++) {
 			double lastVelRadPerSec =

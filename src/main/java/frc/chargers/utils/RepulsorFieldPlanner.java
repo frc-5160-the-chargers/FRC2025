@@ -73,7 +73,7 @@ public class RepulsorFieldPlanner {
 		public Translation2d getForceAtPosition(Translation2d position, Translation2d target) {
 			var dist = loc.getDistance(position);
 			if (dist > 4) {
-				return new Translation2d();
+				return Translation2d.kZero;
 			}
 			var outwardsMag = distToForceMag(loc.getDistance(position) - radius);
 			var initial = new Translation2d(
@@ -222,7 +222,7 @@ public class RepulsorFieldPlanner {
 	
 	private List<Obstacle> fixedObstacles = new ArrayList<>();
 	private Optional<Translation2d> goalOpt = Optional.empty();
-	@Logged private Pose2d previousRobotPose = new Pose2d();
+	@Logged private Pose2d previousRobotPose = Pose2d.kZero;
 	@Logged private ArrayList<Pose2d> arrows = new ArrayList<>(ARROWS_SIZE);
 	@Logged private double repulsorTimeS = 0.0;
 	@Logged private double forceLog = 0.0;
@@ -237,7 +237,7 @@ public class RepulsorFieldPlanner {
 		fixedObstacles.addAll(FIELD_OBSTACLES);
 		fixedObstacles.addAll(WALLS);
 		for (int i = 0; i < ARROWS_SIZE; i++) {
-			arrows.add(new Pose2d());
+			arrows.add(Pose2d.kZero);
 		}
 	}
 	
@@ -266,7 +266,7 @@ public class RepulsorFieldPlanner {
 	private Translation2d getGoalForce(Translation2d curLocation, Translation2d goal) {
 		var displacement = goal.minus(curLocation);
 		if (displacement.getNorm() == 0) {
-			return new Translation2d();
+			return Translation2d.kZero;
 		}
 		var direction = displacement.getAngle();
 		var mag = GOAL_STRENGTH * (1 + 1.0 / (0.0001 + displacement.getNorm() * displacement.getNorm()));

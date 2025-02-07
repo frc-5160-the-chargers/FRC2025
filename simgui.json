@@ -75,6 +75,12 @@
         },
         "open": true
       },
+      "Epilogue": {
+        "Stats": {
+          "open": true
+        },
+        "open": true
+      },
       "GlobalLog": {
         "RadioStatus": {
           "open": true
@@ -125,6 +131,15 @@
           "open": true
         },
         "driverController1": {
+          "open": true
+        },
+        "drivetrain": {
+          "bottomLeftModule": {
+            "absoluteEncoder": {
+              "open": true
+            },
+            "open": true
+          },
           "open": true
         },
         "drivetrainOne": {

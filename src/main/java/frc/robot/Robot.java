@@ -76,7 +76,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
 		vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
-		vision.setSimPoseSupplier(drivetrain::bestPose);
+		//vision.setSimPoseSupplier(drivetrain::bestPose);
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
@@ -126,7 +126,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		GlobalLog.logMetadata("GitBranch", BuildConstants.GIT_BRANCH);
 		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
 		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
-		ExtrasLogger.start(this, new PowerDistribution());
+		ExtrasLogger.start(new PowerDistribution());
 	}
 	
 	private void mapAutoModes() {
@@ -134,7 +134,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		autoChooser.addCmd("MultiPieceCenter", autoCommands::multiPieceCenter);
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		if (RobotBase.isSimulation()) {
-			autoChooser.addCmd("MoveTo0.3M", () -> elevator.moveToHeightCmd(Meters.of(0.3)));
+			autoChooser.addCmd("MoveUp", () -> elevator.moveToHeightCmd(Meters.of(1.2)));
 		}
 		RobotModeTriggers.autonomous().onTrue(autoChooser.selectedCommandScheduler());
 	}

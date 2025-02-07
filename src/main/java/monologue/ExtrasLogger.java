@@ -10,9 +10,9 @@ import edu.wpi.first.networktables.GenericPublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.datalog.StringLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.TimedRobot;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
@@ -34,7 +34,7 @@ public class ExtrasLogger {
 	private static EpilogueBackend logger = null;
 	
 	/** Starts extras logging. Called once in Robot constructor. */
-	public static void start(TimedRobot robot, @Nullable PowerDistribution pdh) {
+	public static void start(@Nullable PowerDistribution pdh) {
 		if (ExtrasLogger.enabled) {
 			RuntimeLog.warn("ExtrasLogger.start has already been called, further calls will do nothing");
 			return;
@@ -46,12 +46,12 @@ public class ExtrasLogger {
 		ExtrasLogger.enabled = true;
 		ExtrasLogger.pdh = pdh;
 		ExtrasLogger.logger = Monologue.config.backend.getNested("SystemStats");
-		robot.addPeriodic(() -> {
+		new Notifier(() -> {
 			ExtrasLogger.logSystem();
 			ExtrasLogger.logCan();
 			ExtrasLogger.logPdh();
-		}, 0.02);
-		robot.addPeriodic(ExtrasLogger::logRadio, 5.81);
+		}).startPeriodic(0.02);
+		new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
 	}
 	
 	private static void logSystem() {

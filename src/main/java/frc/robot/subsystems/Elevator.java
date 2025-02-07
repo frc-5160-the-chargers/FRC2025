@@ -108,7 +108,8 @@ public class Elevator extends StandardSubsystem {
 		} else {
 			leaderMotor = new ElevatorMotorGroup(this);
 		}
-		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0);
+		leaderMotor.encoder().setPositionReading(Radians.zero());
+		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		readyForMovement = movingUp.negate().and(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
 		sysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
@@ -123,7 +124,6 @@ public class Elevator extends StandardSubsystem {
 			)
 		);
 		setMotorCommonConfig();
-		leaderMotor.encoder().setPositionReading(Radians.zero());
 		kPTunable.changed().or(kDTunable.changed())
 			.onTrue(Commands.runOnce(this::setMotorCommonConfig));
 	}

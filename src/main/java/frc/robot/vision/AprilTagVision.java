@@ -40,7 +40,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double ANGULAR_STD_DEV_BASELINE = 0.06;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
 	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
-		new PhotonCamConfig("ABC", 1.0, new Transform3d())
+		//new PhotonCamConfig("ABC", 1.0, new Transform3d())
 	);
 	private static final VisionSystemSim VISION_SYSTEM_SIM = new VisionSystemSim("main");
 	

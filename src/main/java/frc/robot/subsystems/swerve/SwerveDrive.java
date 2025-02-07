@@ -180,8 +180,8 @@ public class SwerveDrive extends StandardSubsystem {
 				.withRobotMass(config.ofHardware.robotMass)
 				.withGyro(COTS.ofPigeon2())
 				.withBumperSize(
-					config.ofHardware.trackWidth.plus(Inches.of(3)),
-					config.ofHardware.wheelBase.plus(Inches.of(3))
+					config.ofHardware.trackWidth.plus(Inches.of(6)),
+					config.ofHardware.wheelBase.plus(Inches.of(6))
 				);
 
 		switch (config.ofModules) {
