@@ -6,7 +6,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import frc.chargers.utils.LiveData.NTBoolean;
+import frc.chargers.utils.TunableValues.TunableBool;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +73,7 @@ public class RepulsorFieldPlanner {
 		public Translation2d getForceAtPosition(Translation2d position, Translation2d target) {
 			var dist = loc.getDistance(position);
 			if (dist > 4) {
-				return new Translation2d();
+				return Translation2d.kZero;
 			}
 			var outwardsMag = distToForceMag(loc.getDistance(position) - radius);
 			var initial = new Translation2d(
@@ -222,14 +222,14 @@ public class RepulsorFieldPlanner {
 	
 	private List<Obstacle> fixedObstacles = new ArrayList<>();
 	private Optional<Translation2d> goalOpt = Optional.empty();
-	@Logged private Pose2d previousRobotPose = new Pose2d();
+	@Logged private Pose2d previousRobotPose = Pose2d.kZero;
 	@Logged private ArrayList<Pose2d> arrows = new ArrayList<>(ARROWS_SIZE);
 	@Logged private double repulsorTimeS = 0.0;
 	@Logged private double forceLog = 0.0;
 	
-	private NTBoolean useGoalInArrows = NTBoolean.asTunable("RepulsorConfig/useGoalInArrows", true);
-	private NTBoolean useObstaclesInArrows = NTBoolean.asTunable("RepulsorConfig/useObstaclesInArrows", true);
-	private NTBoolean useWallsInArrows = NTBoolean.asTunable("RepulsorConfig/useWallsInArrows", false);
+	private TunableBool useGoalInArrows = new TunableBool("RepulsorConfig/useGoalInArrows", true);
+	private TunableBool useObstaclesInArrows = new TunableBool("RepulsorConfig/useObstaclesInArrows", true);
+	private TunableBool useWallsInArrows = new TunableBool("RepulsorConfig/useWallsInArrows", false);
 	
 	private Pose2d arrowBackstage = new Pose2d(-10, -10, Rotation2d.kZero);
 	
@@ -237,7 +237,7 @@ public class RepulsorFieldPlanner {
 		fixedObstacles.addAll(FIELD_OBSTACLES);
 		fixedObstacles.addAll(WALLS);
 		for (int i = 0; i < ARROWS_SIZE; i++) {
-			arrows.add(new Pose2d());
+			arrows.add(Pose2d.kZero);
 		}
 	}
 	
@@ -266,7 +266,7 @@ public class RepulsorFieldPlanner {
 	private Translation2d getGoalForce(Translation2d curLocation, Translation2d goal) {
 		var displacement = goal.minus(curLocation);
 		if (displacement.getNorm() == 0) {
-			return new Translation2d();
+			return Translation2d.kZero;
 		}
 		var direction = displacement.getAngle();
 		var mag = GOAL_STRENGTH * (1 + 1.0 / (0.0001 + displacement.getNorm() * displacement.getNorm()));

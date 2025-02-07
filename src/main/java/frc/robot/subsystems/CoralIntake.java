@@ -55,20 +55,24 @@ public class CoralIntake extends StandardSubsystem {
 	 * A value of 1.0 is equivalent to 12 volts(and vise-versa for -1.0).
 	 */
 	public Command setPowerCmd(InputStream controllerInput) {
-		return this.run(() -> motor.setVoltage(controllerInput.get() * 12));
+		return this.run(() -> motor.setVoltage(controllerInput.get() * 12)).withName("CoralSetPowerCmd");
 	}
 	
 	public Command intakeCmd() {
-		return this.run(() -> motor.setVoltage(-12)).until(hasCoral);
+		return this.run(() -> motor.setVoltage(-12))
+			       .until(hasCoral)
+			       .withName("CoralIntakeCmd");
 	}
 	
 	public Command outtakeCmd() {
-		return this.run(() -> motor.setVoltage(8)).until(hasCoral.negate());
+		return this.run(() -> motor.setVoltage(8))
+			       .until(hasCoral.negate())
+			       .withName("CoralOuttakeCmd");
 	}
 	
 	@Override
 	public Command stopCmd() {
-		return this.run(() -> motor.setVoltage(0));
+		return this.run(() -> motor.setVoltage(0)).withName("StopCoralIntake");
 	}
 	
 	@Override

@@ -24,7 +24,7 @@ import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static java.lang.Math.PI;
 
 /**
- * A TalonFX that implements the Motor interface.
+ * A Spark Max/Spark Flex that implements the Motor interface.
  * To access more low-level capabilities of the base api, inherit from this class.
  * Here is an example:
  * <pre><code>
@@ -47,7 +47,7 @@ import static java.lang.Math.PI;
  * </code></pre>
  */
 public class ChargerSpark implements Motor {
-	protected final SparkBase baseApi;
+	public final SparkBase baseApi;
 	protected final RelativeEncoder baseEncoder;
 	protected final SparkClosedLoopController pidController;
 	protected final Encoder encoder = new Encoder() {

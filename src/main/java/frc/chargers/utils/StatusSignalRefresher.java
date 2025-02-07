@@ -11,7 +11,7 @@ import java.util.Set;
 import static monologue.Monologue.GlobalLog;
 
 /**
- * A utility class that allows for all of the robot's CTRE StatusSignals
+ * A utility class that allows for all the robot's CTRE StatusSignals
  * to be refreshed at once. This reduces JNI overhead.
  * You must have ```StatusSignalRefresher.startPeriodic(this)``` in all Robot classes.
  */
@@ -30,11 +30,10 @@ public class StatusSignalRefresher {
 	}
 	
 	/**
-	 * You must run this method periodically for things to work.
+	 * You must run this method periodically for ChargerTalonFX's and ChargerCANcoder's to work.
 	 * Alternatively, use startPeriodic(this) in your Robot class instead.
 	 */
 	public static void periodic() {
-		statusSignals.removeIf(signal -> signal.getAppliedUpdateFrequency() != 50.0);
 		var latestStatus = BaseStatusSignal.refreshAll(statusSignals.toArray(dummyArray));
 		GlobalLog.log("refreshStatus", latestStatus.toString());
 	}

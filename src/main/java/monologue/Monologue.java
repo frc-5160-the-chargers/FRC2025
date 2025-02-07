@@ -29,6 +29,10 @@ public class Monologue {
       if (pathList != null) pathList.clear();
       LogLocal.addNode(this, new LoggingTree.StaticObjectNode(path, this));
     }
+    
+    public void logMetadata(String key, String value) {
+      config.backend.getNested("/Metadata/").log(key, value);
+    }
   }
   
   /**
@@ -71,14 +75,6 @@ public class Monologue {
     RuntimeLog.info("Monologue.setup() finished");
   }
 
-  /**
-   * Creates a logging tree for the provided {@link LogLocal} object. Will also recursively check
-   * field values for classes that implement {@link LogLocal} and log those as well.
-   *
-   * @param loggable the obj to scrape
-   * @param path the path to log to
-   * @throws IllegalStateException
-   */
   static void logTree(Object loggable, String path) {
     if (!hasBeenSetup())
       throw new IllegalStateException(

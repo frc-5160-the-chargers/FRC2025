@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
@@ -30,7 +31,7 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 
 	private int currControllerId = 0;
 	private SwerveDrive createSimBot(Pose2d initialPose) {
-		var drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
+		var drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
 		drivetrain.resetPose(initialPose);
 
 		var controller = new CommandXboxController(currControllerId);
@@ -64,13 +65,14 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		SimulatedArena.getInstance().placeGamePiecesOnField();
 		DriverStation.silenceJoystickConnectionWarning(true);
 		test().whileTrue(
-			drivetrainOne.pathfindCmd(() -> new Pose2d(5.26, 5.21, Rotation2d.fromDegrees(-121.34)))
+			drivetrainOne.pathfindCmd(() -> new Pose2d(5.26, 5.21, Rotation2d.fromDegrees(-121.34)), null)
 		);
 	}
 
 	@Override
 	public void robotPeriodic() {
 		var startTime = System.nanoTime();
+		RoboRioSim.setVInVoltage(12);
 		CommandScheduler.getInstance().run();
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().simulationPeriodic();

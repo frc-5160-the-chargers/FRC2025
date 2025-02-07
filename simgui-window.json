@@ -25,7 +25,7 @@
   "Window": {
     "###/SmartDashboard/Alerts": {
       "Collapsed": "0",
-      "Pos": "937,41",
+      "Pos": "898,41",
       "Size": "446,895"
     },
     "###/SmartDashboard/AutoChooser": {
@@ -50,7 +50,7 @@
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
-      "Pos": "937,121",
+      "Pos": "898,160",
       "Size": "397,433"
     },
     "###NetworkTables": {

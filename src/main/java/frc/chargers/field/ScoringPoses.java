@@ -3,7 +3,6 @@ package frc.chargers.field;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.units.measure.Distance;
 import frc.chargers.field.FieldConstants.ReefHeight;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
@@ -22,7 +21,7 @@ public class ScoringPoses {
 	private static final Map<Integer, Pose2d> SCORE_POSITION_MAP = new HashMap<>();
 	
 	static {
-		initialize(SwerveConfigurator.DEFAULT_CONFIG);
+		initialize(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
 	}
 	
 	public static void initialize(SwerveDrive.SwerveDriveConfig config) {
