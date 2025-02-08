@@ -65,8 +65,9 @@ public class Monologue {
           "Monologue.setup() has already been called, further calls will do nothing");
       return;
     }
-    Monologue.config = epilogueConfig;
     HAS_SETUP_BEEN_CALLED = true;
+    Monologue.config = epilogueConfig;
+    RuntimeLog.logger = config.backend;
     logTree(robot, config.root);
     GlobalLog.setRootPath(config.root);
     prematureCalls.forEach(Runnable::run);

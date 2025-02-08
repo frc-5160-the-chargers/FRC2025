@@ -252,6 +252,12 @@
         "SwerveDrive": {
           "open": true
         }
+      },
+      "SystemStats": {
+        "open": true
+      },
+      "test": {
+        "open": true
       }
     }
   },

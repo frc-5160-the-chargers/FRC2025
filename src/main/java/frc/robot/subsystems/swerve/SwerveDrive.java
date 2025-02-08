@@ -217,8 +217,8 @@ public class SwerveDrive extends StandardSubsystem {
 			if (RobotBase.isSimulation()) {
 				var moduleSim = mapleSim.getModules()[i];
 				// useSteerMotorController and useDriveMotorController return the passed in DummyMotor.
-				steerMotor = moduleSim.useSteerMotorController(new SwerveModule.DummyMotor(null));
-				driveMotor = moduleSim.useDriveMotorController(new SwerveModule.DummyMotor(null));
+				steerMotor = moduleSim.useSteerMotorController(new SwerveModule.DummyMotor(config.simSteerConfig));
+				driveMotor = moduleSim.useDriveMotorController(new SwerveModule.DummyMotor(config.simDriveConfig));
 				absoluteEncoder = new VoidEncoder();
 			} else {
 				// SwerveCorner.values() is TL, TR, BL, and BR(enums are defined in this order)

@@ -32,6 +32,7 @@ public class ExtrasLogger {
 	private static final StringLogEntry dataLogRadioEntry =
 		new StringLogEntry(DataLogManager.getLog(), "RadioStatus/StatusJSON", "", "json");
 	private static EpilogueBackend logger = null;
+	private static EpilogueBackend radioLogger = null;
 	
 	/** Starts extras logging. Called once in Robot constructor. */
 	public static void start(@Nullable PowerDistribution pdh) {
@@ -46,10 +47,15 @@ public class ExtrasLogger {
 		ExtrasLogger.enabled = true;
 		ExtrasLogger.pdh = pdh;
 		ExtrasLogger.logger = Monologue.config.backend.getNested("SystemStats");
+		ExtrasLogger.radioLogger = Monologue.config.backend.getNested("RadioStatus");
 		new Notifier(() -> {
-			ExtrasLogger.logSystem();
-			ExtrasLogger.logCan();
-			ExtrasLogger.logPdh();
+			try {
+				ExtrasLogger.logSystem();
+				ExtrasLogger.logCan();
+				ExtrasLogger.logPdh();
+			} catch (Exception e) {
+				RuntimeLog.warn("ExtrasLogger error: " + e);
+			}
 		}).startPeriodic(0.02);
 		new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
 	}
@@ -106,10 +112,14 @@ public class ExtrasLogger {
 	}
 	
 	private static void logRadio() {
-		radioLogUtil.refresh();
-		Monologue.config.backend.log("RadioStatus/Connected", radioLogUtil.radioLogResult.isConnected);
-		ntRadioEntry.setString(radioLogUtil.radioLogResult.statusJson);
-		dataLogRadioEntry.append(radioLogUtil.radioLogResult.statusJson);
+		try {
+			radioLogUtil.refresh();
+			radioLogger.log("Connected", radioLogUtil.radioLogResult.isConnected);
+			ntRadioEntry.setString(radioLogUtil.radioLogResult.statusJson);
+			dataLogRadioEntry.append(radioLogUtil.radioLogResult.statusJson);
+		} catch (Exception e) {
+			RuntimeLog.warn("ExtrasLogger error: " + e);
+		}
 	}
 	
 	private static class RadioLogResult {
