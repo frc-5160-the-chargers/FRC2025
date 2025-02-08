@@ -17,7 +17,6 @@ public class AutoCommands {
 	private final RobotCommands botCommands;
 	private final AutoFactory autoFactory;
 	private final CoralIntake coralIntake;
-	private final CoralIntakePivot coralIntakePivot;
 	private final Elevator elevator;
 	
 	/**
@@ -49,10 +48,10 @@ public class AutoCommands {
 			lineToReef1.resetOdometry().andThen(lineToReef1.cmd())
 		);
 		
-		// autoScore will automatically stow one gamepiece is out
+		// at time of 0.83 secs, start to move to scoring position
 		lineToReef1.atTime(0.83).onTrue(botCommands.autoScore(new ScoringLevel(4)));
 		// wait until elevator has retracted enough so that CoG is low, then drive next path
-		chain(lineToReef1, Commands.waitUntil(() -> elevator.extensionHeight() < 0.2), reef1ToSource);
+		chain(lineToReef1, Commands.waitUntil(elevator.readyForMovement), reef1ToSource);
 		
 		reef1ToSource.atTime(1.27).onTrue(botCommands.sourceIntake());
 		chain(reef1ToSource, Commands.waitUntil(coralIntake.hasCoral), sourceToReef3);

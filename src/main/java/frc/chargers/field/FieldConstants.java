@@ -7,8 +7,15 @@
 
 package frc.chargers.field;
 
-import edu.wpi.first.math.geometry.*;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -114,10 +121,10 @@ public class FieldConstants {
 						new Pose3d(
 							new Translation3d(
 								poseDirection
-									.transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
+									.transformBy(new Transform2d(adjustX, adjustY, Rotation2d.kZero))
 									.getX(),
 								poseDirection
-									.transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
+									.transformBy(new Transform2d(adjustX, adjustY, Rotation2d.kZero))
 									.getY(),
 								level.height),
 							new Rotation3d(
@@ -129,10 +136,10 @@ public class FieldConstants {
 						new Pose3d(
 							new Translation3d(
 								poseDirection
-									.transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
+									.transformBy(new Transform2d(adjustX, -adjustY, Rotation2d.kZero))
 									.getX(),
 								poseDirection
-									.transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
+									.transformBy(new Transform2d(adjustX, -adjustY, Rotation2d.kZero))
 									.getY(),
 								level.height),
 							new Rotation3d(
@@ -149,11 +156,11 @@ public class FieldConstants {
 	public static class StagingPositions {
 		// Measured from the center of the ice cream
 		public static final Pose2d leftIceCream =
-			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(230.5), new Rotation2d());
+			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(230.5), Rotation2d.kZero);
 		public static final Pose2d middleIceCream =
-			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(158.5), new Rotation2d());
+			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(158.5), Rotation2d.kZero);
 		public static final Pose2d rightIceCream =
-			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(86.5), new Rotation2d());
+			new Pose2d(Units.inchesToMeters(48), Units.inchesToMeters(86.5), Rotation2d.kZero);
 	}
 	
 	public enum ReefHeight {

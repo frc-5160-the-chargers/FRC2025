@@ -13,7 +13,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import java.io.File
-import kotlin.system.exitProcess
 
 @OptIn(ExperimentalSerializationApi::class)
 private val JSON_SERIALIZER = Json {

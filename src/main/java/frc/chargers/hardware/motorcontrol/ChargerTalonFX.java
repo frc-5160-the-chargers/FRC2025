@@ -11,10 +11,6 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.Current;
-import edu.wpi.first.units.measure.Temperature;
-import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.StatusSignalRefresher;
@@ -48,18 +44,10 @@ import static java.lang.Math.PI;
  * </code></pre>
  */
 public class ChargerTalonFX implements Motor {
-	// package-private for unit tests
-	protected final TalonFX baseApi;
-	protected boolean hasFusedSensor = false;
-	protected boolean highFrequencyPosition = false;
-	protected boolean useTorqueCurrentControl = false;
-	protected final StatusSignal<Angle> positionSignal;
-	protected final StatusSignal<AngularVelocity> velocitySignal;
-	protected final StatusSignal<Voltage> voltageSignal;
-	protected final StatusSignal<Current> currentSignal;
-	protected final StatusSignal<Current> torqueCurrentSignal;
-	protected final StatusSignal<Current> supplyCurrentSignal;
-	protected final StatusSignal<Temperature> tempSignal;
+	public final TalonFX baseApi;
+	protected boolean hasFusedSensor, useTorqueCurrentControl = false;
+	protected final StatusSignal<?> positionSignal, velocitySignal, voltageSignal,
+		currentSignal, torqueCurrentSignal, supplyCurrentSignal, tempSignal;
 	
 	protected final VoltageOut setVoltageRequest = new VoltageOut(0);
 	protected final PositionVoltage setAngleRequest = new PositionVoltage(0).withSlot(0);
@@ -70,10 +58,7 @@ public class ChargerTalonFX implements Motor {
 	
 	private final Encoder encoder = new Encoder() {
 		@Override
-		public double positionRad() {
-			if (highFrequencyPosition) positionSignal.refresh();
-			return rotationsToRadians(positionSignal.getValueAsDouble());
-		}
+		public double positionRad() { return rotationsToRadians(positionSignal.getValueAsDouble()); }
 		
 		@Override
 		public double velocityRadPerSec() {
