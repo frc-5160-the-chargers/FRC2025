@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
+import frc.chargers.utils.PIDConstants;
 
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Radians;
@@ -27,9 +28,14 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private final Motor leaderMotor;
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final Angle TOLERANCE = Degrees.of(2.0);
+	private static final double GEAR_RATIO = 0.0;
+	private static final double kP = 0.0;
+	private static final double kD = 0.0;
 
 	public CoralIntakePivot() {
 		log("init", true);
+
+
 		if (RobotBase.isSimulation()) {
 			leaderMotor = new SimMotor(
 					SimMotor.SimMotorType.DC(DCMotor.getKrakenX60(2), 0.004),
@@ -38,6 +44,12 @@ public class CoralIntakePivot extends StandardSubsystem {
 		} else {
 			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, null);
 		}
+
+		leaderMotor.setControlsConfig(
+			Motor.ControlsConfig.EMPTY
+					.withGearRatio(GEAR_RATIO)
+					.withPositionPID(new PIDConstants(kP, 0.0, kP))
+		);
 	}
 
 	public Command setAngleCmd(Angle target) {
