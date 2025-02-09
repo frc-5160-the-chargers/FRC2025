@@ -1,5 +1,6 @@
 package frc.robot.commands;
 
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -11,10 +12,7 @@ import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import frc.robot.subsystems.swerve.SwerveSetpointGenerator;
 import lombok.RequiredArgsConstructor;
-
-import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Meters;
@@ -52,7 +50,7 @@ public class RobotCommands {
 		return Commands.runOnce(() -> targetPose.ifPresent(it -> GlobalLog.log("targetPose", it)))
 			       .andThen(
 				       pathfindWithLift(
-						   () -> targetPose.orElseGet(drivetrain::poseEstimate),
+						   targetPose.orElseGet(drivetrain::poseEstimate),
 					       position.elevatorHeight()
 				       ),
 					   prepareToScore(position)
@@ -62,7 +60,7 @@ public class RobotCommands {
 	
 	public Command pathfindThenSourceIntake(IntakePosition position) {
 		return Commands.parallel(
-			drivetrain.pathfindCmd(() -> position.pose, setpointGen),
+			drivetrain.pathfindCmd(position.pose, true, setpointGen),
 			sourceIntake(),
 			Commands.runOnce(() -> GlobalLog.log("intakePosition", position.toString()))
 		).withName("pathfindThenSourceIntake");
@@ -86,8 +84,8 @@ public class RobotCommands {
 	// A pathfind command variant that passively moves the elevator slightly along the way.
 	// This slightly reduces cycle times(as the elevator is already in a higher position).
 	// Note: CommandA.withDeadline(CommandB) runs A and B parallel and stops until B finishes.
-	private Command pathfindWithLift(Supplier<Pose2d> getTargetPose, Distance elevatorHeight) {
+	private Command pathfindWithLift(Pose2d targetPose, Distance elevatorHeight) {
 		return elevator.passiveLiftCmd(elevatorHeight)
-			       .withDeadline(drivetrain.pathfindCmd(getTargetPose, setpointGen));
+			       .withDeadline(drivetrain.pathfindCmd(targetPose, true, setpointGen));
 	}
 }

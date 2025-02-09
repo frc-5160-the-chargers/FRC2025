@@ -42,7 +42,7 @@ public class Elevator extends StandardSubsystem {
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(6.0);
 	private static final Angle TOLERANCE = Degrees.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.2);
-	private static final double ELEVATOR_KP = 7.0;
+	private static final double ELEVATOR_KP = 10.0;
 	private static final double ELEVATOR_KD = 0.1;
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
@@ -147,8 +147,11 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	public Command syncStateCmd() {
-		return Commands.runOnce(() -> profileState = new TrapezoidProfile.State(extensionHeight(), 0))
-			       .withName("SyncStateCmd(Elevator)");
+		return Commands.runOnce(
+			() -> profileState = new TrapezoidProfile.State(
+				leaderMotor.encoder().positionRad() , 0
+			)
+		).withName("SyncStateCmd(Elevator)");
 	}
 	
 	public Command moveToHeightCmd(Distance targetHeight) {

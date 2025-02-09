@@ -10,8 +10,8 @@
       "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "934",
-      "xpos": "1624",
+      "width": "1276",
+      "xpos": "1282",
       "ypos": "58"
     }
   },
@@ -24,43 +24,48 @@
   },
   "Window": {
     "###/SmartDashboard/Alerts": {
-      "Collapsed": "1",
-      "Pos": "348,41",
+      "Collapsed": "0",
+      "Pos": "898,41",
       "Size": "446,895"
     },
     "###/SmartDashboard/AutoChooser": {
       "Collapsed": "0",
-      "Pos": "1,311",
+      "Pos": "27,1171",
       "Size": "469,78"
     },
     "###/SmartDashboard/SwerveDrive/fieldViz": {
       "Collapsed": "1",
-      "Pos": "348,78",
+      "Pos": "514,78",
       "Size": "1511,884"
     },
+    "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
+      "Collapsed": "0",
+      "Pos": "59,609",
+      "Size": "1401,671"
+    },
     "###FMS": {
-      "Collapsed": "1",
-      "Pos": "915,208",
-      "Size": "495,212"
+      "Collapsed": "0",
+      "Pos": "379,157",
+      "Size": "314,304"
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "6,891",
-      "Size": "928,392"
+      "Pos": "348,838",
+      "Size": "1270,336"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
-      "Pos": "435,450",
+      "Pos": "898,160",
       "Size": "397,433"
     },
     "###NetworkTables": {
-      "Collapsed": "1",
-      "Pos": "343,112",
-      "Size": "885,484"
+      "Collapsed": "0",
+      "Pos": "937,-12",
+      "Size": "1480,1458"
     },
     "###NetworkTables Info": {
       "Collapsed": "1",
-      "Pos": "322,176",
+      "Pos": "514,112",
       "Size": "1500,290"
     },
     "###Other Devices": {
@@ -70,18 +75,18 @@
     },
     "###System Joysticks": {
       "Collapsed": "0",
-      "Pos": "18,497",
+      "Pos": "46,422",
       "Size": "354,362"
     },
     "###Timing": {
-      "Collapsed": "1",
-      "Pos": "348,322",
-      "Size": "241,187"
+      "Collapsed": "0",
+      "Pos": "606,504",
+      "Size": "241,257"
     },
     "###field": {
-      "Collapsed": "1",
-      "Pos": "915,278",
-      "Size": "488,304"
+      "Collapsed": "0",
+      "Pos": "22,950",
+      "Size": "161,37"
     },
     "Debug##Default": {
       "Collapsed": "0",

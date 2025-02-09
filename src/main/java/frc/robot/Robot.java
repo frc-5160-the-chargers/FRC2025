@@ -1,6 +1,7 @@
 package frc.robot;
 
 import choreo.auto.AutoChooser;
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
@@ -11,6 +12,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.chargers.utils.InputStream;
@@ -23,14 +25,13 @@ import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import frc.robot.subsystems.swerve.SwerveSetpointGenerator;
 import frc.robot.vision.AprilTagVision;
 import monologue.ExtrasLogger;
 import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 import static monologue.Monologue.GlobalLog;
 
@@ -47,12 +48,13 @@ public class Robot extends TimedRobot implements LogLocal {
 	// logging doesnt really work for sendables
 	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
 	
+	@NotLogged private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
+		KilogramSquareMeters.of(6.283),
+		Amps.of(60)
+	);
+	
 	private final RobotCommands botCommands = new RobotCommands(
-		drivetrain, coralIntake, coralIntakePivot, elevator,
-		new SwerveSetpointGenerator(
-			drivetrain.getKinematics(), drivetrain.getConfig(),
-			SwerveConfigurator.DRIVE_CURRENT_LIMIT, SwerveConfigurator.BODY_MOI
-		)
+		drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen
 	);
 	private final AutoCommands autoCommands = new AutoCommands(
 		botCommands, drivetrain.createAutoFactory(),
@@ -70,13 +72,18 @@ public class Robot extends TimedRobot implements LogLocal {
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		
+		// enable high-frequency odometry
+		if (!RobotBase.isSimulation()) {
+			addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
+		}
+		
 		mapTriggers();
 		mapDefaultCommands();
 		mapAutoModes();
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
 		vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
-		//vision.setSimPoseSupplier(drivetrain::bestPose);
+		vision.setSimPoseSupplier(drivetrain::bestPose);
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
@@ -128,7 +135,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		GlobalLog.logMetadata("GitBranch", BuildConstants.GIT_BRANCH);
 		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
 		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
-		ExtrasLogger.start(new PowerDistribution());
+		ExtrasLogger.start(this, new PowerDistribution());
 	}
 	
 	private void mapAutoModes() {
@@ -137,6 +144,14 @@ public class Robot extends TimedRobot implements LogLocal {
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		if (RobotBase.isSimulation()) {
 			autoChooser.addCmd("MoveUp", () -> elevator.moveToHeightCmd(Meters.of(1.2)));
+			autoChooser.addCmd(
+				"PathfindTest",
+				() -> drivetrain.pathfindCmd(new Pose2d(15, 4, Rotation2d.kZero), false, null)
+			);
+			autoChooser.addCmd(
+				"SingleTagEstimationTest",
+				() -> Commands.runOnce(() -> drivetrain.enableSingleTagEstimation(19))
+			);
 		}
 		RobotModeTriggers.autonomous().onTrue(autoChooser.selectedCommandScheduler());
 	}

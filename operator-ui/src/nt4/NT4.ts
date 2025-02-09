@@ -3,7 +3,7 @@ Credits: 6328(AdvantageScope)
  */
 import {Decoder, Encoder} from "@msgpack/msgpack";
 
-const typestrIdxLookup: { [id: string]: number } = {
+const typestrIdxLookup = {
     boolean: 0,
     double: 1,
     int: 2,
@@ -20,6 +20,8 @@ const typestrIdxLookup: { [id: string]: number } = {
     "float[]": 19,
     "string[]": 20
 };
+
+export type NTType = keyof typeof typestrIdxLookup;
 
 class NT4_Subscription {
     uid = -1;
@@ -60,7 +62,7 @@ class NT4_SubscriptionOptions {
 export class NT4_Topic {
     uid = -1; // "id" if server topic, "pubuid" if published
     name = "";
-    type = "";
+    type: NTType = "boolean";
     properties: { [id: string]: any } = {};
 
     toPublishObj() {
@@ -91,9 +93,6 @@ export class NT4_Client {
     private PORT = 5810;
     private RTT_PERIOD_MS_V40 = 1000;
     private RTT_PERIOD_MS_V41 = 250;
-    private TIMEOUT_MS_V40 = 5000;
-    private TIMEOUT_MS_V41 = 1000;
-
     private appName: string;
     private onTopicAnnounce: (topic: NT4_Topic) => void;
     private onTopicUnannounce: (topic: NT4_Topic) => void;
@@ -319,7 +318,7 @@ export class NT4_Client {
     }
 
     /** Publish a topic from this client with the provided name and type. Can be a new or existing. */
-    publishTopic(topic: string, type: string) {
+    publishTopic(topic: string, type: NTType) {
         if (this.publishedTopics.has(topic)) {
             return;
         }
@@ -519,8 +518,6 @@ export class NT4_Client {
     }
 
     private ws_onMessage(event: MessageEvent, rttOnly: boolean) {
-        this.ws_resetTimeout();
-
         if (typeof event.data === "string") {
             // Exit if RTT only
             if (rttOnly) {
@@ -643,18 +640,18 @@ export class NT4_Client {
         }
     }
 
-    private ws_resetTimeout() {
-        if (this.disconnectTimeoutId !== null) {
-            clearTimeout(this.disconnectTimeoutId);
-        }
-        const timeout = this.rttWs === null ? this.TIMEOUT_MS_V40 : this.TIMEOUT_MS_V41;
-        this.disconnectTimeoutId = setTimeout(() => {
-            console.log("[NT4] No data for " + timeout.toString() + "ms, closing");
-            if (this.ws) {
-                this.ws_onClose(new CloseEvent("close"), this.ws);
-            }
-        }, timeout);
-    }
+    // private ws_resetTimeout() {
+    //     if (this.disconnectTimeoutId !== null) {
+    //         clearTimeout(this.disconnectTimeoutId);
+    //     }
+    //     const timeout = this.rttWs === null ? this.TIMEOUT_MS_V40 : this.TIMEOUT_MS_V41;
+    //     this.disconnectTimeoutId = setTimeout(() => {
+    //         console.log("[NT4] No data for " + timeout.toString() + "ms, closing");
+    //         if (this.ws) {
+    //             this.ws_onClose(new CloseEvent("close"), this.ws);
+    //         }
+    //     }, timeout);
+    // }
 
     private ws_connect(rttWs = false) {
         this.serverAddr = "ws://" + this.serverBaseAddr + ":" + this.PORT.toString() + "/nt/" + this.appName;

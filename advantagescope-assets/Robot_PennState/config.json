@@ -5,33 +5,70 @@
     {
       "axis": "y",
       "degrees": 180
+    },
+    {
+      "axis": "z",
+      "degrees": -90
     }
   ],
-  "cameras": [],
+  "cameras": [
+    {
+      "name": "position testing pov",
+      "rotations": [],
+      "position": [0.43, 0.368, 0.15],
+      "resolution": [1280, 800],
+      "fov": 70
+    }
+  ],
   "components": [
     {
       "zeroedRotations": [
         {
           "axis": "y",
           "degrees": 180
+        },
+        {
+          "axis": "z",
+          "degrees": -90
         }
       ],
-      "zeroedPosition": [0.3, 0.2, 0.1]
+      "zeroedPosition": [0.2, -0.3, 0.1]
     },
     {
       "zeroedRotations": [
         {
           "axis": "y",
           "degrees": 180
+        },
+        {
+          "axis": "z",
+          "degrees": -90
         }
       ],
-      "zeroedPosition": [0.3, 0.3, 0]
+      "zeroedPosition": [0.2, -0.3, 0.1]
     },
     {
       "zeroedRotations": [
         {
           "axis": "y",
           "degrees": 180
+        },
+        {
+          "axis": "z",
+          "degrees": -90
+        }
+      ],
+      "zeroedPosition": [0, 0, 0]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "y",
+          "degrees": 180
+        },
+        {
+          "axis": "z",
+          "degrees": -90
         }
       ],
       "zeroedPosition": [0, 0, 0]

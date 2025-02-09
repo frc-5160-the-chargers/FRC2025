@@ -65,7 +65,7 @@ public class DriverPracticeSim extends TimedRobot implements LogLocal {
 		SimulatedArena.getInstance().placeGamePiecesOnField();
 		DriverStation.silenceJoystickConnectionWarning(true);
 		test().whileTrue(
-			drivetrainOne.pathfindCmd(() -> new Pose2d(5.26, 5.21, Rotation2d.fromDegrees(-121.34)), null)
+			drivetrainOne.pathfindCmd(new Pose2d(5.26, 5.21, Rotation2d.fromDegrees(-121.34)), true, null)
 		);
 	}
 
