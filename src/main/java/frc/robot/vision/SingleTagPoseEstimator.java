@@ -6,6 +6,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
@@ -22,6 +23,8 @@ import lombok.Getter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import static monologue.Monologue.GlobalLog;
 
 /**
  * An implementation of 6328's trig-based pose estimation algorithm.
@@ -90,15 +93,15 @@ public class SingleTagPoseEstimator {
 	/**
 	 * Adds a vision measurement from a single tag.
 	 */
-	public void addVisionMeasurement(SingleTagPoseEstimate estimate, double timestampSecs, Pose2d rootPose) {
+	public void addVisionMeasurement(SingleTagPoseEstimate estimate, Pose2d rootPose) {
 		// Skip if current data for tag is newer
 		if (txTyPoses.containsKey(estimate.tagId())
-			    && txTyPoses.get(estimate.tagId()).timestamp() >= timestampSecs) {
+			    && txTyPoses.get(estimate.tagId()).timestamp() >= estimate.timestampSecs()) {
 			return;
 		}
 		
 		// Get rotation at timestamp
-		var sample = poseBuffer.getSample(timestampSecs);
+		var sample = poseBuffer.getSample(estimate.timestampSecs());
 		if (sample.isEmpty()) {
 			// exit if not there
 			return;
@@ -125,7 +128,7 @@ public class SingleTagPoseEstimator {
 		// Add transform to current odometry based pose for latency correction
 		txTyPoses.put(
 			estimate.tagId(),
-			new TxTyPoseRecord(robotPose, timestampSecs)
+			new TxTyPoseRecord(robotPose, estimate.timestampSecs())
 		);
 	}
 	
@@ -145,10 +148,13 @@ public class SingleTagPoseEstimator {
 		var data = txTyPoses.get(tagIdToFocusOn);
 		// Check if stale
 		if (Timer.getTimestamp() - data.timestamp() >= txTyObservationStaleSecs.get()) {
+			GlobalLog.log("stale", true);
 			return Optional.empty();
 		}
+		GlobalLog.log("stale", false);
 		// Get odometry based pose at timestamp
 		var sample = poseBuffer.getSample(data.timestamp());
+		GlobalLog.log("sampleIsEmpty", sample.isEmpty());
 		// Latency compensate
 		return sample.map(pose2d -> data.pose().plus(new Transform2d(pose2d, odometryPose)));
 	}

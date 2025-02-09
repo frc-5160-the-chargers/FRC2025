@@ -2,16 +2,14 @@ package frc.robot.subsystems.swerve;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.hardware.Pigeon2;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.MomentOfInertia;
-import frc.chargers.hardware.encoders.VoidEncoder;
-import frc.chargers.hardware.motorcontrol.ChargerSpark;
-import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
+import edu.wpi.first.wpilibj.RobotBase;
+import frc.chargers.hardware.encoders.ChargerCANcoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
-import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.utils.PIDConstants;
 import frc.robot.subsystems.swerve.SwerveDrive.ControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.HardwareConfig;
@@ -27,7 +25,10 @@ public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
 	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(90);
+	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(100);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
+	public static final double ODOMETRY_FREQUENCY_HZ = 200;
+	private static final Pigeon2 PIGEON = new Pigeon2(0);
 	
 	public static final SwerveDriveConfig DEFAULT_DRIVE_CONFIG =
 		new SwerveDriveConfig(
@@ -48,42 +49,85 @@ public class SwerveConfigurator {
 				new PIDConstants(5.0, 0.0, 0.0), // path translation pid
 				new PIDConstants(5.0, 0.0, 0.0), // path rotation pid,
 				0.0, // kT
-				PoseEstimationMode.AUTOMATIC
+				RobotBase.isSimulation() ? PoseEstimationMode.AUTOMATIC : PoseEstimationMode.SELF_RUN
+				// SELF_RUN means that you have to call updateOdometry periodically yourself
 			),
-			Rotation2d::new, // Dummy gyro angle supplier because sim only
-			SwerveConfigurator::getSteerMotor,
-			SwerveConfigurator::getDriveMotor,
-			corner -> new VoidEncoder(),
-			null,
+			PIGEON::getRotation2d,
+			// Class::new is basically shorthand for creating a function object that takes in
+			// the class's constructor parameters and returns an instance of the class.
+			// Here, it would be Function<SwerveCorner, Motor>.
+			RealDriveMotor::new,
+			RealSteerMotor::new,
+			RealSteerEncoder::new,
+			null, // sim steer motor config
 			new TalonFXConfiguration().withCurrentLimits(
 				new CurrentLimitsConfigs()
-					.withSupplyCurrentLimit(90)
+					.withSupplyCurrentLimit(DRIVE_CURRENT_LIMIT)
 					.withSupplyCurrentLimitEnable(true)
-					.withStatorCurrentLimit(100)
+					.withStatorCurrentLimit(DRIVE_STATOR_CURRENT_LIMIT)
 					.withStatorCurrentLimitEnable(true)
-			)
+			) // sim drive motor config
 		);
 	
-	private static Motor getSteerMotor(SwerveCorner corner) {
-		var id = switch (corner) {
-			case TOP_LEFT -> 0;
-			case TOP_RIGHT -> 1;
-			case BOTTOM_LEFT -> 2;
-			case BOTTOM_RIGHT -> 3;
-		};
-		return new ChargerSpark(id, SparkModel.SPARK_MAX, null);
+	private static class RealDriveMotor extends ChargerTalonFX {
+		public RealDriveMotor(SwerveCorner corner) {
+			super(getId(corner), true, getConfig(corner));
+			super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+		}
+		
+		private static int getId(SwerveCorner corner) {
+			return switch (corner) {
+				case TOP_LEFT -> 0;
+				case TOP_RIGHT -> 1;
+				case BOTTOM_LEFT -> 2;
+				case BOTTOM_RIGHT -> 3;
+			};
+		}
+		
+		private static TalonFXConfiguration getConfig(SwerveCorner corner) {
+			var config = new TalonFXConfiguration();
+			config.CurrentLimits.StatorCurrentLimitEnable = true;
+			config.CurrentLimits.StatorCurrentLimit = DRIVE_CURRENT_LIMIT.in(Amps);
+			return config;
+		}
 	}
 	
-	private static Motor getDriveMotor(SwerveCorner corner) {
-		var id = switch (corner) {
-			case TOP_LEFT -> 0;
-			case TOP_RIGHT -> 1;
-			case BOTTOM_LEFT -> 2;
-			case BOTTOM_RIGHT -> 3;
-		};
-		var config = new TalonFXConfiguration();
-		config.CurrentLimits.StatorCurrentLimitEnable = true;
-		config.CurrentLimits.StatorCurrentLimit = DRIVE_CURRENT_LIMIT.in(Amps);
-		return new ChargerTalonFX(id, true, config);
+	private static class RealSteerMotor extends ChargerTalonFX {
+		public RealSteerMotor(SwerveCorner corner) {
+			super(getId(corner), true, getConfig(corner));
+			super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+		}
+		
+		private static int getId(SwerveCorner corner) {
+			return switch (corner) {
+				case TOP_LEFT -> 0;
+				case TOP_RIGHT -> 1;
+				case BOTTOM_LEFT -> 2;
+				case BOTTOM_RIGHT -> 3;
+			};
+		}
+		
+		private static TalonFXConfiguration getConfig(SwerveCorner corner) {
+			var config = new TalonFXConfiguration();
+			config.CurrentLimits.StatorCurrentLimitEnable = true;
+			config.CurrentLimits.StatorCurrentLimit = 60;
+			config.CurrentLimits.SupplyCurrentLimit = 60;
+			return config;
+		}
+	}
+	
+	private static class RealSteerEncoder extends ChargerCANcoder {
+		private static int getId(SwerveCorner corner) {
+			return switch (corner) {
+				case TOP_LEFT -> 0;
+				case TOP_RIGHT -> 1;
+				case BOTTOM_LEFT -> 2;
+				case BOTTOM_RIGHT -> 3;
+			};
+		}
+		
+		public RealSteerEncoder(SwerveCorner corner) {
+			super(getId(corner), true, null);
+		}
 	}
 }

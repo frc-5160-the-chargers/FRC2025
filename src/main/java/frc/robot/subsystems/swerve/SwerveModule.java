@@ -42,8 +42,8 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	);
 	
 	/**
-	 * A dummy motor that accepts maple sim data via maplesim's SimulatedMotorController,
-	 * using a sim talon fx to calculate other values and run pid control.
+	 * A dummy motor that accepts MapleSim data via MapleSim's SimulatedMotorController,
+	 * propagating it through a TalonFX.
 	 */
 	public static class DummyMotor extends ChargerTalonFX implements SimulatedMotorController {
 		private final TalonFXSimState talonSimApi;

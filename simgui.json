@@ -54,6 +54,17 @@
           "visible": true
         }
       },
+      "/SmartDashboard/VisionSystemSim-main/Sim Field": {
+        "bottom": 1476,
+        "height": 8.210550308227539,
+        "left": 150,
+        "right": 2961,
+        "top": 79,
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
+      },
       "field": {
         "bottom": 1476,
         "height": 8.210550308227539,
@@ -124,12 +135,6 @@
         "arm": {
           "open": true
         },
-        "coralIntake": {
-          "open": true
-        },
-        "driverController": {
-          "open": true
-        },
         "driverController1": {
           "open": true
         },
@@ -139,8 +144,7 @@
               "open": true
             },
             "open": true
-          },
-          "open": true
+          }
         },
         "drivetrainOne": {
           "ChassisSpeeds##v_Robot/drivetrainOne/getMeasuredSpeedsRobotRelative": {
@@ -240,6 +244,15 @@
         },
         "test": {
           "open": true
+        },
+        "vision": {
+          "Pose3d[]##v_Robot/vision/acceptedPoses": {
+            "Pose3d##v_[0]": {
+              "open": true
+            },
+            "open": true
+          },
+          "open": true
         }
       },
       "SmartDashboard": {
@@ -251,9 +264,22 @@
         },
         "SwerveDrive": {
           "open": true
-        }
+        },
+        "VisionSystemSim-main": {
+          "Sim Field": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
       },
       "SystemStats": {
+        "open": true
+      },
+      "photonvision": {
+        "ABC": {
+          "open": true
+        },
         "open": true
       },
       "test": {

@@ -8,11 +8,13 @@ import edu.wpi.first.hal.can.CANJNI;
 import edu.wpi.first.hal.can.CANStatus;
 import edu.wpi.first.networktables.GenericPublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.util.datalog.BooleanLogEntry;
 import edu.wpi.first.util.datalog.StringLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.TimedRobot;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
@@ -26,16 +28,20 @@ public class ExtrasLogger {
 	private static boolean enabled = false;
 	private static final CANStatus status = new CANStatus();
 	private static PowerDistribution pdh;
-	private static final RadioLogUtil radioLogUtil = new RadioLogUtil();
-	private static final GenericPublisher ntRadioEntry =
-		NetworkTableInstance.getDefault().getTopic("RadioStatus/StatusJSON").genericPublish("json");
-	private static final StringLogEntry dataLogRadioEntry =
-		new StringLogEntry(DataLogManager.getLog(), "RadioStatus/StatusJSON", "", "json");
 	private static EpilogueBackend logger = null;
-	private static EpilogueBackend radioLogger = null;
+	
+	private static final RadioLogUtil radioLogUtil = new RadioLogUtil();
+	private static final GenericPublisher ntRadioStatus =
+		NetworkTableInstance.getDefault().getTopic("RadioStatus/StatusJSON").genericPublish("json");
+	private static final StringLogEntry dataLogRadioStatus =
+		new StringLogEntry(DataLogManager.getLog(), "RadioStatus/StatusJSON", "", "json");
+	private static final GenericPublisher ntRadioConn =
+		NetworkTableInstance.getDefault().getTopic("RadioStatus/Connected").genericPublish("json");
+	private static final BooleanLogEntry dataLogRadioConn =
+		new BooleanLogEntry(DataLogManager.getLog(), "RadioStatus/Connected");
 	
 	/** Starts extras logging. Called once in Robot constructor. */
-	public static void start(@Nullable PowerDistribution pdh) {
+	public static void start(TimedRobot robot, @Nullable PowerDistribution pdh) {
 		if (ExtrasLogger.enabled) {
 			RuntimeLog.warn("ExtrasLogger.start has already been called, further calls will do nothing");
 			return;
@@ -47,16 +53,11 @@ public class ExtrasLogger {
 		ExtrasLogger.enabled = true;
 		ExtrasLogger.pdh = pdh;
 		ExtrasLogger.logger = Monologue.config.backend.getNested("SystemStats");
-		ExtrasLogger.radioLogger = Monologue.config.backend.getNested("RadioStatus");
-		new Notifier(() -> {
-			try {
-				ExtrasLogger.logSystem();
-				ExtrasLogger.logCan();
-				ExtrasLogger.logPdh();
-			} catch (Exception e) {
-				RuntimeLog.warn("ExtrasLogger error: " + e);
-			}
-		}).startPeriodic(0.02);
+		robot.addPeriodic(() -> {
+			ExtrasLogger.logSystem();
+			ExtrasLogger.logCan();
+			ExtrasLogger.logPdh();
+		}, 0.02);
 		new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
 	}
 	
@@ -112,14 +113,11 @@ public class ExtrasLogger {
 	}
 	
 	private static void logRadio() {
-		try {
-			radioLogUtil.refresh();
-			radioLogger.log("Connected", radioLogUtil.radioLogResult.isConnected);
-			ntRadioEntry.setString(radioLogUtil.radioLogResult.statusJson);
-			dataLogRadioEntry.append(radioLogUtil.radioLogResult.statusJson);
-		} catch (Exception e) {
-			RuntimeLog.warn("ExtrasLogger error: " + e);
-		}
+		radioLogUtil.refresh();
+		ntRadioConn.setBoolean(radioLogUtil.radioLogResult.isConnected);
+		dataLogRadioConn.append(radioLogUtil.radioLogResult.isConnected);
+		ntRadioStatus.setString(radioLogUtil.radioLogResult.statusJson);
+		dataLogRadioStatus.append(radioLogUtil.radioLogResult.statusJson);
 	}
 	
 	private static class RadioLogResult {

@@ -6,6 +6,8 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
@@ -24,40 +26,77 @@ import org.photonvision.simulation.VisionSystemSim;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
 @SuppressWarnings("unused")
 public class AprilTagVision implements AutoCloseable, LogLocal {
-	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.3;
+	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
+		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
+	
+	private static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
+	
+	static {
+		ARDUCAM_SIM_PROPERTIES.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
+		ARDUCAM_SIM_PROPERTIES.setCalibError(1.0, 0.08);
+		ARDUCAM_SIM_PROPERTIES.setAvgLatencyMs(35);
+		ARDUCAM_SIM_PROPERTIES.setLatencyStdDevMs(5);
+		ARDUCAM_SIM_PROPERTIES.setFPS(20);
+	}
+	
+	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.15;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.75);
 	private static final double LINEAR_STD_DEV_BASELINE = 0.02;
 	private static final double ANGULAR_STD_DEV_BASELINE = 0.06;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
 	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
-		//new PhotonCamConfig("ABC", 1.0, new Transform3d())
+		new PhotonCamConfig("ABC", 1.0, new Transform3d(
+			Inches.of(16),
+			Inches.of(12),
+			Inches.of(6),
+			new Rotation3d(
+				Degrees.zero(),
+				Degrees.of(-10),
+				Degrees.zero()
+			)
+		)).withSim(ARDUCAM_SIM_PROPERTIES),
+		new PhotonCamConfig("DEF", 1.0, new Transform3d(
+			Inches.of(16),
+			Inches.of(-12),
+			Inches.of(6),
+			new Rotation3d(
+				Degrees.zero(),
+				Degrees.of(-10),
+				Degrees.zero()
+			)
+		)).withSim(ARDUCAM_SIM_PROPERTIES)
 	);
-	private static final VisionSystemSim VISION_SYSTEM_SIM = new VisionSystemSim("main");
 	
 	private static class PhotonCamConfig {
 		public final PhotonCamera photonCam;
 		public final double stdDevFactor;
 		public final PhotonPoseEstimator poseEstimator;
+		public final Transform3d robotToCamera;
 		
 		public PhotonCamConfig(String cameraName, double stdDevFactor, Transform3d robotToCamera) {
 			this.photonCam = new PhotonCamera(cameraName);
 			this.stdDevFactor = stdDevFactor;
 			this.poseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCamera);
+			this.robotToCamera = robotToCamera;
 			poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 		}
 		
 		public PhotonCamConfig withSim(SimCameraProperties props) {
-			VISION_SYSTEM_SIM.addCamera(new PhotonCameraSim(photonCam, props), poseEstimator.getRobotToCameraTransform());
+			VISION_SYSTEM_SIM.ifPresent(
+				it -> it.addCamera(new PhotonCameraSim(photonCam, props), poseEstimator.getRobotToCameraTransform())
+			);
 			return this;
 		}
 	}
@@ -72,19 +111,19 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	public AprilTagVision(TimedRobot robot) {
 		robot.addPeriodic(this::periodic, 0.02);
-		if (RobotBase.isSimulation()) VISION_SYSTEM_SIM.addAprilTags(FIELD_LAYOUT);
+		VISION_SYSTEM_SIM.ifPresent(it -> it.addAprilTags(FIELD_LAYOUT));
 	}
 	
 	private void periodic() {
 		acceptedPoses.clear();
 		rejectedPoses.clear();
 		fiducialIds.clear();
-		if (RobotBase.isSimulation() && simPoseSupplier != null) {
-			VISION_SYSTEM_SIM.update(simPoseSupplier.get());
+		if (VISION_SYSTEM_SIM.isPresent() && simPoseSupplier != null) {
+			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
 		}
 		var disconnectedCamNames = new ArrayList<String>();
 		for (var cam: PHOTON_TAG_CAMERAS) {
-			if (!cam.photonCam.isConnected()) {
+			if (!RobotBase.isSimulation() && !cam.photonCam.isConnected()) {
 				disconnectedCamNames.add(cam.photonCam.getName());
 				continue;
 			}
@@ -107,6 +146,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				acceptedPoses.add(pose);
 				double tagDistSum = 0.0;
 				for (var target: camData.targets) {
+					// TODO fix single tag pose estimation
 					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
 				}
 				double stdDevMultiplier = Math.pow(tagDistSum / camData.targets.size(), 2) / camData.targets.size();

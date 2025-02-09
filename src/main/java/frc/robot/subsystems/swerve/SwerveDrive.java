@@ -2,9 +2,14 @@ package frc.robot.subsystems.swerve;
 
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
-import choreo.util.ChoreoAllianceFlipUtil;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.pathplanner.lib.config.ModuleConfig;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.util.DriveFeedforwards;
+import com.pathplanner.lib.util.swerve.SwerveSetpoint;
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
@@ -17,15 +22,18 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
+import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
+import frc.chargers.utils.AllianceFlipper;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
@@ -33,6 +41,7 @@ import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.StandardSubsystem;
 import frc.robot.vision.GlobalPoseEstimate;
 import frc.robot.vision.SingleTagPoseEstimate;
+import frc.robot.vision.SingleTagPoseEstimator;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.ExtensionMethod;
@@ -51,7 +60,6 @@ import java.util.function.Supplier;
 import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
-import static org.photonvision.PhotonUtils.getYawToPose;
 
 /**
  * A drivetrain with 4 drive motors and 4 turn motors.
@@ -121,11 +129,18 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum PoseEstimationMode {
 		AUTOMATIC, SELF_RUN
 	}
+	
+	private static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
+		new ChassisSpeeds(),
+		new SwerveModuleState[]{ new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState() },
+		DriveFeedforwards.zeros(4)
+	);
 
 	@Getter private final SwerveDriveConfig config;
 	@Getter private final SwerveDriveKinematics kinematics;
 	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
 	private final SwerveDrivePoseEstimator poseEstimator;
+	private final SingleTagPoseEstimator singleTagPoseEstimator;
 	private final SwerveDriveSimulation mapleSim;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
@@ -140,6 +155,9 @@ public class SwerveDrive extends StandardSubsystem {
 	private final Supplier<Rotation2d> getAngleFn;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
 	private final double[] stdDevStore = new double[3];
+	@Logged(name = "singleTagEstimation/id")
+	private int targetTagId = -1;
+	private boolean useSingleTagEstimation = false;
 
 	// workaround before array logging comes around
 	@Logged private final SwerveModule topLeftModule;
@@ -173,6 +191,7 @@ public class SwerveDrive extends StandardSubsystem {
 		this.poseEstimator = new SwerveDrivePoseEstimator(
 			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
 		);
+		this.singleTagPoseEstimator = new SingleTagPoseEstimator(kinematics, VecBuilder.fill(0.003, 0.003, 0.02));
 
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
@@ -317,10 +336,50 @@ public class SwerveDrive extends StandardSubsystem {
 		);
 	}
 	
+	/** Creates a swerve setpoint generator. This is primarily used to reduce odometry drift when pathfinding. */
+	public SwerveSetpointGenerator createSetpointGenerator(
+		MomentOfInertia bodyMoi, Current driveCurrentLimit
+	) {
+		return new SwerveSetpointGenerator(
+			new RobotConfig(
+				config.ofHardware.robotMass,
+				bodyMoi,
+				new ModuleConfig(
+					config.ofModules.wheelRadius,
+					config.ofHardware.maxVelocity,
+					config.ofHardware.coefficientOfFriction,
+					config.ofHardware.driveMotorType(),
+					config.ofModules.driveGearRatio,
+					driveCurrentLimit,
+					4
+				),
+				kinematics.getModules()
+			),
+			config.ofHardware.turnMotorType.freeSpeedRadPerSec
+		);
+	}
+	
+	public void enableSingleTagEstimation(int targetTagId) {
+		useSingleTagEstimation = true;
+		this.targetTagId = targetTagId;
+	}
+	
+	public void disableSingleTagEstimation() {
+		useSingleTagEstimation = false;
+	}
+	
 	/** Gets the drivetrain's calculated pose estimate. */
 	@Logged
 	public Pose2d poseEstimate() {
-		return poseEstimator.getEstimatedPosition();
+		var multiTagEstimate = poseEstimator.getEstimatedPosition();
+		if (useSingleTagEstimation) {
+			var singleTagEstimate = singleTagPoseEstimator.getEstimatedPosition(targetTagId);
+			log("singleTagEstimation/used", singleTagEstimate.isPresent());
+			return singleTagPoseEstimator.getEstimatedPosition(targetTagId).orElse(multiTagEstimate);
+		} else {
+			log("singleTagEstimation/used", false);
+			return multiTagEstimate;
+		}
 	}
 	
 	/**
@@ -400,35 +459,36 @@ public class SwerveDrive extends StandardSubsystem {
 	/**
 	 * Returns a command that pathfinds the drivetrain to the correct pose.
 	 * @param targetPose A function that returns the target pose.
+	 * @param flipPoseIfRed Whether to flip the pose if the alliance is red.
 	 * @param setpointGenerator Can be null. If not, will use the setpoint generator to generate
 	 *                          smoother pathfinding setpoints, reducing slipping.
 	 * @return a Command
 	 */
 	public Command pathfindCmd(
-		Supplier<Pose2d> targetPose,
+		Pose2d targetPose, boolean flipPoseIfRed,
 		@Nullable SwerveSetpointGenerator setpointGenerator
 	) {
 		// you cannot reassign variables in a lambda function, thus, you must use an AtomicReference
-		var currentSetpointRef = new AtomicReference<>(SwerveSetpointGenerator.SwerveSetpoint.ZERO);
+		var currentSetpointRef = new AtomicReference<>(NULL_SETPOINT);
 		double maxVelocityMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
 		
 		return this.run(() -> {
-			var targetPoseVal = targetPose.get();
-			repulsor.setGoal(targetPoseVal.getTranslation());
+			var realPose = flipPoseIfRed ? AllianceFlipper.flip(targetPose): targetPose;
+			repulsor.setGoal(realPose);
 			var desiredSpeeds = toDesiredSpeeds(
-				repulsor.getRequest(poseEstimate(), maxVelocityMps, true, targetPoseVal.getRotation())
+				repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5)
 			);
 			SwerveModuleState[] desiredStates;
 			if (setpointGenerator != null) {
 				currentSetpointRef.set(
-					setpointGenerator.generateSetpoint(
-						currentSetpointRef.get(), desiredSpeeds, 0.02, 12.0
-					)
+					setpointGenerator.generateSetpoint(currentSetpointRef.get(), desiredSpeeds, 0.02)
 				);
 				desiredStates = currentSetpointRef.get().moduleStates();
 			} else {
 				desiredStates = toDesiredModuleStates(desiredSpeeds, true);
 			}
+			log("setpointGen/speeds", currentSetpointRef.get().robotRelativeSpeeds());
+			log("setpointGen/states", currentSetpointRef.get().moduleStates());
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 			}
@@ -457,32 +517,6 @@ public class SwerveDrive extends StandardSubsystem {
 			)
 		);
 	}
-
-	/**
-	 * Creates a rotation input stream that locks the robot's heading.
-	 * Example:
-	 * <pre><code>
-	 * Command cmd = drivetrain.driveCmd(
-	 *      controller::getLeftX,
-	 *      controller::getLeftY,
-	 *      drivetrain.headingLockInputStream(new Pose2d(...), true)
-	 * );
-	 * cmd.schedule();
-	 */
-	public InputStream headingLockInputStream(Pose2d pose, boolean shouldFlip) {
-		var actualPose = new AtomicReference<Pose2d>();
-		return () -> {
-			if (actualPose.get() == null) {
-				actualPose.set(shouldFlip ? ChoreoAllianceFlipUtil.flip(pose) : pose);
-			}
-			double output = rotationController.calculate(
-				poseEstimate().getRotation().getRadians(),
-				getYawToPose(poseEstimate(), actualPose.get()).getRadians()
-			);
-			log("headingLockOutput", output);
-			return output;
-		};
-	}
 	
 	public void updateOdometry() {
 		Rotation2d latestHeading = getAngleFn.get();
@@ -495,6 +529,7 @@ public class SwerveDrive extends StandardSubsystem {
 			}
 		}
 		poseEstimator.update(latestHeading, measuredModulePositions);
+		singleTagPoseEstimator.update(latestHeading, measuredModulePositions);
 		// If robot is rotating too fast, ignore vision observations.
 		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;
@@ -506,7 +541,7 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	public void addVisionData(SingleTagPoseEstimate singleTagEstimate) {
-		// TODO
+		singleTagPoseEstimator.addVisionMeasurement(singleTagEstimate, poseEstimator.getEstimatedPosition());
 	}
 	
 	public void setPathfindingObstacles(List<Pose2d> obstacles) {

@@ -8,5 +8,6 @@ import edu.wpi.first.math.geometry.Transform3d;
 public record SingleTagPoseEstimate(
 	int tagId,
 	Transform3d cameraToTarget,
-	Transform3d robotToCameraPosition
+	Transform3d robotToCameraPosition,
+	double timestampSecs
 ) {}
