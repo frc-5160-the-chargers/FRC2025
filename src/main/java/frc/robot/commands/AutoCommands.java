@@ -33,7 +33,7 @@ public class AutoCommands {
 	 */
 	private static void chain(AutoTrajectory step1, Command step2, AutoTrajectory step3) {
 		step1.done().onTrue(
-			step2.andThen(new ScheduleCommand(step3.cmd()))
+			step2.andThen(Commands.runOnce(() -> step3.cmd().schedule()))
 		);
 	}
 	
@@ -61,5 +61,25 @@ public class AutoCommands {
 		
 		return routine.cmd();
 	}
+
+	/*
+	autoFactory.trajectoryCmd("pathName").andThen(
+		command1,
+		command2,
+		command3
+	)
+	 */
+	public Command figureEight() {
+		var routine = autoFactory.newRoutine("FigureEight");
+		var figureEight = routine.trajectory("FigureEight");
+
+		routine.active().onTrue(
+				figureEight.resetOdometry().andThen(figureEight.cmd())
+		);
+
+		return routine.cmd();
+	}
+
+
 	
 }
