@@ -4,13 +4,10 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ScheduleCommand;
-import frc.chargers.field.ScoringLevel;
+import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
-import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import lombok.RequiredArgsConstructor;
-
 
 @RequiredArgsConstructor
 public class AutoCommands {
@@ -49,15 +46,15 @@ public class AutoCommands {
 		);
 		
 		// at time of 0.83 secs, start to move to scoring position
-		lineToReef1.atTime(0.83).onTrue(botCommands.autoScore(new ScoringLevel(4)));
+		lineToReef1.atTime(0.83).onTrue(botCommands.scoreSequence(4));
 		// wait until elevator has retracted enough so that CoG is low, then drive next path
 		chain(lineToReef1, Commands.waitUntil(elevator.readyForMovement), reef1ToSource);
 		
 		reef1ToSource.atTime(1.27).onTrue(botCommands.sourceIntake());
 		chain(reef1ToSource, Commands.waitUntil(coralIntake.hasCoral), sourceToReef3);
 		
-		sourceToReef3.active().whileTrue(botCommands.stow());
-		sourceToReef3.atTime(1.9).onTrue(botCommands.autoScore(new ScoringLevel(4)));
+		sourceToReef3.active().whileTrue(botCommands.moveTo(Setpoint.STOW));
+		sourceToReef3.atTime(1.8).onTrue(botCommands.scoreSequence(4));
 		
 		return routine.cmd();
 	}
@@ -79,7 +76,4 @@ public class AutoCommands {
 
 		return routine.cmd();
 	}
-
-
-	
 }

@@ -10,11 +10,17 @@ import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.BooleanSupplier;
 
 import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
@@ -45,7 +51,7 @@ import static java.lang.Math.PI;
  */
 public class ChargerTalonFX implements Motor {
 	public final TalonFX baseApi;
-	protected boolean hasFusedSensor, useTorqueCurrentControl = false;
+	protected boolean useTorqueCurrentControl = false;
 	protected final StatusSignal<?> positionSignal, velocitySignal, voltageSignal,
 		currentSignal, torqueCurrentSignal, supplyCurrentSignal, tempSignal;
 	
@@ -98,6 +104,13 @@ public class ChargerTalonFX implements Motor {
 		return this;
 	}
 	
+	public ChargerTalonFX coastWhen(BooleanSupplier event) {
+		new Trigger(event)
+			.onTrue(Commands.runOnce(() -> baseApi.setNeutralMode(NeutralModeValue.Coast)))
+			 .onFalse(Commands.runOnce(() -> baseApi.setNeutralMode(NeutralModeValue.Brake)));
+		return this;
+	}
+	
 	@Override
 	public Encoder encoder() { return encoder; }
 	
@@ -146,10 +159,10 @@ public class ChargerTalonFX implements Motor {
 		var motorConfig = new TalonFXConfiguration();
 		baseApi.getConfigurator().refresh(motorConfig);
 		if (newConfig.gearRatio() != 1.0) {
-			if (hasFusedSensor) {
-				motorConfig.Feedback.RotorToSensorRatio = newConfig.gearRatio();
-			} else {
+			if (motorConfig.Feedback.FeedbackSensorSource == FeedbackSensorSourceValue.RotorSensor) {
 				motorConfig.Feedback.SensorToMechanismRatio = newConfig.gearRatio();
+			} else {
+				motorConfig.Feedback.RotorToSensorRatio = newConfig.gearRatio();
 			}
 		}
 		if (newConfig.positionPID().kP != 0.0) {

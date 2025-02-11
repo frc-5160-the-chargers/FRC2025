@@ -1,16 +1,14 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -29,21 +27,24 @@ import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.TunableValues.TunableNum;
 
+import java.util.Set;
+
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
-import static monologue.Monologue.GlobalLog;
 
 public class Elevator extends StandardSubsystem {
+	private static final TunableNum KP = new TunableNum("elevator/kP", 4.0);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 0.02);
+	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
+	
 	private static final double GEAR_RATIO = 54.0 / 8.0;
-	private static final Distance DRUM_RADIUS = Inches.of(2.0);
+	private static final Distance DRUM_RADIUS = Inches.of(3.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(0.05);
-	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(6.0);
-	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(6.0);
-	private static final Angle TOLERANCE = Degrees.of(0.5);
+	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(8.0);
+	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(4.0);
+	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.2);
-	private static final double ELEVATOR_KP = 10.0;
-	private static final double ELEVATOR_KD = 0.1;
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final int RIGHT_MOTOR_ID = 6;
@@ -54,29 +55,6 @@ public class Elevator extends StandardSubsystem {
 		ELEVATOR_CONFIG.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 	}
 	
-	/**
-	 * A controller for the leader and follower motors of the elevator.
-	 * The left motor is the leader, while the right motor is the follower.
-	 */
-	private static class ElevatorMotorGroup extends ChargerTalonFX {
-		private final TalonFX follower = new TalonFX(RIGHT_MOTOR_ID);
-		
-		public ElevatorMotorGroup(Elevator elevator) {
-			super(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
-			tryUntilOk(follower, () -> follower.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
-			follower.setControl(new Follower(LEFT_MOTOR_ID, false));
-			
-			disabled()
-				.onTrue(Commands.runOnce(() -> super.baseApi.setNeutralMode(NeutralModeValue.Coast)))
-				.onFalse(Commands.runOnce(() -> super.baseApi.setNeutralMode(NeutralModeValue.Brake)));
-			
-			elevator.followerMotorLogger = () -> {
-				GlobalLog.log("elevator/follower/tempCelsius", follower.getDeviceTemp().getValueAsDouble());
-				GlobalLog.log("elevator/follower/current", follower.getStatorCurrent().getValueAsDouble());
-			};
-		}
-	}
-	
 	// convert to angular constraints
 	private final TrapezoidProfile trapezoidProfile = new TrapezoidProfile(
 		new Constraints(
@@ -85,12 +63,11 @@ public class Elevator extends StandardSubsystem {
 		)
 	);
 	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
-	private final TunableNum kPTunable = new TunableNum("elevator/kP", ELEVATOR_KP);
-	private final TunableNum kDTunable = new TunableNum("elevator/kD", ELEVATOR_KD);
-	private Runnable followerMotorLogger = () -> {};
 	private final SysIdRoutine sysIdRoutine;
 	
 	@Logged private final Motor leaderMotor;
+	private final TalonFX followerMotor;
+	
 	@Logged public final Trigger movingUp;
 	@Logged public final Trigger readyForMovement;
 	
@@ -106,8 +83,16 @@ public class Elevator extends StandardSubsystem {
 				null
 			);
 		} else {
-			leaderMotor = new ElevatorMotorGroup(this);
+			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG)
+				              .coastWhen(disabled()); // if on disabled, set to coast mode
 		}
+		followerMotor = new TalonFX(RobotBase.isSimulation() ? SimMotor.getDummyId() : RIGHT_MOTOR_ID);
+		tryUntilOk(followerMotor, () -> followerMotor.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
+		BaseStatusSignal.setUpdateFrequencyForAll(50, followerMotor.getStatorCurrent(), followerMotor.getDeviceTemp());
+		followerMotor.optimizeBusUtilization();
+		// required to enable following
+		followerMotor.setControl(new Follower(LEFT_MOTOR_ID, false));
+		
 		leaderMotor.encoder().setPositionReading(Radians.zero());
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		readyForMovement = movingUp.negate().and(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
@@ -123,17 +108,22 @@ public class Elevator extends StandardSubsystem {
 				"Elevator routine"
 			)
 		);
-		setMotorCommonConfig();
-		kPTunable.changed().or(kDTunable.changed())
-			.onTrue(Commands.runOnce(this::setMotorCommonConfig));
+		setGearRatioAndPID();
+		KP.changed.or(KD.changed)
+			.onTrue(Commands.runOnce(this::setGearRatioAndPID));
 	}
 	
-	private void setMotorCommonConfig() {
+	private void setGearRatioAndPID() {
 		leaderMotor.setControlsConfig(
 			Motor.ControlsConfig.EMPTY
 				.withGearRatio(GEAR_RATIO)
-				.withPositionPID(new PIDConstants(kPTunable.get(), 0.0, kDTunable.get()))
+				.withPositionPID(new PIDConstants(KP.get(), 0.0, KD.get()))
 		);
+	}
+	
+	/** Returns a trigger that returns true when the elevator is at a target height. */
+	public Trigger atHeight(Distance height) {
+		return new Trigger(() -> Math.abs(extensionHeight() - height.in(Meters)) < TOLERANCE.in(Meters));
 	}
 	
 	@Logged
@@ -146,32 +136,26 @@ public class Elevator extends StandardSubsystem {
 			       .withName("SetPowerCmd(Elevator)");
 	}
 	
-	public Command syncStateCmd() {
-		return Commands.runOnce(
-			() -> profileState = new TrapezoidProfile.State(
-				leaderMotor.encoder().positionRad() , 0
-			)
-		).withName("SyncStateCmd(Elevator)");
+	public Command moveToDemoHeightCmd() {
+		// deferred command re-computes the command at runtime; dw abt this if u dont understand
+		return Commands.defer(() -> moveToHeightCmd(Meters.of(DEMO_HEIGHT.get())), Set.of(this));
 	}
 	
 	public Command moveToHeightCmd(Distance targetHeight) {
-		log("targetHeight", targetHeight);
 		var radiansTarget = targetHeight.in(Meters) / DRUM_RADIUS.in(Meters);
 		var goalState = new TrapezoidProfile.State(radiansTarget, 0.0);
-		return syncStateCmd().andThen(
+		return Commands.runOnce(() -> {
+			profileState = new TrapezoidProfile.State(leaderMotor.encoder().positionRad() , 0);
+			log("targetHeight", targetHeight);
+		}).andThen(
+			// this.run() requires the elevator, while Commands.run/Commands.runOnce dont
 			this.run(() -> {
 				profileState = trapezoidProfile.calculate(0.02, profileState, goalState);
 				log("motionProfileState/positionRad", profileState.position);
 				leaderMotor.moveToPosition(profileState.position);
-			}).until(() -> Math.abs(radiansTarget - leaderMotor.encoder().positionRad()) < TOLERANCE.in(Radians))
+			}).until(atHeight(targetHeight)),
+			Commands.runOnce(() -> log("targetHeight", Double.NaN))
 		).withName("MoveToHeightCmd");
-	}
-	
-	public Command passiveLiftCmd(Distance maxHeight) {
-		return this.run(() -> leaderMotor.setVoltage(1))
-			       .until(() -> Math.abs(extensionHeight() - maxHeight.in(Meters)) < 0.1)
-			       .andThen(stopCmd())
-			       .withName("PassiveLiftCmd");
 	}
 	
 	@Override
@@ -187,18 +171,27 @@ public class Elevator extends StandardSubsystem {
         ).withName("ElevatorSysId");
 	}
 	
+	public Command currentZeroCmd() {
+		return this.run(() -> leaderMotor.setVoltage(-0.5))
+			       .until(() -> leaderMotor.statorCurrent() > 20)
+			       .finallyDo((interrupted) -> {
+					   if (!interrupted) {
+						   leaderMotor.encoder().setPositionReading(Radians.zero());
+						   profileState = new TrapezoidProfile.State();
+					   }
+			       })
+			       .withName("CurrentZeroCmd(Elevator)");
+	}
+	
 	@Override
 	public void periodic() {
-		followerMotorLogger.run();
-		// logs relative positions for advantagescope visualization
-		double currentHeight = extensionHeight();
-		log("stage1Position", Pose3d.kZero);
-		log("stage2Position", new Pose3d(0, 0, Math.max(currentHeight - 0.4, 0.0), Rotation3d.kZero));
-		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
+		log("follower/tempCelsius", followerMotor.getDeviceTemp().getValueAsDouble());
+		log("follower/statorCurrent", followerMotor.getStatorCurrent().getValueAsDouble());
 	}
 	
 	@Override
 	public void close() {
 		leaderMotor.close();
+		followerMotor.close();
 	}
 }

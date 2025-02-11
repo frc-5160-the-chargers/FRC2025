@@ -50,6 +50,7 @@ public class ChargerSpark implements Motor {
 	public final SparkBase baseApi;
 	protected final RelativeEncoder baseEncoder;
 	protected final SparkClosedLoopController pidController;
+	protected final SparkModel model;
 	protected final Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
@@ -89,6 +90,7 @@ public class ChargerSpark implements Motor {
 		this.baseApi = model == SparkModel.SPARK_MAX ? new SparkMax(id, MotorType.kBrushless) : new SparkFlex(id, MotorType.kBrushless);
 		this.baseEncoder = baseApi.getEncoder();
 		this.pidController = baseApi.getClosedLoopController();
+		this.model = model;
 		if (config != null) {
 			tryUntilOk(baseApi, () -> baseApi.configure(config, kResetSafeParameters, kPersistParameters));
 		}

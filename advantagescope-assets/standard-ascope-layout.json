@@ -1,13 +1,13 @@
 {
   "hubs": [
     {
-      "x": -7,
-      "y": -7,
-      "width": 1294,
-      "height": 766,
+      "x": 0,
+      "y": 0,
+      "width": 800,
+      "height": 752,
       "state": {
         "sidebar": {
-          "width": 253,
+          "width": 284,
           "expanded": [
             "/Robot/drivetrainOne/bottomLeftModule/steerMotor/encoder",
             "/Robot/drivetrainOne/desiredStates/0",
@@ -85,11 +85,22 @@
             "/Robot/drivetrainOne/bottomLeftModule",
             "/Robot/drivetrainOne/bottomLeftModule/driveMotor",
             "/Robot/elevator/leaderMotor/encoder",
-            "/Robot/drivetrain/setpointGen/speeds"
+            "/Robot/drivetrain/setpointGen/speeds",
+            "/Robot/visualizer",
+            "/Robot/visualizer/stage3Position/translation",
+            "/Robot/drivetrain",
+            "/TunableValues",
+            "/TunableValues/elevator",
+            "/Robot/commands",
+            "/Robot/elevator",
+            "/Robot/elevator/motionProfileState",
+            "/Robot/coralIntakePivot",
+            "/Robot/coralIntakePivot/leaderMotor",
+            "/Robot/coralIntakePivot/leaderMotor/encoder"
           ]
         },
         "tabs": {
-          "selected": 5,
+          "selected": 4,
           "tabs": [
             {
               "type": 0,
@@ -106,7 +117,7 @@
                 "leftSources": [
                   {
                     "type": "stepped",
-                    "logKey": "NT:Epilogue/Stats/Last Run",
+                    "logKey": "NT:Robot/elevator/extensionHeight",
                     "logType": "Number",
                     "visible": true,
                     "options": {
@@ -128,10 +139,8 @@
                 "leftLockedRange": null,
                 "rightLockedRange": null,
                 "leftUnitConversion": {
-                  "type": "length",
-                  "factor": 1,
-                  "from": "meters",
-                  "to": "inches"
+                  "type": null,
+                  "factor": 1
                 },
                 "rightUnitConversion": {
                   "type": null,
@@ -143,16 +152,6 @@
               "controllerUUID": "h94wl3amnei6rgsmc1n2pn2jyyo639fs",
               "renderer": null,
               "controlsHeight": 200
-            },
-            {
-              "type": 5,
-              "title": "Console",
-              "controller": "NT:Robot/SomeReallyLongText",
-              "controllerUUID": "daaky2jxw1gd4dupyv42c71z0du3igy7",
-              "renderer": {
-                "highlight": false
-              },
-              "controlsHeight": 0
             },
             {
               "type": 2,
@@ -184,88 +183,6 @@
               },
               "controllerUUID": "fznirkp2nbr4be9qrx2hlxqjiba2eks4",
               "renderer": null,
-              "controlsHeight": 200
-            },
-            {
-              "type": 12,
-              "title": "Metadata",
-              "controller": null,
-              "controllerUUID": "bbde2i63luh1gurh95l74wlem0jngce1",
-              "renderer": null,
-              "controlsHeight": 0
-            },
-            {
-              "type": 3,
-              "title": "3D Field",
-              "controller": {
-                "sources": [
-                  {
-                    "type": "robot",
-                    "logKey": "NT:Robot/drivetrain/actualPose(if run in sim)",
-                    "logType": "Pose2d",
-                    "visible": true,
-                    "options": {
-                      "model": "Robot_PennState"
-                    }
-                  },
-                  {
-                    "type": "component",
-                    "logKey": "NT:Robot/elevator/stage1Position",
-                    "logType": "Pose3d",
-                    "visible": true,
-                    "options": {}
-                  },
-                  {
-                    "type": "component",
-                    "logKey": "NT:Robot/elevator/stage2Position",
-                    "logType": "Pose3d",
-                    "visible": true,
-                    "options": {}
-                  },
-                  {
-                    "type": "component",
-                    "logKey": "NT:Robot/elevator/stage3Position",
-                    "logType": "Pose3d",
-                    "visible": true,
-                    "options": {}
-                  },
-                  {
-                    "type": "gamePiece",
-                    "logKey": "NT:Robot/simulatedAlgaePositions",
-                    "logType": "Pose3d[]",
-                    "visible": true,
-                    "options": {
-                      "variant": "Algae"
-                    }
-                  },
-                  {
-                    "type": "gamePiece",
-                    "logKey": "NT:Robot/simulatedCoralPositions",
-                    "logType": "Pose3d[]",
-                    "visible": true,
-                    "options": {
-                      "variant": "Coral"
-                    }
-                  }
-                ],
-                "game": "2025 Field",
-                "origin": "blue"
-              },
-              "controllerUUID": "8u6tvsowquc5luk4o7l2eju2fywaot28",
-              "renderer": {
-                "cameraIndex": -1,
-                "orbitFov": 50,
-                "cameraPosition": [
-                  6.63829143324435,
-                  2.1616681679123158,
-                  7.021549599178339
-                ],
-                "cameraTarget": [
-                  0,
-                  0.5,
-                  0
-                ]
-              },
               "controlsHeight": 200
             },
             {
@@ -301,6 +218,96 @@
               },
               "controllerUUID": "doi253vcu5shan2tdfjno679sr7h8x59",
               "renderer": null,
+              "controlsHeight": 200
+            },
+            {
+              "type": 3,
+              "title": "3D Field",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "robot",
+                    "logKey": "NT:Robot/drivetrain/actualPose(if run in sim)",
+                    "logType": "Pose2d",
+                    "visible": true,
+                    "options": {
+                      "model": "Robot_PennState"
+                    }
+                  },
+                  {
+                    "type": "component",
+                    "logKey": "NT:Robot/visualizer/stage1Position",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {}
+                  },
+                  {
+                    "type": "component",
+                    "logKey": "NT:Robot/visualizer/stage2Position",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {}
+                  },
+                  {
+                    "type": "component",
+                    "logKey": "NT:Robot/visualizer/stage3Position",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {}
+                  },
+                  {
+                    "type": "component",
+                    "logKey": "NT:Robot/visualizer/intakePivotPosition",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {}
+                  },
+                  {
+                    "type": "gamePiece",
+                    "logKey": "NT:Robot/visualizer/fieldAlgaePositions",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "variant": "Algae"
+                    }
+                  },
+                  {
+                    "type": "gamePiece",
+                    "logKey": "NT:Robot/visualizer/fieldCoralPositions",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "variant": "Coral"
+                    }
+                  },
+                  {
+                    "type": "gamePiece",
+                    "logKey": "NT:Robot/visualizer/heldCoralPosition",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {
+                      "variant": "Coral"
+                    }
+                  }
+                ],
+                "game": "2025 Field",
+                "origin": "blue"
+              },
+              "controllerUUID": "3mgodkus18oeamhjywmuasp3et7jbsxg",
+              "renderer": {
+                "cameraIndex": -1,
+                "orbitFov": 50,
+                "cameraPosition": [
+                  2.8806886569248964,
+                  1.233450648261062,
+                  5.359917704272068
+                ],
+                "cameraTarget": [
+                  2.7436453807375814,
+                  0.39027659501779877,
+                  -0.7090858915315277
+                ]
+              },
               "controlsHeight": 200
             },
             {

@@ -25,7 +25,7 @@ import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 @Logged
 public class Kitbot extends TimedRobot implements LogLocal {
 
-    private final SwerveDrive drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_CONFIG);
+    private final SwerveDrive drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
     private final KitBotCoralOut kitbotCoralOut = new KitBotCoralOut(drivetrain);
     private final AutoFactory autoFactory = drivetrain.createAutoFactory();
     private final CommandXboxController controller = new CommandXboxController(4);

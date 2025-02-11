@@ -13,6 +13,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -294,7 +295,7 @@ public class RepulsorFieldPlanner {
 	}
 	
 	public boolean atGoal(double tolerance) {
-		return goal.minus(currentTranslation).getNorm() < tolerance;
+		return goal.getDistance(currentTranslation) < tolerance;
 	}
 	
 	public SwerveSample sampleField(

@@ -2,24 +2,31 @@ package frc.robot.commands;
 
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.chargers.field.IntakePosition;
-import frc.chargers.field.ScoringLevel;
-import frc.chargers.field.ScoringPoses;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.chargers.utils.AllianceFlipper;
+import frc.robot.constants.PathfindingPoses;
+import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
-import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 import static monologue.Monologue.GlobalLog;
 
 /**
  * Commands that need more than one subsystem.
+ * Example usage:
+ * <pre><code>
+ * RobotCommands robotCommands = new RobotCommands(...);
+ * robotCommands.moveTo(Setpoint.score(3)) // moves arm and elevator to L3
+ * robotCommands.scoreSequence(3) // moves arm and elevator to L3, auto-outtakes, and stows. Only used in auto
+ * // pathfind to reef position 4, then move arm + elevator
+ * robotCommands.pathfindAndMoveTo(Setpoint.score(3), PathfindingPoses.reef(4))
+ * </code></pre>
  */
 @RequiredArgsConstructor
 public class RobotCommands {
@@ -29,63 +36,65 @@ public class RobotCommands {
 	private final Elevator elevator;
 	private final SwerveSetpointGenerator setpointGen;
 	
-	// Note: Commands.parallel runs parallel until everything in it finishes.
-	public Command prepareToScore(ScoringLevel level) {
+	private Trigger readyToScore(Pose2d blueTargetPose) {
+		return new Trigger(() -> {
+			boolean almostAtTarget =
+				AllianceFlipper.flip(blueTargetPose)
+					.minus(drivetrain.poseEstimate())
+					.getTranslation()
+					.getNorm() < 0.2;
+			return almostAtTarget && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.2;
+		});
+	}
+	
+	public Command moveTo(Setpoint setpoint) {
 		return Commands.parallel(
-			elevator.moveToHeightCmd(level.elevatorHeight()),
-			Commands.runOnce(() -> GlobalLog.log("scoringPosition/scoringLevel", level.value())),
-			coralIntakePivot.setAngleCmd(level.pivotAngle())
-		).withName("prepareToScore");
+			Commands.runOnce(() -> GlobalLog.log("CurrentSetpoint", setpoint)),
+			elevator.moveToHeightCmd(setpoint.elevatorHeight()),
+			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
+		).withName("moveToSetpoint");
 	}
 	
-	/** A complete scoring sequence. Only use during autonomous. */
-	public Command autoScore(ScoringLevel position) {
-		return prepareToScore(position)
-			       .andThen(coralIntake.outtakeCmd(), stow())
-			       .withName("autoScore");
+	/** A complete scoring sequence(move to position, outtake, then move back). Only use in auto. */
+	public Command scoreSequence(int scoringLevel) {
+		return moveTo(Setpoint.score(scoringLevel))
+			       .andThen(coralIntake.outtakeCmd(), moveTo(Setpoint.STOW))
+			       .withName("scoreSequenceL" + scoringLevel);
 	}
 	
-	public Command pathfindThenPrepareScore(ScoringLevel position, int poseIndex) {
-		var targetPose = ScoringPoses.getPose(poseIndex);
-		return Commands.runOnce(() -> targetPose.ifPresent(it -> GlobalLog.log("targetPose", it)))
-			       .andThen(
-				       pathfindWithLift(
-						   targetPose.orElseGet(drivetrain::poseEstimate),
-					       position.elevatorHeight()
-				       ),
-					   prepareToScore(position)
-			       )
-			       .withName("pathfindThenPrepareScore");
-	}
-	
-	public Command pathfindThenSourceIntake(IntakePosition position) {
+	public Command pathfindAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose) {
 		return Commands.parallel(
-			drivetrain.pathfindCmd(position.pose, true, setpointGen),
-			sourceIntake(),
-			Commands.runOnce(() -> GlobalLog.log("intakePosition", position.toString()))
-		).withName("pathfindThenSourceIntake");
+			drivetrain.pathfindCmd(blueAlliancePose, true, setpointGen),
+			Commands.waitUntil(readyToScore(blueAlliancePose))
+				.andThen(moveTo(setpoint))
+		).withName("moveToSetpoint(and pathfind)");
 	}
 	
 	public Command sourceIntake() {
 		return Commands.parallel(
-			elevator.moveToHeightCmd(IntakePosition.ELEVATOR_HEIGHT),
-			coralIntakePivot.setAngleCmd(IntakePosition.PIVOT_ANGLE),
+			moveTo(Setpoint.SOURCE_INTAKE),
 			coralIntake.intakeCmd()
 		).withName("sourceIntake");
 	}
 	
-	public Command stow() {
+	public Command pathfindAndIntakeNorthSource() {
 		return Commands.parallel(
-			elevator.moveToHeightCmd(Meters.of(0)),
-			coralIntakePivot.setAngleCmd(Degrees.of(60))
-		);
+			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, PathfindingPoses.northSource()),
+			coralIntake.intakeCmd()
+		).withName("northSourcePathfindIntake");
 	}
 	
-	// A pathfind command variant that passively moves the elevator slightly along the way.
-	// This slightly reduces cycle times(as the elevator is already in a higher position).
-	// Note: CommandA.withDeadline(CommandB) runs A and B parallel and stops until B finishes.
-	private Command pathfindWithLift(Pose2d targetPose, Distance elevatorHeight) {
-		return elevator.passiveLiftCmd(elevatorHeight)
-			       .withDeadline(drivetrain.pathfindCmd(targetPose, true, setpointGen));
+	public Command pathfindAndIntakeSouthSource() {
+		return Commands.parallel(
+			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, PathfindingPoses.southSource()),
+			coralIntake.intakeCmd()
+		).withName("southSourcePathfindIntake");
+	}
+	
+	public Command moveToDemoSetpoint() {
+		return Commands.parallel(
+			coralIntakePivot.setDemoAngleCmd(),
+			elevator.moveToDemoHeightCmd()
+		).withName("MoveToDemoSetpoint");
 	}
 }

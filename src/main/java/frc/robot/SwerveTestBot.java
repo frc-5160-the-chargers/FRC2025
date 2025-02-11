@@ -1,0 +1,87 @@
+package frc.robot;
+
+import edu.wpi.first.epilogue.Epilogue;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.chargers.utils.InputStream;
+import frc.chargers.utils.StatusSignalRefresher;
+import frc.chargers.utils.TunableValues;
+import frc.robot.subsystems.swerve.SwerveConfigurator;
+import frc.robot.subsystems.swerve.SwerveDrive;
+import monologue.ExtrasLogger;
+import monologue.LogLocal;
+import monologue.Monologue;
+import org.ironmaple.simulation.SimulatedArena;
+
+import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
+import static monologue.Monologue.GlobalLog;
+
+@Logged
+public class SwerveTestBot extends TimedRobot implements LogLocal {
+	private final SwerveDrive drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
+	@NotLogged private final CommandXboxController driverController = new CommandXboxController(0);
+	
+	public SwerveTestBot() {
+		// Required for ChargerTalonFX and ChargerCANcoder to work
+		StatusSignalRefresher.startPeriodic(this);
+		// logging setup(required)
+		Epilogue.bind(this);
+		Monologue.setup(this, Epilogue.getConfig());
+		configureDefaultLogging(Epilogue.getConfig());
+		logMetadata();
+		// enables tuning mode
+		TunableValues.setTuningMode(true);
+		
+		mapTriggers();
+		mapDefaultCommands();
+		log("hasInitialized", true);
+	}
+	
+	@Override
+	public void robotPeriodic() {
+		// All of this code is required
+		var startTime = System.nanoTime();
+		CommandScheduler.getInstance().run();
+		if (RobotBase.isSimulation()) {
+			SimulatedArena.getInstance().simulationPeriodic();
+			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
+			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
+		}
+		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
+	}
+	
+	private void mapTriggers() {
+		// TODO
+	}
+	
+	private void mapDefaultCommands() {
+		drivetrain.setDefaultCommand(
+			drivetrain.driveCmd(
+				InputStream.of(driverController::getLeftY)
+					.negate()
+					.log("driverController/xOutput"),
+				InputStream.of(driverController::getLeftX)
+					.negate()
+					.log("driverController/yOutput"),
+				InputStream.of(driverController::getRightX)
+					.negate()
+					.log("driverController/rotationOutput"),
+				true
+			)
+		);
+	}
+	
+	private void logMetadata() {
+		GlobalLog.logMetadata("GitDate", BuildConstants.GIT_DATE);
+		GlobalLog.logMetadata("BuildDate", BuildConstants.BUILD_DATE);
+		GlobalLog.logMetadata("GitBranch", BuildConstants.GIT_BRANCH);
+		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
+		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
+		ExtrasLogger.start(this, new PowerDistribution());
+	}
+}

@@ -6,12 +6,12 @@
     "GLOBAL": {
       "font": "Proggy Dotted",
       "fps": "120",
-      "height": "1444",
+      "height": "1492",
       "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "1276",
-      "xpos": "1282",
+      "width": "956",
+      "xpos": "1602",
       "ypos": "58"
     }
   },
@@ -38,6 +38,11 @@
       "Pos": "514,78",
       "Size": "1511,884"
     },
+    "###/SmartDashboard/TestChooser": {
+      "Collapsed": "0",
+      "Pos": "28,1281",
+      "Size": "469,78"
+    },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
       "Collapsed": "0",
       "Pos": "59,609",
@@ -46,12 +51,12 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "379,157",
-      "Size": "314,304"
+      "Size": "495,212"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "348,838",
-      "Size": "1270,336"
+      "Size": "950,336"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -75,7 +80,7 @@
     },
     "###System Joysticks": {
       "Collapsed": "0",
-      "Pos": "46,422",
+      "Pos": "67,387",
       "Size": "354,362"
     },
     "###Timing": {

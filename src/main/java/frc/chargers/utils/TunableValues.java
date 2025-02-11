@@ -6,7 +6,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.Setter;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An API to read data from NetworkTables.
@@ -19,7 +19,15 @@ public class TunableValues {
 	public static class TunableNum {
 		private final DoubleEntry entry;
 		private final double defaultValue;
-		boolean respectTuningMode = false;
+		private double previousValue;
+		
+		public final Trigger changed = new Trigger(() -> {
+			if (!tuningMode) return false;
+			var latest = get();
+			boolean hasChanged = latest != previousValue;
+			previousValue = latest;
+			return hasChanged;
+		});
 		
 		public TunableNum(String path, double defaultValue) {
 			this.entry = NetworkTableInstance
@@ -28,16 +36,11 @@ public class TunableValues {
 				             .getEntry(defaultValue);
 			entry.setDefault(defaultValue);
 			this.defaultValue = defaultValue;
+			this.previousValue = defaultValue;
 		}
 		
 		public double get() {
-			return respectTuningMode && tuningMode ? entry.get(defaultValue) : defaultValue;
-		}
-		
-		public Trigger changed() {
-			if (!respectTuningMode) return new Trigger(() -> false);
-			var previous = new AtomicReference<>(get());
-			return new Trigger(() -> tuningMode && get() != previous.get());
+			return tuningMode ? entry.get(defaultValue) : defaultValue;
 		}
 	}
 	
@@ -60,8 +63,14 @@ public class TunableValues {
 		}
 		
 		public Trigger changed() {
-			var previous = new AtomicReference<>(get());
-			return new Trigger(() -> tuningMode && get() != previous.get());
+			var previous = new AtomicBoolean(get());
+			return new Trigger(() -> {
+				if (!tuningMode) return false;
+				var latest = get();
+				boolean isDifferent = previous.get() != latest;
+				previous.set(latest);
+				return isDifferent;
+			});
 		}
 	}
 }

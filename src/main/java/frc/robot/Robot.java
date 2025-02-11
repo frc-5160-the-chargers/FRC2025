@@ -4,22 +4,22 @@ import choreo.auto.AutoChooser;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
+import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
@@ -31,7 +31,10 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.KilogramSquareMeters;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 import static monologue.Monologue.GlobalLog;
 
@@ -43,23 +46,20 @@ public class Robot extends TimedRobot implements LogLocal {
 	private final Elevator elevator = new Elevator();
 	private final AprilTagVision vision = new AprilTagVision(this);
 	
-	@NotLogged private final CommandPS5Controller driverController = new CommandPS5Controller(0);
-	
-	// logging doesnt really work for sendables
-	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
-	
-	@NotLogged private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
-		KilogramSquareMeters.of(6.283),
-		Amps.of(60)
+	private final CommandPS5Controller driverController = new CommandPS5Controller(0);
+	private final AutoChooser autoChooser = new AutoChooser();
+	private final AutoChooser testModeChooser = new AutoChooser();
+	private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
+		KilogramSquareMeters.of(6.283),  // robot moi
+		Amps.of(60) // drive current limit
 	);
+	private final RobotVisualization visualizer =
+		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
 	
-	private final RobotCommands botCommands = new RobotCommands(
-		drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen
-	);
-	private final AutoCommands autoCommands = new AutoCommands(
-		botCommands, drivetrain.createAutoFactory(),
-		coralIntake, elevator
-	);
+	private final RobotCommands botCommands =
+		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen);
+	private final AutoCommands autoCommands =
+		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, elevator);
 	
 	public Robot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -72,25 +72,19 @@ public class Robot extends TimedRobot implements LogLocal {
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		
-		// enable high-frequency odometry
-		if (!RobotBase.isSimulation()) {
-			addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
-		}
-		
 		mapTriggers();
 		mapDefaultCommands();
 		mapAutoModes();
+		mapTestCommands();
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
-		vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
+		//vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
 		vision.setSimPoseSupplier(drivetrain::bestPose);
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
 		}
 		log("hasInitialized", true);
-
-		autoChooser.addCmd("figure eight", autoCommands::figureEight);
 	}
 	
 	@Override
@@ -98,11 +92,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		// All of this code is required
 		var startTime = System.nanoTime();
 		CommandScheduler.getInstance().run();
-		if (RobotBase.isSimulation()) {
-			SimulatedArena.getInstance().simulationPeriodic();
-			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
-			log("simulatedAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
-		}
+		visualizer.render();
 		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 	
@@ -122,7 +112,7 @@ public class Robot extends TimedRobot implements LogLocal {
 				InputStream.of(driverController::getRightX)
 					.negate()
 					.log("driverController/rotationOutput"),
-				true
+				false
 			)
 		);
 		//elevator.setDefaultCommand(elevator.stopCmd());
@@ -140,19 +130,41 @@ public class Robot extends TimedRobot implements LogLocal {
 	
 	private void mapAutoModes() {
 		// TODO
-		autoChooser.addCmd("MultiPieceCenter", autoCommands::multiPieceCenter);
+		autoChooser.addCmd("multi piece center", autoCommands::multiPieceCenter);
+		autoChooser.addCmd("figure eight", autoCommands::figureEight);
+		
 		SmartDashboard.putData("AutoChooser", autoChooser);
-		if (RobotBase.isSimulation()) {
-			autoChooser.addCmd("MoveUp", () -> elevator.moveToHeightCmd(Meters.of(1.2)));
-			autoChooser.addCmd(
-				"PathfindTest",
-				() -> drivetrain.pathfindCmd(new Pose2d(15, 4, Rotation2d.kZero), false, null)
-			);
-			autoChooser.addCmd(
-				"SingleTagEstimationTest",
-				() -> Commands.runOnce(() -> drivetrain.enableSingleTagEstimation(19))
-			);
-		}
-		RobotModeTriggers.autonomous().onTrue(autoChooser.selectedCommandScheduler());
+		autonomous()
+			.onTrue(autoChooser.selectedCommandScheduler())
+			.onTrue(Commands.waitSeconds(15.3).andThen(() -> DriverStationSim.setEnabled(false)))
+			.onTrue(Commands.runOnce(() -> coralIntake.runContinuously = true))
+			.onFalse(Commands.runOnce(() -> coralIntake.runContinuously = false));
+	}
+	
+	private void mapTestCommands() {
+		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
+		testModeChooser.addCmd(
+			"PathfindTest",
+			() -> drivetrain.pathfindCmd(new Pose2d(15, 4, Rotation2d.k180deg), false, setpointGen)
+		);
+		testModeChooser.addCmd(
+			"SingleTagEstimationTest",
+			() -> Commands.runOnce(() -> drivetrain.enableSingleTagEstimation(19))
+		);
+		testModeChooser.addCmd(
+			"ScoreL3",
+			() -> botCommands.scoreSequence(3)
+		);
+		testModeChooser.addCmd(
+			"Stow",
+			() -> botCommands.moveTo(Setpoint.STOW)
+		);
+		testModeChooser.addCmd(
+			"SimulateHasCoral",
+			() -> coralIntake.setHasCoralInSimCmd(true)
+		);
+		
+		SmartDashboard.putData("TestChooser", testModeChooser);
+		test().onTrue(testModeChooser.selectedCommandScheduler().ignoringDisable(true));
 	}
 }

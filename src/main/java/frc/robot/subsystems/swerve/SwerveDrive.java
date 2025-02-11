@@ -42,7 +42,6 @@ import frc.robot.subsystems.StandardSubsystem;
 import frc.robot.vision.GlobalPoseEstimate;
 import frc.robot.vision.SingleTagPoseEstimate;
 import frc.robot.vision.SingleTagPoseEstimator;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
@@ -136,9 +135,9 @@ public class SwerveDrive extends StandardSubsystem {
 		DriveFeedforwards.zeros(4)
 	);
 
-	@Getter private final SwerveDriveConfig config;
-	@Getter private final SwerveDriveKinematics kinematics;
-	@Getter private final SwerveModule[] swerveModules = new SwerveModule[4];
+	public final SwerveDriveConfig config;
+	public final SwerveDriveKinematics kinematics;
+	public final SwerveModule[] swerveModules = new SwerveModule[4];
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SingleTagPoseEstimator singleTagPoseEstimator;
 	private final SwerveDriveSimulation mapleSim;
@@ -195,12 +194,12 @@ public class SwerveDrive extends StandardSubsystem {
 
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
-				.withTrackLengthTrackWidth(config.ofHardware.trackWidth, config.ofHardware.trackWidth)
+				.withTrackLengthTrackWidth(config.ofHardware.wheelBase, config.ofHardware.trackWidth)
 				.withRobotMass(config.ofHardware.robotMass)
 				.withGyro(COTS.ofPigeon2())
 				.withBumperSize(
-					config.ofHardware.trackWidth.plus(Inches.of(6)),
-					config.ofHardware.wheelBase.plus(Inches.of(6))
+					config.ofHardware.wheelBase.plus(Inches.of(8)),
+					config.ofHardware.trackWidth.plus(Inches.of(8))
 				);
 
 		switch (config.ofModules) {
@@ -259,9 +258,15 @@ public class SwerveDrive extends StandardSubsystem {
 					.withVelocityPID(config.ofControls.velocityPID)
 			);
 			
-			this.swerveModules[i] = new SwerveModule(driveMotor, steerMotor, absoluteEncoder, config);
+			this.swerveModules[i] = new SwerveModule(
+				driveMotor, steerMotor, absoluteEncoder,
+				config.ofModules.wheelRadius,
+				config.ofHardware.maxVelocity,
+				config.ofControls.velocityFeedforward
+			);
 		}
 		if (RobotBase.isSimulation()) {
+			// assuming perfect gyro
 			this.getAngleFn = () -> mapleSim.getSimulatedDriveTrainPose().getRotation();
 			SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
 		} else {
@@ -402,6 +407,13 @@ public class SwerveDrive extends StandardSubsystem {
 		if (RobotBase.isSimulation()) mapleSim.setSimulationWorldPose(pose);
 		poseEstimator.resetPose(pose);
 	}
+	
+	public LinearVelocity getOverallSpeed() {
+		var measuredSpeeds = getMeasuredSpeeds();
+		return MetersPerSecond.of(
+			Math.hypot(measuredSpeeds.vxMetersPerSecond, measuredSpeeds.vyMetersPerSecond)
+		);
+	}
 
 	@Logged
 	public ChassisSpeeds getMeasuredSpeeds() {
@@ -458,14 +470,14 @@ public class SwerveDrive extends StandardSubsystem {
 	
 	/**
 	 * Returns a command that pathfinds the drivetrain to the correct pose.
-	 * @param targetPose A function that returns the target pose.
+	 * @param blueTargetPose A function that returns the target pose.
 	 * @param flipPoseIfRed Whether to flip the pose if the alliance is red.
 	 * @param setpointGenerator Can be null. If not, will use the setpoint generator to generate
 	 *                          smoother pathfinding setpoints, reducing slipping.
 	 * @return a Command
 	 */
 	public Command pathfindCmd(
-		Pose2d targetPose, boolean flipPoseIfRed,
+		Pose2d blueTargetPose, boolean flipPoseIfRed,
 		@Nullable SwerveSetpointGenerator setpointGenerator
 	) {
 		// you cannot reassign variables in a lambda function, thus, you must use an AtomicReference
@@ -473,7 +485,7 @@ public class SwerveDrive extends StandardSubsystem {
 		double maxVelocityMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
 		
 		return this.run(() -> {
-			var realPose = flipPoseIfRed ? AllianceFlipper.flip(targetPose): targetPose;
+			var realPose = flipPoseIfRed ? AllianceFlipper.flip(blueTargetPose): blueTargetPose;
 			repulsor.setGoal(realPose);
 			var desiredSpeeds = toDesiredSpeeds(
 				repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5)
@@ -487,13 +499,14 @@ public class SwerveDrive extends StandardSubsystem {
 			} else {
 				desiredStates = toDesiredModuleStates(desiredSpeeds, true);
 			}
+			log("pathfinding/goal", realPose);
 			log("setpointGen/speeds", currentSetpointRef.get().robotRelativeSpeeds());
 			log("setpointGen/states", currentSetpointRef.get().moduleStates());
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 			}
 		})
-	       .until(() -> repulsor.atGoal(0.1))
+	       .until(() -> repulsor.atGoal(0.03))
 	       .withName("PathfindCmd");
 	}
 
@@ -501,7 +514,7 @@ public class SwerveDrive extends StandardSubsystem {
 	 * Creates a rotation input stream that locks the robot's heading.
 	 * Example:
 	 * <pre><code>
-	 * Command cmd = drivetrain.teleopDriveCmd(
+	 * Command cmd = drivetrain.driveCmd(
 	 *      controller::getLeftX,
 	 *      controller::getLeftY,
 	 *      drivetrain.headingLockInputStream(Radians.of(2.0))

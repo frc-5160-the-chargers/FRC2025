@@ -52,12 +52,12 @@ public class WheelRadiusCharacterization extends Command {
 		this.drive = drive;
 		this.omegaDirection = omegaDirection;
 		this.gyroYawRadsSupplier = () -> drive.poseEstimate().getRotation().getRadians();
-		this.driveBaseRadius = drive.getConfig().ofHardware().drivebaseRadius();
+		this.driveBaseRadius = drive.config.ofHardware().drivebaseRadius();
 		addRequirements(drive);
 	}
 	
 	private double[] getWheelPositions() {
-		return Arrays.stream(drive.getSwerveModules()).mapToDouble(it -> it.currentPosition().distanceMeters).toArray();
+		return Arrays.stream(drive.swerveModules).mapToDouble(it -> it.currentPosition().distanceMeters).toArray();
 	}
 	
 	@Override
@@ -73,9 +73,9 @@ public class WheelRadiusCharacterization extends Command {
 	public void execute() {
 		// Run drive at velocity
 		var rotationSpeed = omegaLimiter.calculate(omegaDirection.value * characterizationSpeed.get());
-		var moduleStates = drive.getKinematics().toSwerveModuleStates(new ChassisSpeeds(0, 0, rotationSpeed));
+		var moduleStates = drive.kinematics.toSwerveModuleStates(new ChassisSpeeds(0, 0, rotationSpeed));
 		for (int i = 0; i < 4; i++) {
-			drive.getSwerveModules()[i].setDesiredState(moduleStates[i], true, 0);
+			drive.swerveModules[i].setDesiredState(moduleStates[i], true, 0);
 		}
 		
 		// Get yaw and wheel positions

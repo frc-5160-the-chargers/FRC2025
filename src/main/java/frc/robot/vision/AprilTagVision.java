@@ -32,7 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
@@ -45,16 +44,17 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	static {
 		ARDUCAM_SIM_PROPERTIES.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
-		ARDUCAM_SIM_PROPERTIES.setCalibError(1.0, 0.08);
+		ARDUCAM_SIM_PROPERTIES.setCalibError(0.25, 0.08);
 		ARDUCAM_SIM_PROPERTIES.setAvgLatencyMs(35);
 		ARDUCAM_SIM_PROPERTIES.setLatencyStdDevMs(5);
 		ARDUCAM_SIM_PROPERTIES.setFPS(20);
 	}
 	
-	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.15;
-	private static final Distance MAX_Z_ERROR = Meters.of(0.75);
-	private static final double LINEAR_STD_DEV_BASELINE = 0.02;
-	private static final double ANGULAR_STD_DEV_BASELINE = 0.06;
+	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.1;
+	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
+	private static final double Z_ERROR_SCALAR = 100.0;
+	private static final double LINEAR_STD_DEV_BASELINE = 0.08;
+	private static final double ANGULAR_STD_DEV_BASELINE = 15.0;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
 	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
 		new PhotonCamConfig("ABC", 1.0, new Transform3d(
@@ -135,11 +135,11 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				if (result.isEmpty()) continue;
 				var pose = result.get().estimatedPose;
 				if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters) // Must have realistic Z coordinate
-					    // Must be within the field boundaries
-					    || pose.getX() < 0.0
-					    || pose.getX() > FIELD_LAYOUT.getFieldLength()
-					    || pose.getY() < 0.0
-					    || pose.getY() > FIELD_LAYOUT.getFieldWidth()) {
+				    // Must be within the field boundaries
+				    || pose.getX() < 0.0
+				    || pose.getX() > FIELD_LAYOUT.getFieldLength()
+				    || pose.getY() < 0.0
+				    || pose.getY() > FIELD_LAYOUT.getFieldWidth()) {
 					rejectedPoses.add(pose);
 					continue;
 				}
@@ -150,6 +150,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
 				}
 				double stdDevMultiplier = Math.pow(tagDistSum / camData.targets.size(), 2) / camData.targets.size();
+				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * cam.stdDevFactor;
 				

@@ -13,21 +13,19 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
-import frc.robot.subsystems.swerve.SwerveDrive.SwerveDriveConfig;
-import lombok.RequiredArgsConstructor;
 import monologue.LogLocal;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
 
-import static edu.wpi.first.units.Units.Meters;
-import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.*;
+import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // creates a constructor w/ all variables marked final(i.e driveMotor, steerMotor, etc.)
-@RequiredArgsConstructor
 public class SwerveModule implements LogLocal, AutoCloseable {
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
@@ -66,17 +64,20 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	}
 	
 	public SwerveModule(
-		Motor driveMotor,
-		Motor steerMotor,
-		Encoder absoluteEncoder,
-		SwerveDriveConfig config
+		Motor driveMotor, Motor steerMotor, Encoder absoluteEncoder,
+		Distance wheelRadius, LinearVelocity maxVelocity, SimpleMotorFeedforward velocityFF
 	) {
-		this(
-			driveMotor, steerMotor, absoluteEncoder,
-			config.ofModules().wheelRadius,
-			config.ofHardware().maxVelocity(),
-			config.ofControls().velocityFeedforward()
-		);
+		this.driveMotor = driveMotor;
+		this.steerMotor = steerMotor;
+		this.absoluteEncoder = absoluteEncoder;
+		this.wheelRadius = wheelRadius;
+		this.maxVelocity = maxVelocity;
+		this.velocityFF = velocityFF;
+		waitThenRun(0.5, () -> {
+			if (RobotBase.isSimulation()) return;
+			steerMotor.encoder().setPositionReading(absoluteEncoder.position());
+			driveMotor.encoder().setPositionReading(Radians.zero());
+		});
 	}
 	
 	public void setDesiredState(SwerveModuleState state, boolean closedLoop, double additionalFeedforward) {

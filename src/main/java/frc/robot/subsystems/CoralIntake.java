@@ -7,6 +7,7 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
@@ -21,13 +22,21 @@ import frc.chargers.utils.LaserCanUtil;
 public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 1.0;
 	private static final int ID = -1000;
+	private static final double DISTANCE_TOLERANCE_MM = 20;
+	private static final double OUTTAKE_VOLTAGE = 8;
+	private static final double INTAKE_VOLTAGE = -12;
+	private static final double DELAY_SECS = 0.5;
 	
 	private final Motor motor;
 	private final LaserCan laserCan = new LaserCan(0);
 	private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
-	
+	private boolean hasCoralInSim = false;
+	/** Whether outtakeCmd() and intakeCmd() should end when a gamepiece is detected. */
+	public boolean runContinuously = false;
+	/** A trigger that returns true when the intake detects coral. */
 	public final Trigger hasCoral = new Trigger(
-		() -> laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < 20
+		() -> (RobotBase.isSimulation() && hasCoralInSim) ||
+			      (laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < DISTANCE_TOLERANCE_MM)
 	);
 	
 	public CoralIntake() {
@@ -50,6 +59,14 @@ public class CoralIntake extends StandardSubsystem {
 		);
 	}
 	
+	public double speedRadPerSec() {
+		return motor.encoder().velocityRadPerSec();
+	}
+	
+	public Command setHasCoralInSimCmd(boolean hasCoral) {
+		return Commands.runOnce(() -> hasCoralInSim = hasCoral);
+	}
+	
 	/**
 	 * Returns a Command that sets the elevator motors at a specific percent out.
 	 * A value of 1.0 is equivalent to 12 volts(and vise-versa for -1.0).
@@ -59,14 +76,16 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	public Command intakeCmd() {
-		return this.run(() -> motor.setVoltage(-12))
-			       .until(hasCoral)
+		return this.run(() -> motor.setVoltage(INTAKE_VOLTAGE))
+			       .until(hasCoral.and(() -> !runContinuously))
+			       .andThen(this.run(() -> motor.setVoltage(INTAKE_VOLTAGE)).withTimeout(DELAY_SECS))
 			       .withName("CoralIntakeCmd");
 	}
 	
 	public Command outtakeCmd() {
-		return this.run(() -> motor.setVoltage(8))
-			       .until(hasCoral.negate())
+		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE))
+			       .until(hasCoral.negate().and(() -> !runContinuously))
+			       .andThen(this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(DELAY_SECS))
 			       .withName("CoralOuttakeCmd");
 	}
 	
