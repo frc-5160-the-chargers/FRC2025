@@ -37,17 +37,16 @@ import frc.chargers.utils.AllianceFlipper;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
-import frc.chargers.utils.UtilMethods;
 import frc.robot.subsystems.StandardSubsystem;
 import frc.robot.vision.GlobalPoseEstimate;
 import frc.robot.vision.SingleTagPoseEstimate;
 import frc.robot.vision.SingleTagPoseEstimator;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.ExtensionMethod;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
+import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -65,7 +64,6 @@ import static edu.wpi.first.wpilibj.DriverStation.Alliance;
  * Each turn motor can control the exact position of each drive motor,
  * allowing for omnidirectional movement and driving while turning.
  */
-@ExtensionMethod(UtilMethods.class)
 @SuppressWarnings("unused")
 public class SwerveDrive extends StandardSubsystem {
 	public record SwerveDriveConfig(
@@ -113,8 +111,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum ModuleType {
 		MK4iL2(6.75, 150.0 / 7.0, Inches.of(2)),
 		MK4iL3(6.12, 150.0 / 7.0, Inches.of(2)),
-		SwerveX2SL2(1.0, 1.0, Inches.of(0)),
-		SwerveX2SL3(1.0, 1.0, Inches.of(0)); // TODO
+		SwerveX2L2P11(6.20, 12.1, Inches.of(2));
 		
 		public final double driveGearRatio;
 		public final double steerGearRatio;
@@ -200,27 +197,20 @@ public class SwerveDrive extends StandardSubsystem {
 				.withBumperSize(
 					config.ofHardware.wheelBase.plus(Inches.of(8)),
 					config.ofHardware.trackWidth.plus(Inches.of(8))
+				)
+				.withSwerveModule(
+					new SwerveModuleSimulationConfig(
+						config.ofHardware.driveMotorType,
+						config.ofHardware().turnMotorType,
+						config.ofModules.driveGearRatio,
+						config.ofModules.steerGearRatio,
+						Volts.of(0.1),
+						Volts.of(0.2),
+						config.ofModules().wheelRadius,
+						KilogramSquareMeters.of(0.03),
+						config.ofHardware().coefficientOfFriction
+					)
 				);
-
-		switch (config.ofModules) {
-			case MK4iL2, MK4iL3 -> driveSimConfig.withSwerveModule(
-				COTS.ofMark4i(
-					config.ofHardware.driveMotorType,
-					config.ofHardware.turnMotorType,
-					config.ofHardware.coefficientOfFriction,
-					config.ofModules == ModuleType.MK4iL3 ? 3 : 2
-				)
-			);
-
-			case SwerveX2SL2, SwerveX2SL3 -> driveSimConfig.withSwerveModule(
-				COTS.ofSwerveX2S(
-					config.ofHardware.driveMotorType,
-					config.ofHardware().turnMotorType,
-					config.ofHardware.coefficientOfFriction,
-					config.ofModules == ModuleType.SwerveX2SL3 ? 3 : 2
-				)
-			);
-		}
 
 		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, Pose2d.kZero);
 		this.xPoseController = config.ofControls.pathTranslationPID.asController();
@@ -443,15 +433,17 @@ public class SwerveDrive extends StandardSubsystem {
 	) {
 		var maxSpeedMps = config.ofHardware.maxVelocity.in(MetersPerSecond);
 		return this.run(() -> {
-			var desiredStates = toDesiredModuleStates(
-				ChassisSpeeds.fromFieldRelativeSpeeds(
-					getXPower.get() * maxSpeedMps,
-					getYPower.get() * maxSpeedMps,
-					getRotationPower.get() * maxSpeedMps,
-					fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
-				),
-				true
+			var speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+				getXPower.get() * maxSpeedMps,
+				getYPower.get() * maxSpeedMps,
+				getRotationPower.get() * maxSpeedMps,
+				fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
 			);
+			if (Math.abs(speeds.vxMetersPerSecond) < 0.05 && Math.abs(speeds.vyMetersPerSecond) < 0.05 && Math.abs(speeds.omegaRadiansPerSecond) < 0.05) {
+				for (int i = 0; i < 4; i++) swerveModules[i].stop();
+				return;
+			}
+			var desiredStates = toDesiredModuleStates(speeds, true);
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], false, 0.0);
 			}

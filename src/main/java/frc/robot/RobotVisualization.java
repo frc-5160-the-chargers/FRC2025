@@ -2,7 +2,6 @@ package frc.robot;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -30,6 +29,7 @@ public class RobotVisualization implements LogLocal {
 	
 	private Transform3d robotCenterToPivot = Transform3d.kZero;
 	private final Transform3d pivotToCoralPosition = new Transform3d(0.3, 0, 0.1, Rotation3d.kZero);
+	
 	
 	public RobotVisualization(SwerveDrive drivetrain, CoralIntake coralIntake, CoralIntakePivot coralIntakePivot, Elevator elevator) {
 		this.drivetrain = drivetrain;
@@ -91,7 +91,7 @@ public class RobotVisualization implements LogLocal {
 				        drivetrain.bestPose().getTranslation(),
 				        robotCenterToCoral.toTranslation2d(),
 				        drivetrain.getMeasuredSpeeds(),
-				        Rotation2d.kZero,
+				        drivetrain.bestPose().getRotation(),
 				        robotCenterToCoral.getMeasureZ(),
 				        MetersPerSecond.one(),
 				        Radians.of(coralIntakePivot.angleRads())

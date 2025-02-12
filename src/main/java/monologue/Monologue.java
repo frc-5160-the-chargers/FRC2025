@@ -1,10 +1,15 @@
 package monologue;
 
 import edu.wpi.first.epilogue.EpilogueConfiguration;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import monologue.LoggingTree.StaticObjectNode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.function.Consumer;
 
 public class Monologue {
   private static boolean HAS_SETUP_BEEN_CALLED = false;
@@ -75,7 +80,44 @@ public class Monologue {
     System.gc();
     RuntimeLog.info("Monologue.setup() finished");
   }
-
+  
+  public static boolean isDebugMode() {
+    return config.minimumImportance == Logged.Importance.DEBUG;
+  }
+  
+  public static void enableCommandLogging() {
+    var scheduler = CommandScheduler.getInstance();
+    var numRunning = new HashMap<String, Integer>();
+    var totalRuns = new HashMap<String, Integer>();
+    Consumer<Command> handleInit = getHandleInitConsumer(numRunning, totalRuns);
+    Consumer<Command> handleFinish = command -> {
+      numRunning.compute(command.getName(), (key, value) -> value == null ? 0 : value - 1);
+      GlobalLog.log("commandStats/numRunning", numRunning.get(command.getName()));
+    };
+    
+    scheduler.onCommandInitialize(handleInit);
+    scheduler.onCommandFinish(handleFinish);
+    scheduler.onCommandInterrupt(handleFinish);
+  }
+  
+  private static Consumer<Command> getHandleInitConsumer(
+      HashMap<String, Integer> numRunning,
+      HashMap<String, Integer> totalRuns
+  ) {
+    return command -> {
+      Integer current = totalRuns.get(command.getName());
+      if (current == null) {
+        totalRuns.put(command.getName(), 1);
+        numRunning.put(command.getName(), 1);
+      } else {
+        totalRuns.put(command.getName(), current + 1);
+        numRunning.put(command.getName(), numRunning.get(command.getName()) + 1);
+      }
+      GlobalLog.log("commandStats/numRunning", numRunning.get(command.getName()));
+      GlobalLog.log("commandStats/totalRuns", totalRuns.get(command.getName()));
+    };
+  }
+  
   static void logTree(Object loggable, String path) {
     if (!hasBeenSetup())
       throw new IllegalStateException(

@@ -14,18 +14,15 @@ import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.BooleanSupplier;
 
 import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static java.lang.Math.PI;
+import static monologue.Monologue.GlobalLog;
 
 /**
  * A TalonFX that implements the Motor interface.
@@ -73,7 +70,7 @@ public class ChargerTalonFX implements Motor {
 		
 		@Override
 		public void setPositionReading(Angle angle) {
-			baseApi.setPosition(angle);
+			tryUntilOk(baseApi, () -> baseApi.setPosition(angle));
 		}
 	};
 	
@@ -93,7 +90,7 @@ public class ChargerTalonFX implements Motor {
 		StatusSignalRefresher.addSignals(allSignals);
 		BaseStatusSignal.setUpdateFrequencyForAll(50, allSignals);
 		if (optimizeBusUtilization) baseApi.optimizeBusUtilization();
-		if (config != null) tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(config, 0.01));
+		if (config != null) tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(config, 0.1));
 	}
 	
 	public ChargerTalonFX enablePhoenixPro(boolean useTorqueCurrentControl) {
@@ -101,13 +98,6 @@ public class ChargerTalonFX implements Motor {
 		setAngleRequest.EnableFOC = true;
 		setVelocityRequest.EnableFOC = true;
 		this.useTorqueCurrentControl = useTorqueCurrentControl;
-		return this;
-	}
-	
-	public ChargerTalonFX coastWhen(BooleanSupplier event) {
-		new Trigger(event)
-			.onTrue(Commands.runOnce(() -> baseApi.setNeutralMode(NeutralModeValue.Coast)))
-			 .onFalse(Commands.runOnce(() -> baseApi.setNeutralMode(NeutralModeValue.Brake)));
 		return this;
 	}
 	
@@ -144,14 +134,20 @@ public class ChargerTalonFX implements Motor {
 	@Override
 	public void moveToPosition(double positionRads, double ffVolts) {
 		if (useTorqueCurrentControl) {
-			setAngleWithTorqueRequest.Position = positionRads;
+			setAngleWithTorqueRequest.Position = radiansToRotations(positionRads);
 			setAngleWithTorqueRequest.FeedForward = ffVolts;
 			baseApi.setControl(setAngleWithTorqueRequest);
 		} else {
 			setAngleRequest.Position = radiansToRotations(positionRads);
 			setAngleRequest.FeedForward = ffVolts;
 			baseApi.setControl(setAngleRequest);
+			GlobalLog.log("torqueControl", true);
 		}
+	}
+	
+	@Override
+	public void setCoastMode(boolean enabled) {
+		baseApi.setNeutralMode(enabled ? NeutralModeValue.Coast : NeutralModeValue.Brake);
 	}
 	
 	@Override
@@ -176,7 +172,7 @@ public class ChargerTalonFX implements Motor {
 			motorConfig.Slot1.kI = newConfig.velocityPID().kI * (2 * PI);
 			motorConfig.Slot1.kD = newConfig.velocityPID().kD * (2 * PI);
 		}
-		tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(motorConfig, 0.01));
+		tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(motorConfig, 0.1));
 	}
 	
 	@Override

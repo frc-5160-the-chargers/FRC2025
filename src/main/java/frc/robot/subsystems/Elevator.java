@@ -72,7 +72,7 @@ public class Elevator extends StandardSubsystem {
 	@Logged public final Trigger readyForMovement;
 	
 	public Elevator() {
-		this(true);
+		this(false);
 	}
 	
 	// package-private; for unit tests
@@ -83,12 +83,20 @@ public class Elevator extends StandardSubsystem {
 				null
 			);
 		} else {
-			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG)
-				              .coastWhen(disabled()); // if on disabled, set to coast mode
+			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
 		}
 		followerMotor = new TalonFX(RobotBase.isSimulation() ? SimMotor.getDummyId() : RIGHT_MOTOR_ID);
 		tryUntilOk(followerMotor, () -> followerMotor.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
 		BaseStatusSignal.setUpdateFrequencyForAll(50, followerMotor.getStatorCurrent(), followerMotor.getDeviceTemp());
+		disabled()
+			.onTrue(Commands.runOnce(() -> {
+				leaderMotor.setCoastMode(true);
+				followerMotor.setNeutralMode(NeutralModeValue.Coast);
+			}))
+			.onFalse(Commands.runOnce(() -> {
+				leaderMotor.setCoastMode(false);
+				followerMotor.setNeutralMode(NeutralModeValue.Brake);
+			}));
 		followerMotor.optimizeBusUtilization();
 		// required to enable following
 		followerMotor.setControl(new Follower(LEFT_MOTOR_ID, false));

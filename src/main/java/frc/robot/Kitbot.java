@@ -20,8 +20,6 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
-
 @Logged
 public class Kitbot extends TimedRobot implements LogLocal {
 
@@ -33,7 +31,6 @@ public class Kitbot extends TimedRobot implements LogLocal {
     public Kitbot() {
         Epilogue.bind(this);
         Monologue.setup(this, Epilogue.getConfig());
-        configureDefaultLogging(Epilogue.getConfig());
         log("TestPose3d", new Pose3d(0.0, 0, 0.5, Rotation3d.kZero));
 
         drivetrain.setDefaultCommand(drivetrain.stopCmd());

@@ -118,6 +118,11 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		driveMotor.setVoltage(voltage);
 	}
 	
+	public void stop() {
+		steerMotor.setVoltage(0);
+		driveMotor.setVoltage(0);
+	}
+	
 	@Override
 	public void close() {
 		driveMotor.close();

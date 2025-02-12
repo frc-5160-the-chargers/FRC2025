@@ -51,7 +51,7 @@ public class WheelRadiusCharacterization extends Command {
 	public WheelRadiusCharacterization(SwerveDrive drive, Direction omegaDirection) {
 		this.drive = drive;
 		this.omegaDirection = omegaDirection;
-		this.gyroYawRadsSupplier = () -> drive.poseEstimate().getRotation().getRadians();
+		this.gyroYawRadsSupplier = () -> drive.bestPose().getRotation().getRadians();
 		this.driveBaseRadius = drive.config.ofHardware().drivebaseRadius();
 		addRequirements(drive);
 	}
@@ -75,7 +75,7 @@ public class WheelRadiusCharacterization extends Command {
 		var rotationSpeed = omegaLimiter.calculate(omegaDirection.value * characterizationSpeed.get());
 		var moduleStates = drive.kinematics.toSwerveModuleStates(new ChassisSpeeds(0, 0, rotationSpeed));
 		for (int i = 0; i < 4; i++) {
-			drive.swerveModules[i].setDesiredState(moduleStates[i], true, 0);
+			drive.swerveModules[i].setDesiredState(moduleStates[i], false, 0);
 		}
 		
 		// Get yaw and wheel positions
@@ -89,14 +89,14 @@ public class WheelRadiusCharacterization extends Command {
 		averageWheelPosition /= 4.0;
 		
 		currentEffectiveWheelRadius = (accumGyroYawRads * driveBaseRadius.in(Meters)) / averageWheelPosition;
-		GlobalLog.log("WheelRadiusCharacterization/DrivePosition", averageWheelPosition);
-		GlobalLog.log("WheelRadiusCharacterization/AccumGyroYawRads", accumGyroYawRads);
-		GlobalLog.log("WheelRadiusCharacterization/CurrentWheelRadiusInches", Units.metersToInches(currentEffectiveWheelRadius));
+		GlobalLog.log("wheelRadiusCharacterization/DrivePosition", averageWheelPosition);
+		GlobalLog.log("wheelRadiusCharacterization/AccumGyroYawRads", accumGyroYawRads);
+		GlobalLog.log("wheelRadiusCharacterization/CurrentWheelRadiusInches", Units.metersToInches(currentEffectiveWheelRadius));
 	}
 	
 	@Override
 	public void end(boolean interrupted) {
-		if (accumGyroYawRads <= Math.PI * 2.0) {
+		if (Math.abs(accumGyroYawRads) <= Math.PI * 2.0) {
 			System.out.println("Not enough data for characterization");
 		} else {
 			System.out.println(

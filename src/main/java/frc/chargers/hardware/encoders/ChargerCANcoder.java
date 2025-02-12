@@ -15,18 +15,18 @@ import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class ChargerCANcoder implements Encoder {
-	protected final CANcoder baseEncoder;
+	public final CANcoder baseApi;
 	protected final StatusSignal<Angle> positionSignal;
 	protected final StatusSignal<AngularVelocity> velocitySignal;
 	
 	public ChargerCANcoder(int id, boolean optimizeBusUtilization, @Nullable CANcoderConfiguration config) {
-		this.baseEncoder = new CANcoder(id);
-		this.positionSignal = baseEncoder.getAbsolutePosition();
-		this.velocitySignal = baseEncoder.getVelocity();
+		this.baseApi = new CANcoder(id);
+		this.positionSignal = baseApi.getAbsolutePosition();
+		this.velocitySignal = baseApi.getVelocity();
 		StatusSignalRefresher.addSignals(positionSignal, velocitySignal);
 		BaseStatusSignal.setUpdateFrequencyForAll(50, positionSignal, velocitySignal);
-		if (optimizeBusUtilization) baseEncoder.optimizeBusUtilization();
-		if (config != null) tryUntilOk(baseEncoder, () -> baseEncoder.getConfigurator().apply(config, 0.01));
+		if (optimizeBusUtilization) baseApi.optimizeBusUtilization();
+		if (config != null) tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(config, 0.1));
 	}
 	
 	@Override
@@ -41,11 +41,11 @@ public class ChargerCANcoder implements Encoder {
 	
 	@Override
 	public void setPositionReading(Angle angle) {
-		baseEncoder.setPosition(angle);
+		tryUntilOk(baseApi, () -> baseApi.setPosition(angle));
 	}
 	
 	@Override
 	public void close() {
-		if (RobotBase.isSimulation()) baseEncoder.close();
+		if (RobotBase.isSimulation()) baseApi.close();
 	}
 }

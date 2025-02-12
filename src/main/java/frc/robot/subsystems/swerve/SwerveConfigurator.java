@@ -40,9 +40,9 @@ public class SwerveConfigurator {
 				DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
 				Kilograms.of(45) // mass
 			),
-			ModuleType.MK4iL2,
+			ModuleType.SwerveX2L2P11,
 			new ControlsConfig(
-				new PIDConstants(7.5, 0.0, 0.0), // azimuth pid
+				new PIDConstants(2, 0.0, 0.0), // azimuth pid
 				new PIDConstants(2.0, 0.0, 0.01), // velocity pid
 				new SimpleMotorFeedforward(0.032, 2.73), // velocity feedforward
 				new PIDConstants(5.0, 0.0, 0.0), // path translation pid
@@ -77,10 +77,10 @@ public class SwerveConfigurator {
 		
 		private static int getId(SwerveCorner corner) {
 			return switch (corner) {
-				case TOP_LEFT -> 4;
-				case TOP_RIGHT -> 6;
-				case BOTTOM_LEFT -> 2;
-				case BOTTOM_RIGHT -> 3;
+				case TOP_LEFT -> 5;
+				case TOP_RIGHT -> 7;
+				case BOTTOM_LEFT -> 1;
+				case BOTTOM_RIGHT -> 8;
 			};
 		}
 		
@@ -103,10 +103,10 @@ public class SwerveConfigurator {
 		
 		private static int getId(SwerveCorner corner) {
 			return switch (corner) {
-				case TOP_LEFT -> 5;
-				case TOP_RIGHT -> 7;
-				case BOTTOM_LEFT -> 1;
-				case BOTTOM_RIGHT -> 8;
+				case TOP_LEFT -> 4;
+				case TOP_RIGHT -> 6;
+				case BOTTOM_LEFT -> 2;
+				case BOTTOM_RIGHT -> 3;
 			};
 		}
 		
@@ -122,7 +122,7 @@ public class SwerveConfigurator {
 	}
 	
 	private static class RealSteerEncoder extends ChargerCANcoder {
-		private static int getId(SwerveCorner corner) {
+		public static int getId(SwerveCorner corner) {
 			return switch (corner) {
 				case TOP_LEFT -> 3;
 				case TOP_RIGHT -> 2;

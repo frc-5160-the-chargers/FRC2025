@@ -4,18 +4,9 @@ import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.revrobotics.REVLibError;
 import com.revrobotics.spark.SparkBase;
-import edu.wpi.first.epilogue.EpilogueConfiguration;
-import edu.wpi.first.epilogue.logging.EpilogueBackend;
-import edu.wpi.first.epilogue.logging.FileBackend;
-import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Alert;
-import edu.wpi.first.wpilibj.DataLogManager;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +14,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
-import static monologue.Monologue.GlobalLog;
 
 /**
  * <h2>A collection of various utility methods.</h2>
@@ -41,7 +31,7 @@ import static monologue.Monologue.GlobalLog;
 public class UtilMethods {
 	private UtilMethods() {}
 	private static final double EPSILON = 1E-9;
-	private static final int MAX_CONFIG_RETRIES = 4;
+	private static final int MAX_CONFIG_RETRIES = 10;
 	
 	/**
 	 * Checks if 2 doubles are equal; correcting for floating point error.
@@ -71,7 +61,7 @@ public class UtilMethods {
 	}
 	
 	/** Gets the distance between 2 Pose2d's. */
-	public static double getDistance(Pose2d start, Pose2d end) {
+	public static double distanceBetween(Pose2d start, Pose2d end) {
 		return start.getTranslation().getDistance(end.getTranslation());
 	}
 	
@@ -100,24 +90,6 @@ public class UtilMethods {
 			idx++;
 		}
 		return arr;
-	}
-	
-	public static void configureDefaultLogging(EpilogueConfiguration config) {
-		var fileOnlyBackend = new FileBackend(DataLogManager.getLog());
-		var fileAndNtBackend = EpilogueBackend.multi(
-			new NTEpilogueBackend(NetworkTableInstance.getDefault()),
-			fileOnlyBackend
-		);
-		config.backend = fileAndNtBackend;
-		DataLogManager.logNetworkTables(false);
-		new Trigger(DriverStation::isFMSAttached)
-			.onTrue(Commands.runOnce(() -> config.backend = fileOnlyBackend))
-			.onFalse(Commands.runOnce(() -> config.backend = fileAndNtBackend));
-		
-		var scheduler = CommandScheduler.getInstance();
-		scheduler.onCommandInitialize(cmd -> GlobalLog.log("commands/" + cmd.getName(), true));
-		scheduler.onCommandInterrupt(cmd -> GlobalLog.log("commands/" + cmd.getName(), false));
-		scheduler.onCommandFinish(cmd -> GlobalLog.log("commands/" + cmd.getName(), false));
 	}
 	
 	/** Runs a CTRE configure call up to 4 times, stopping if it returns an ok status. */

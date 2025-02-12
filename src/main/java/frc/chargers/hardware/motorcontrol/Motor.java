@@ -32,6 +32,7 @@ public interface Motor extends AutoCloseable {
 	void setVoltage(double volts);
 	void setVelocity(double velocityRadPerSec, double ffVolts);
 	void moveToPosition(double positionRads, double ffVolts);
+	void setCoastMode(boolean enabled);
 	
 	default void moveToPosition(double angleRads) {
 		moveToPosition(angleRads, 0);

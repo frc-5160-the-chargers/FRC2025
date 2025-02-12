@@ -15,6 +15,7 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static monologue.Monologue.GlobalLog;
 
 /**
@@ -38,11 +39,10 @@ public class RobotCommands {
 	
 	private Trigger readyToScore(Pose2d blueTargetPose) {
 		return new Trigger(() -> {
-			boolean almostAtTarget =
-				AllianceFlipper.flip(blueTargetPose)
-					.minus(drivetrain.poseEstimate())
-					.getTranslation()
-					.getNorm() < 0.2;
+			boolean almostAtTarget = distanceBetween(
+				AllianceFlipper.flip(blueTargetPose),
+				drivetrain.poseEstimate()
+			) < 0.2;
 			return almostAtTarget && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.2;
 		});
 	}

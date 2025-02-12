@@ -6,6 +6,7 @@ import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -19,6 +20,8 @@ import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
+import frc.robot.commands.WheelRadiusCharacterization;
+import frc.robot.commands.WheelRadiusCharacterization.Direction;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -35,7 +38,6 @@ import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.KilogramSquareMeters;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
-import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 import static monologue.Monologue.GlobalLog;
 
 @Logged
@@ -67,8 +69,9 @@ public class Robot extends TimedRobot implements LogLocal {
 		// logging setup(required)
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
-		configureDefaultLogging(Epilogue.getConfig());
+		Monologue.enableCommandLogging();
 		logMetadata();
+		DataLogManager.start();
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		
@@ -84,7 +87,6 @@ public class Robot extends TimedRobot implements LogLocal {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
 		}
-		log("hasInitialized", true);
 	}
 	
 	@Override
@@ -115,8 +117,9 @@ public class Robot extends TimedRobot implements LogLocal {
 				false
 			)
 		);
-		//elevator.setDefaultCommand(elevator.stopCmd());
-		// TODO - Set other default commands here
+		elevator.setDefaultCommand(elevator.stopCmd());
+		coralIntake.setDefaultCommand(coralIntake.stopCmd());
+		coralIntakePivot.setDefaultCommand(coralIntakePivot.stopCmd());
 	}
 	
 	private void logMetadata() {
@@ -152,8 +155,8 @@ public class Robot extends TimedRobot implements LogLocal {
 			() -> Commands.runOnce(() -> drivetrain.enableSingleTagEstimation(19))
 		);
 		testModeChooser.addCmd(
-			"ScoreL3",
-			() -> botCommands.scoreSequence(3)
+			"ScoreL4",
+			() -> botCommands.scoreSequence(4)
 		);
 		testModeChooser.addCmd(
 			"Stow",
@@ -162,6 +165,10 @@ public class Robot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd(
 			"SimulateHasCoral",
 			() -> coralIntake.setHasCoralInSimCmd(true)
+		);
+		testModeChooser.addCmd(
+			"WheelRadiusCharacterization",
+			() -> new WheelRadiusCharacterization(drivetrain, Direction.COUNTER_CLOCKWISE)
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);

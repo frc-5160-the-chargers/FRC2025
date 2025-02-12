@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -18,7 +19,6 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static frc.chargers.utils.UtilMethods.configureDefaultLogging;
 import static monologue.Monologue.GlobalLog;
 
 @Logged
@@ -32,7 +32,7 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		// logging setup(required)
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
-		configureDefaultLogging(Epilogue.getConfig());
+		DataLogManager.start();
 		logMetadata();
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
@@ -63,15 +63,15 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		drivetrain.setDefaultCommand(
 			drivetrain.driveCmd(
 				InputStream.of(driverController::getLeftY)
-					.negate()
+					.times(-0.5)
 					.log("driverController/xOutput"),
 				InputStream.of(driverController::getLeftX)
-					.negate()
+					.times(-0.5)
 					.log("driverController/yOutput"),
 				InputStream.of(driverController::getRightX)
-					.negate()
+					.times(-0.5)
 					.log("driverController/rotationOutput"),
-				true
+				false
 			)
 		);
 	}
