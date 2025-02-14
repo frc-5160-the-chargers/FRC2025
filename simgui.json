@@ -30,6 +30,7 @@
       "Robot/drivetrainTwo/rotationController": "PIDController",
       "Robot/drivetrainTwo/xPoseController": "PIDController",
       "Robot/drivetrainTwo/yPoseController": "PIDController",
+      "Robot/gyroWrapper/pigeon": "Gyro",
       "Robot/test/baseMotor": "Motor Controller",
       "Robot/testModeChooser": "String Chooser",
       "field": "Field2d"

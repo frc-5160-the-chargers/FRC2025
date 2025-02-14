@@ -4,6 +4,7 @@ import choreo.auto.AutoChooser;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -42,7 +43,14 @@ import static monologue.Monologue.GlobalLog;
 
 @Logged
 public class Robot extends TimedRobot implements LogLocal {
-	private final SwerveDrive drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
+	private final GyroWrapper gyroWrapper = new GyroWrapper();
+	private final SwerveDrive drivetrain = new SwerveDrive(
+		SwerveConfigurator.HARDWARE_SPECS,
+		SwerveConfigurator.CONTROLS_CONFIG,
+		SwerveConfigurator.MODULE_TYPE,
+		SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
+		gyroWrapper::yaw
+	);
 	private final CoralIntake coralIntake = new CoralIntake();
 	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot();
 	private final Elevator elevator = new Elevator();
@@ -58,9 +66,9 @@ public class Robot extends TimedRobot implements LogLocal {
 	private final RobotVisualization visualizer =
 		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
 	
-	private final RobotCommands botCommands =
+	@NotLogged private final RobotCommands botCommands =
 		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen);
-	private final AutoCommands autoCommands =
+	@NotLogged private final AutoCommands autoCommands =
 		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, elevator);
 	
 	public Robot() {

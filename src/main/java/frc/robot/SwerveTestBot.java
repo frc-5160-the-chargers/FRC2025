@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -23,7 +24,14 @@ import static monologue.Monologue.GlobalLog;
 
 @Logged
 public class SwerveTestBot extends TimedRobot implements LogLocal {
-	private final SwerveDrive drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
+	private final GyroWrapper gyroWrapper = new GyroWrapper();
+	private final SwerveDrive drivetrain = new SwerveDrive(
+		SwerveConfigurator.HARDWARE_SPECS,
+		SwerveConfigurator.CONTROLS_CONFIG,
+		SwerveConfigurator.MODULE_TYPE,
+		SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
+		gyroWrapper::yaw
+	);
 	@NotLogged private final CommandXboxController driverController = new CommandXboxController(0);
 	
 	public SwerveTestBot() {
@@ -56,7 +64,14 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 	}
 	
 	private void mapTriggers() {
-		// TODO
+		driverController.a()
+			.whileTrue(drivetrain.runDriveMotors());
+		driverController.b()
+			.whileTrue(drivetrain.runTurnMotors());
+		driverController.x()
+			.whileTrue(drivetrain.setSteerAngles(Rotation2d.kCW_90deg));
+		driverController.y()
+			.whileTrue(drivetrain.setSteerAngles(Rotation2d.kZero));
 	}
 	
 	private void mapDefaultCommands() {

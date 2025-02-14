@@ -153,7 +153,7 @@ public class ChargerTalonFX implements Motor {
 	@Override
 	public void setControlsConfig(ControlsConfig newConfig) {
 		var motorConfig = new TalonFXConfiguration();
-		baseApi.getConfigurator().refresh(motorConfig);
+		tryUntilOk(baseApi, () -> baseApi.getConfigurator().refresh(motorConfig, 0.1));
 		if (newConfig.gearRatio() != 1.0) {
 			if (motorConfig.Feedback.FeedbackSensorSource == FeedbackSensorSourceValue.RotorSensor) {
 				motorConfig.Feedback.SensorToMechanismRatio = newConfig.gearRatio();

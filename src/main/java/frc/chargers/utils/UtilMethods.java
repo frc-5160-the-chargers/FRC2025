@@ -92,7 +92,7 @@ public class UtilMethods {
 		return arr;
 	}
 	
-	/** Runs a CTRE configure call up to 4 times, stopping if it returns an ok status. */
+	/** Runs a CTRE configure call up to 10 times, stopping if it returns an ok status. */
 	public static StatusCode tryUntilOk(ParentDevice device, Supplier<StatusCode> configureFn) {
 		var result = StatusCode.OK;
 		for (int i = 0; i < MAX_CONFIG_RETRIES; i++) {

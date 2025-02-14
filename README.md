@@ -4,7 +4,7 @@
 This is 5160's 2025 robot code.
 
 ### Tech stack:
-- Java(blame mrs macdonald /s)
+- Java + lombok(kotlin cope)
 - TypeScript + React for operator UI
 - MapleSim
 - Epilogue + custom monologue fork for manual logging

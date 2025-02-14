@@ -3,9 +3,9 @@ package frc.robot.constants;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.units.measure.Distance;
 import frc.robot.constants.FieldConstants.ReefHeight;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
-import frc.robot.subsystems.swerve.SwerveDrive;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,13 +23,13 @@ public class PathfindingPoses {
 	private static Pose2d SOUTH_SOURCE_BLUE = Pose2d.kZero;
 	
 	static {
-		initialize(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
+		initialize(SwerveConfigurator.HARDWARE_SPECS.wheelBase());
 	}
 	
 	/** Adds the appropriate offsets to a pose oriented in the center of a field element. */
-	private static Pose2d addOffset(Pose2d initial, SwerveDrive.SwerveDriveConfig config) {
-		double horizontalOffset = config.ofHardware().trackWidth().in(Meters) / 2 + CENTER_POSITION_OFFSET.getX();
-		double verticalOffset = CENTER_POSITION_OFFSET.getY();
+	private static Pose2d addOffset(Pose2d initial, Distance wheelBase) {
+		double horizontalOffset = CENTER_POSITION_OFFSET.getX();
+		double verticalOffset = wheelBase.in(Meters) / 2 + CENTER_POSITION_OFFSET.getY();
 		Rotation2d rotation = initial.getRotation();
 		return new Pose2d(
 			initial.getX() + horizontalOffset * rotation.getCos() + verticalOffset * rotation.getSin(),
@@ -39,17 +39,15 @@ public class PathfindingPoses {
 	}
 	
 	/** Initializes PathfindingPoses with a different swerve config. */
-	public static void initialize(SwerveDrive.SwerveDriveConfig config) {
+	public static void initialize(Distance wheelBase) {
 		REEF_NODE_POSITIONS_BLUE.clear();
-		double horizontalOffset = config.ofHardware().trackWidth().in(Meters) / 2 + CENTER_POSITION_OFFSET.getX();
-		double verticalOffset = CENTER_POSITION_OFFSET.getY();
 		for (int i = 0; i < 12; i++) {
 			// Field constants poses are measured from the branch position itself
 			Pose2d nodePose = FieldConstants.Reef.branchPositions.get(i).get(ReefHeight.L1).toPose2d();
-			REEF_NODE_POSITIONS_BLUE.put(i, addOffset(nodePose, config));
+			REEF_NODE_POSITIONS_BLUE.put(i, addOffset(nodePose, wheelBase));
 		}
-		NORTH_SOURCE_BLUE = addOffset(FieldConstants.CoralStation.leftCenterFace, config);
-		SOUTH_SOURCE_BLUE = addOffset(FieldConstants.CoralStation.rightCenterFace, config);
+		NORTH_SOURCE_BLUE = addOffset(FieldConstants.CoralStation.leftCenterFace, wheelBase);
+		SOUTH_SOURCE_BLUE = addOffset(FieldConstants.CoralStation.rightCenterFace, wheelBase);
 	}
 	
 	/**

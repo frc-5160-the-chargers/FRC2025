@@ -73,11 +73,16 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		this.wheelRadius = wheelRadius;
 		this.maxVelocity = maxVelocity;
 		this.velocityFF = velocityFF;
-		waitThenRun(0.5, () -> {
+		waitThenRun(2, () -> {
 			if (RobotBase.isSimulation()) return;
-			steerMotor.encoder().setPositionReading(absoluteEncoder.position());
+			resetSteerEncoder();
 			driveMotor.encoder().setPositionReading(Radians.zero());
+			System.out.println("values reset!!!!");
 		});
+	}
+	
+	public void resetSteerEncoder() {
+		steerMotor.encoder().setPositionReading(absoluteEncoder.position());
 	}
 	
 	public void setDesiredState(SwerveModuleState state, boolean closedLoop, double additionalFeedforward) {
@@ -90,6 +95,10 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
 			driveMotor.setVoltage(voltage);
 		}
+	}
+	
+	public void setSteerAngle(Rotation2d angle) {
+		steerMotor.moveToPosition(angle.getRadians());
 	}
 	
 	public Rotation2d getSteerAngle() {

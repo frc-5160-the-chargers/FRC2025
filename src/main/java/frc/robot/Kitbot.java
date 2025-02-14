@@ -22,8 +22,13 @@ import org.ironmaple.simulation.SimulatedArena;
 
 @Logged
 public class Kitbot extends TimedRobot implements LogLocal {
-
-    private final SwerveDrive drivetrain = new SwerveDrive(SwerveConfigurator.DEFAULT_DRIVE_CONFIG);
+    private final SwerveDrive drivetrain = new SwerveDrive(
+        SwerveConfigurator.HARDWARE_SPECS,
+        SwerveConfigurator.CONTROLS_CONFIG,
+        SwerveConfigurator.MODULE_TYPE,
+        SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
+        Rotation2d::new // sim only, no gyro
+    );
     private final KitBotCoralOut kitbotCoralOut = new KitBotCoralOut(drivetrain);
     private final AutoFactory autoFactory = drivetrain.createAutoFactory();
     private final CommandXboxController controller = new CommandXboxController(4);

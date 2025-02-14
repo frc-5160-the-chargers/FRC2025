@@ -1,5 +1,6 @@
 package frc.robot;
 
+import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
@@ -22,14 +23,14 @@ import static edu.wpi.first.units.Units.Radians;
 
 /** A class for rendering poses for advantagescope visualization. */
 public class RobotVisualization implements LogLocal {
-	private final SwerveDrive drivetrain;
-	private final CoralIntake coralIntake;
-	private final CoralIntakePivot coralIntakePivot;
-	private final Elevator elevator;
+	// @NotLogged disables monologue logging too
+	@NotLogged private final SwerveDrive drivetrain;
+	@NotLogged private final CoralIntake coralIntake;
+	@NotLogged private final CoralIntakePivot coralIntakePivot;
+	@NotLogged private final Elevator elevator;
 	
 	private Transform3d robotCenterToPivot = Transform3d.kZero;
 	private final Transform3d pivotToCoralPosition = new Transform3d(0.3, 0, 0.1, Rotation3d.kZero);
-	
 	
 	public RobotVisualization(SwerveDrive drivetrain, CoralIntake coralIntake, CoralIntakePivot coralIntakePivot, Elevator elevator) {
 		this.drivetrain = drivetrain;
@@ -93,7 +94,7 @@ public class RobotVisualization implements LogLocal {
 				        drivetrain.getMeasuredSpeeds(),
 				        drivetrain.bestPose().getRotation(),
 				        robotCenterToCoral.getMeasureZ(),
-				        MetersPerSecond.one(),
+				        MetersPerSecond.of(4),
 				        Radians.of(coralIntakePivot.angleRads())
 			        )
 		        );

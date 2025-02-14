@@ -34,15 +34,15 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 4.0);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 0.02);
+	private static final TunableNum KP = new TunableNum("elevator/kP", 20);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 2.0);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
 	
 	private static final double GEAR_RATIO = 54.0 / 8.0;
-	private static final Distance DRUM_RADIUS = Inches.of(3.0);
+	private static final Distance DRUM_RADIUS = Inches.of(1.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(0.05);
-	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(8.0);
-	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(4.0);
+	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2.0);
+	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(10.0);
 	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.2);
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();

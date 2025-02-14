@@ -11,6 +11,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.datalog.BooleanLogEntry;
 import edu.wpi.first.util.datalog.StringLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
@@ -54,9 +55,13 @@ public class ExtrasLogger {
 		ExtrasLogger.pdh = pdh;
 		ExtrasLogger.logger = Monologue.config.backend.getNested("SystemStats");
 		robot.addPeriodic(() -> {
-			ExtrasLogger.logSystem();
-			ExtrasLogger.logCan();
-			ExtrasLogger.logPdh();
+			try {
+				ExtrasLogger.logSystem();
+				ExtrasLogger.logCan();
+				ExtrasLogger.logPdh();
+			} catch (Exception e) {
+				DriverStation.reportError("ExtrasLogger err: " + e, true);
+			}
 		}, 0.02);
 		new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
 	}

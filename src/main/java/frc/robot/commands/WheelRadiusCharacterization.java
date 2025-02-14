@@ -52,7 +52,7 @@ public class WheelRadiusCharacterization extends Command {
 		this.drive = drive;
 		this.omegaDirection = omegaDirection;
 		this.gyroYawRadsSupplier = () -> drive.bestPose().getRotation().getRadians();
-		this.driveBaseRadius = drive.config.ofHardware().drivebaseRadius();
+		this.driveBaseRadius = drive.hardwareSpecs.drivebaseRadius();
 		addRequirements(drive);
 	}
 	
