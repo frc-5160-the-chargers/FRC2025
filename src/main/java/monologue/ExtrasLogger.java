@@ -47,7 +47,7 @@ public class ExtrasLogger {
 			RuntimeLog.warn("ExtrasLogger.start has already been called, further calls will do nothing");
 			return;
 		}
-		if (!Monologue.hasBeenSetup()) {
+		if (Monologue.notSetup()) {
 			RuntimeLog.warn("ExtrasLogger started before monologue was setup - nothing will be logged");
 			return;
 		}
