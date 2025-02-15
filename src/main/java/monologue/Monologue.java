@@ -2,6 +2,7 @@ package monologue;
 
 import edu.wpi.first.epilogue.EpilogueConfiguration;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -9,7 +10,7 @@ import monologue.LoggingTree.StaticObjectNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class Monologue {
   private static boolean HAS_SETUP_BEEN_CALLED = false;
@@ -21,8 +22,7 @@ public class Monologue {
   
   /**
    * Monologue's global logger; can be used as a proxy where {@link LogLocal}
-   * cannot be used.
-   * Will log under the "GlobalLog" namespace in datalog and networktables.
+   * cannot be used(i.e commands, temporary objects, etc.)
    */
   public static final BackendOfGlobalLog GlobalLog = new BackendOfGlobalLog();
   
@@ -37,6 +37,32 @@ public class Monologue {
     
     public void logMetadata(String key, String value) {
       config.backend.getNested("/Metadata/").log(key, value);
+    }
+    
+    public void enableCommandLogging() {
+      var scheduler = CommandScheduler.getInstance();
+      var totalRuns = new HashMap<String, Integer>();
+      var numInterrupts = new HashMap<String, Integer>();
+      BiConsumer<Command, Boolean> handleFinish = (command, wasInterrupted) -> {
+        log("commandStats/" + command.getName() + "/isRunning", false);
+        log(
+            "commandStats/" + command.getName() + "/numInterrupts",
+            numInterrupts.merge(command.getName(), 1, Integer::sum)
+        );
+      };
+      scheduler.onCommandInitialize(command -> {
+        log(
+            "commandStats/"+ command.getName() + "/totalRuns",
+            totalRuns.merge(command.getName(), 1, Integer::sum)
+        );
+        log("commandStats/" + command.getName() + "/isRunning", true);
+      });
+      scheduler.onCommandFinish(command -> handleFinish.accept(command, false));
+      scheduler.onCommandInterrupt(command -> handleFinish.accept(command, true));
+    }
+    
+    public void logInit(String msg) {
+      new Alert("Non-Urgent Alerts", msg, Alert.AlertType.kError).set(true);
     }
   }
   
@@ -85,41 +111,8 @@ public class Monologue {
     return config.minimumImportance == Logged.Importance.DEBUG;
   }
   
-  public static void enableCommandLogging() {
-    var scheduler = CommandScheduler.getInstance();
-    var numRunning = new HashMap<String, Integer>();
-    var totalRuns = new HashMap<String, Integer>();
-    Consumer<Command> handleInit = getHandleInitConsumer(numRunning, totalRuns);
-    Consumer<Command> handleFinish = command -> {
-      numRunning.compute(command.getName(), (key, value) -> value == null ? 0 : value - 1);
-      GlobalLog.log("commandStats/numRunning", numRunning.get(command.getName()));
-    };
-    
-    scheduler.onCommandInitialize(handleInit);
-    scheduler.onCommandFinish(handleFinish);
-    scheduler.onCommandInterrupt(handleFinish);
-  }
-  
-  private static Consumer<Command> getHandleInitConsumer(
-      HashMap<String, Integer> numRunning,
-      HashMap<String, Integer> totalRuns
-  ) {
-    return command -> {
-      Integer current = totalRuns.get(command.getName());
-      if (current == null) {
-        totalRuns.put(command.getName(), 1);
-        numRunning.put(command.getName(), 1);
-      } else {
-        totalRuns.put(command.getName(), current + 1);
-        numRunning.put(command.getName(), numRunning.get(command.getName()) + 1);
-      }
-      GlobalLog.log("commandStats/numRunning", numRunning.get(command.getName()));
-      GlobalLog.log("commandStats/totalRuns", totalRuns.get(command.getName()));
-    };
-  }
-  
   static void logTree(Object loggable, String path) {
-    if (!hasBeenSetup())
+    if (notSetup())
       throw new IllegalStateException(
           "Tried to use Monologue.logTree() before using a Monologue setup method");
 
@@ -148,7 +141,7 @@ public class Monologue {
    * @apiNote Should only be called on the same thread monologue was setup on
    */
   static void updateAll() {
-    if (!hasBeenSetup())
+    if (notSetup())
       RuntimeLog.warn("Called Monologue.updateAll before Monologue was setup");
     for (StaticObjectNode tree : trees) {
       tree.log(null);
@@ -160,11 +153,11 @@ public class Monologue {
   }
 
   /**
-   * Checks if the Monologue library has been setup.
+   * Checks if the Monologue library isn't setup.
    *
-   * @return true if Monologue has been setup, false otherwise
+   * @return false if Monologue has been setup, true otherwise
    */
-  static boolean hasBeenSetup() {
-    return HAS_SETUP_BEEN_CALLED;
+  static boolean notSetup() {
+    return !HAS_SETUP_BEEN_CALLED;
   }
 }

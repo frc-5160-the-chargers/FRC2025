@@ -5,7 +5,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.chargers.utils.AllianceFlipper;
+import frc.chargers.utils.AllianceUtil;
 import frc.robot.constants.PathfindingPoses;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
@@ -36,11 +36,12 @@ public class RobotCommands {
 	private final CoralIntakePivot coralIntakePivot;
 	private final Elevator elevator;
 	private final SwerveSetpointGenerator setpointGen;
+	private final PathfindingPoses pathfindingPoses;
 	
 	private Trigger readyToScore(Pose2d blueTargetPose) {
 		return new Trigger(() -> {
 			boolean almostAtTarget = distanceBetween(
-				AllianceFlipper.flip(blueTargetPose),
+				AllianceUtil.flipIfRed(blueTargetPose),
 				drivetrain.poseEstimate()
 			) < 0.2;
 			return almostAtTarget && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.2;
@@ -79,14 +80,14 @@ public class RobotCommands {
 	
 	public Command pathfindAndIntakeNorthSource() {
 		return Commands.parallel(
-			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, PathfindingPoses.northSource()),
+			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, pathfindingPoses.northSource()),
 			coralIntake.intakeCmd()
 		).withName("northSourcePathfindIntake");
 	}
 	
 	public Command pathfindAndIntakeSouthSource() {
 		return Commands.parallel(
-			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, PathfindingPoses.southSource()),
+			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, pathfindingPoses.southSource()),
 			coralIntake.intakeCmd()
 		).withName("southSourcePathfindIntake");
 	}

@@ -34,8 +34,8 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 20);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 2.0);
+	private static final TunableNum KP = new TunableNum("elevator/kP", 50);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 10);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
 	
 	private static final double GEAR_RATIO = 54.0 / 8.0;
@@ -44,7 +44,7 @@ public class Elevator extends StandardSubsystem {
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2.0);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(10.0);
 	private static final Distance TOLERANCE = Inches.of(0.5);
-	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.2);
+	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.3);
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final int RIGHT_MOTOR_ID = 6;
@@ -162,13 +162,16 @@ public class Elevator extends StandardSubsystem {
 				log("motionProfileState/positionRad", profileState.position);
 				leaderMotor.moveToPosition(profileState.position);
 			}).until(atHeight(targetHeight)),
-			Commands.runOnce(() -> log("targetHeight", Double.NaN))
+			Commands.runOnce(() -> {
+				leaderMotor.setVoltage(0);
+				log("targetHeight", Double.NaN);
+			})
 		).withName("MoveToHeightCmd");
 	}
 	
 	@Override
-	public Command stopCmd() {
-		return this.runOnce(() -> leaderMotor.setVoltage(0)).withName("StopCmd(Elevator)");
+	protected void requestStop() {
+		leaderMotor.setVoltage(0);
 	}
 	
 	public Command sysIdCmd() {

@@ -16,10 +16,10 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget) implements St
 	public static final Struct<Setpoint> struct = genRecord(Setpoint.class);
 	
 	private static final Map<Integer, Setpoint> LEVEL_TO_SETPOINT_MAP = Map.ofEntries(
-		entry(1, new Setpoint(Meters.zero(), Radians.zero())),
-		entry(2, new Setpoint(Meters.zero(), Radians.zero())),
-		entry(3, new Setpoint(Meters.of(0.4), Degrees.of(0))),
-		entry(4, new Setpoint(Meters.of(1.25), Degrees.of(0)))
+		entry(1, new Setpoint(Meters.zero(), Degrees.zero())),
+		entry(2, new Setpoint(Meters.of(0.42), Degrees.of(-30))),
+		entry(3, new Setpoint(Meters.of(0.82), Degrees.of(-30))),
+		entry(4, new Setpoint(Meters.of(1.18), Degrees.of(0)))
 	);
 	
 	public static final Setpoint STOW = new Setpoint(Meters.zero(), Degrees.of(70));

@@ -39,7 +39,7 @@ public class SingleTagPoseEstimator {
 	private static final Map<Integer, Pose2d> tagPoses2d = new HashMap<>();
 	
 	static {
-		var tags = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape).getTags();
+		var tags = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTags();
 		for (int i = 0; i < tags.size(); i++) {
 			tagPoses2d.put(i+1, tags.get(i).pose.toPose2d());
 		}
@@ -67,7 +67,7 @@ public class SingleTagPoseEstimator {
 	
 	public SingleTagPoseEstimator(SwerveDriveKinematics kinematics, Matrix<N3, N1> odometryStateStdDevs) {
 		this.kinematics = kinematics;
-		for (int i = 1; i <= AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape).getTags().size(); i++) {
+		for (int i = 1; i <= AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTags().size(); i++) {
 			txTyPoses.put(i, new TxTyPoseRecord(Pose2d.kZero, -1.0));
 		}
 	}

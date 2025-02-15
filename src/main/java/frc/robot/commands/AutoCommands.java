@@ -34,6 +34,13 @@ public class AutoCommands {
 		);
 	}
 	
+	public Command pathTest() {
+		return autoFactory.resetOdometry("SimplePath").andThen(
+			Commands.runOnce(() -> System.out.println("SKDJFLJKLJSLKDJFKLSJDKFJKSDLFKLSDJFKLSDJ")),
+			autoFactory.trajectoryCmd("SimplePath")
+		).withName("pathTest");
+	}
+	
 	// TODO make this a 3 piece instead
 	public Command multiPieceCenter() {
 		var routine = autoFactory.newRoutine("TwoPiece");

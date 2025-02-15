@@ -7,11 +7,11 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -23,6 +23,7 @@ import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.commands.WheelRadiusCharacterization.Direction;
+import frc.robot.constants.PathfindingPoses;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -35,8 +36,7 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static edu.wpi.first.units.Units.Amps;
-import static edu.wpi.first.units.Units.KilogramSquareMeters;
+import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static monologue.Monologue.GlobalLog;
@@ -57,17 +57,22 @@ public class Robot extends TimedRobot implements LogLocal {
 	private final AprilTagVision vision = new AprilTagVision(this);
 	
 	private final CommandPS5Controller driverController = new CommandPS5Controller(0);
-	private final AutoChooser autoChooser = new AutoChooser();
-	private final AutoChooser testModeChooser = new AutoChooser();
+	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
+	@NotLogged private final AutoChooser testModeChooser = new AutoChooser();
+	private final RobotVisualization visualizer =
+		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
 	private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
 		KilogramSquareMeters.of(6.283),  // robot moi
 		Amps.of(60) // drive current limit
 	);
-	private final RobotVisualization visualizer =
-		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
+	private final PathfindingPoses pathfindingPoses = new PathfindingPoses(
+		new Translation2d(Inches.of(-12), Inches.of(5)), // reef offset
+		new Translation2d(), // source offset,
+		SwerveConfigurator.HARDWARE_SPECS
+	);
 	
 	@NotLogged private final RobotCommands botCommands =
-		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen);
+		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen, pathfindingPoses);
 	@NotLogged private final AutoCommands autoCommands =
 		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, elevator);
 	
@@ -77,7 +82,7 @@ public class Robot extends TimedRobot implements LogLocal {
 		// logging setup(required)
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
-		Monologue.enableCommandLogging();
+		GlobalLog.enableCommandLogging();
 		logMetadata();
 		DataLogManager.start();
 		// enables tuning mode
@@ -94,6 +99,11 @@ public class Robot extends TimedRobot implements LogLocal {
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+			var pathfindPoses = new Pose2d[12];
+			for (int i = 0; i < 12; i++) {
+				pathfindPoses[i] = pathfindingPoses.reef(i);
+			}
+			log("pathfindPoses", pathfindPoses);
 		}
 	}
 	
@@ -125,9 +135,9 @@ public class Robot extends TimedRobot implements LogLocal {
 				false
 			)
 		);
-		elevator.setDefaultCommand(elevator.stopCmd());
-		coralIntake.setDefaultCommand(coralIntake.stopCmd());
-		coralIntakePivot.setDefaultCommand(coralIntakePivot.stopCmd());
+		elevator.setDefaultCommand(elevator.idleCmd());
+		coralIntake.setDefaultCommand(coralIntake.idleCmd());
+		coralIntakePivot.setDefaultCommand(coralIntakePivot.idleCmd());
 	}
 	
 	private void logMetadata() {
@@ -143,11 +153,12 @@ public class Robot extends TimedRobot implements LogLocal {
 		// TODO
 		autoChooser.addCmd("multi piece center", autoCommands::multiPieceCenter);
 		autoChooser.addCmd("figure eight", autoCommands::figureEight);
+		autoChooser.addCmd("simple path", autoCommands::pathTest);
 		
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		autonomous()
 			.onTrue(autoChooser.selectedCommandScheduler())
-			.onTrue(Commands.waitSeconds(15.3).andThen(() -> DriverStationSim.setEnabled(false)))
+			//.onTrue(Commands.waitSeconds(15.3).andThen(() -> DriverStationSim.setEnabled(false)))
 			.onTrue(Commands.runOnce(() -> coralIntake.runContinuously = true))
 			.onFalse(Commands.runOnce(() -> coralIntake.runContinuously = false));
 	}
@@ -156,23 +167,19 @@ public class Robot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd(
 			"PathfindTest",
-			() -> drivetrain.pathfindCmd(new Pose2d(15, 4, Rotation2d.k180deg), false, setpointGen)
+			() -> drivetrain.pathfindCmd(pathfindingPoses.reef(3), true, setpointGen)
 		);
 		testModeChooser.addCmd(
-			"SingleTagEstimationTest",
-			() -> Commands.runOnce(() -> drivetrain.enableSingleTagEstimation(19))
+			"Intake",
+			coralIntake::intakeCmd
 		);
 		testModeChooser.addCmd(
 			"ScoreL4",
 			() -> botCommands.scoreSequence(4)
 		);
 		testModeChooser.addCmd(
-			"Stow",
-			() -> botCommands.moveTo(Setpoint.STOW)
-		);
-		testModeChooser.addCmd(
-			"SimulateHasCoral",
-			() -> coralIntake.setHasCoralInSimCmd(true)
+			"StowAndGetCoral",
+			() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.moveTo(Setpoint.STOW))
 		);
 		testModeChooser.addCmd(
 			"WheelRadiusCharacterization",

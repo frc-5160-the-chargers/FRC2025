@@ -22,7 +22,6 @@ import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static java.lang.Math.PI;
-import static monologue.Monologue.GlobalLog;
 
 /**
  * A TalonFX that implements the Motor interface.
@@ -141,7 +140,6 @@ public class ChargerTalonFX implements Motor {
 			setAngleRequest.Position = radiansToRotations(positionRads);
 			setAngleRequest.FeedForward = ffVolts;
 			baseApi.setControl(setAngleRequest);
-			GlobalLog.log("torqueControl", true);
 		}
 	}
 	

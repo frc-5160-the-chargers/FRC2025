@@ -33,7 +33,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
-import frc.chargers.utils.AllianceFlipper;
+import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
@@ -84,7 +84,8 @@ public class SwerveDrive extends StandardSubsystem {
 		DCMotor steerMotorType,
 		LinearVelocity maxVelocity,
 		double coefficientOfFriction,
-		Mass robotMass
+		Mass robotMass,
+		Distance widthOfBumpers
 	){
 		public Distance drivebaseRadius() {
 			return Meters.of(Math.hypot(trackWidth.in(Meters) / 2, wheelBase.in(Meters) / 2));
@@ -145,7 +146,7 @@ public class SwerveDrive extends StandardSubsystem {
 	private final PIDController yPoseController;
 	private final PIDController rotationController;
 
-	private final Supplier<Rotation2d> getAngleFn;
+	private final Supplier<Rotation2d> gyroYawSupplier;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
 	@Logged(name = "singleTagEstimation/id")
 	private int targetTagId = -1;
@@ -199,8 +200,8 @@ public class SwerveDrive extends StandardSubsystem {
 				.withRobotMass(hardwareSpecs.robotMass)
 				.withGyro(COTS.ofPigeon2())
 				.withBumperSize(
-					hardwareSpecs.wheelBase.plus(Inches.of(8)),
-					hardwareSpecs.trackWidth.plus(Inches.of(8))
+					hardwareSpecs.wheelBase.plus(hardwareSpecs.widthOfBumpers.times(2)),
+					hardwareSpecs.trackWidth.plus(hardwareSpecs.widthOfBumpers.times(2))
 				)
 				.withSwerveModule(
 					new SwerveModuleSimulationConfig(
@@ -261,10 +262,10 @@ public class SwerveDrive extends StandardSubsystem {
 		}
 		if (RobotBase.isSimulation()) {
 			// assuming perfect gyro
-			this.getAngleFn = () -> mapleSim.getSimulatedDriveTrainPose().getRotation();
+			this.gyroYawSupplier = () -> mapleSim.getSimulatedDriveTrainPose().getRotation();
 			SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
 		} else {
-			this.getAngleFn = gyroYawSupplier;
+			this.gyroYawSupplier = gyroYawSupplier;
 		}
 		this.topLeftModule = this.swerveModules[0];
 		this.topRightModule = this.swerveModules[1];
@@ -299,14 +300,12 @@ public class SwerveDrive extends StandardSubsystem {
 	private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample) {
 		var vx = trajSample.vx + xPoseController.calculate(poseEstimate().getX(), trajSample.x);
 		var vy = trajSample.vy + yPoseController.calculate(poseEstimate().getY(), trajSample.y);
-		var rotationV = trajSample.omega + rotationController.calculate(
+		var rotationV = trajSample.omega + trajSample.omega + rotationController.calculate(
 			angleModulus(poseEstimate().getRotation().getRadians()),
 			angleModulus(trajSample.heading)
 		);
 		return ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, poseEstimate().getRotation());
 	}
-	
-	@Logged private List<SwerveSample> trajSamples = List.of();
 	
 	/** Creates a choreo AutoFactory. You should cache this in your Robot or AutoCommands class. */
 	public AutoFactory createAutoFactory() {
@@ -316,6 +315,7 @@ public class SwerveDrive extends StandardSubsystem {
 			// a function that runs trajectory following
 			(SwerveSample trajSample) -> {
 				var desiredModuleStates = toDesiredModuleStates(toDesiredSpeeds(trajSample), false);
+				log("choreoDesiredStates", desiredModuleStates);
 				for (int i = 0; i < 4; i++) {
 					var desiredState = desiredModuleStates[i];
 					double wheelTorqueNm = moduleType.wheelRadius.in(Meters) * (
@@ -329,7 +329,7 @@ public class SwerveDrive extends StandardSubsystem {
 			true,
 			this,
 			(trajectory, isStart) -> {
-				trajSamples = trajectory.samples();
+				log("currentTrajectory/samples", trajectory.samples(), SwerveSample.struct);
 				log("currentTrajectory/name", trajectory.name());
 			}
 		);
@@ -422,8 +422,13 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 
 	public void resetPose(Pose2d pose) {
-		if (RobotBase.isSimulation()) mapleSim.setSimulationWorldPose(pose);
-		poseEstimator.resetPose(pose);
+		if (RobotBase.isSimulation()) {
+			// don't reset rotation in sim, as maple sim's heading has already changed
+			poseEstimator.resetTranslation(pose.getTranslation());
+			mapleSim.setSimulationWorldPose(pose);
+		} else {
+			poseEstimator.resetPose(pose);
+		}
 	}
 	
 	public LinearVelocity getOverallSpeed() {
@@ -468,7 +473,7 @@ public class SwerveDrive extends StandardSubsystem {
 				fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
 			);
 			if (Math.abs(speeds.vxMetersPerSecond) < 0.05 && Math.abs(speeds.vyMetersPerSecond) < 0.05 && Math.abs(speeds.omegaRadiansPerSecond) < 0.05) {
-				for (int i = 0; i < 4; i++) swerveModules[i].stop();
+				requestStop();
 				return;
 			}
 			var desiredStates = toDesiredModuleStates(speeds, true);
@@ -479,13 +484,11 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	@Override
-	public Command stopCmd() {
-		return this.runOnce(() -> {
-			for (int i = 0; i < 4; i++) {
-				swerveModules[i].setDriveVoltage(0);
-				swerveModules[i].setSteerVoltage(0);
-			}
-		});
+	protected void requestStop() {
+		for (int i = 0; i < 4; i++) {
+			swerveModules[i].setDriveVoltage(0);
+			swerveModules[i].setSteerVoltage(0);
+		}
 	}
 	
 	/**
@@ -505,11 +508,10 @@ public class SwerveDrive extends StandardSubsystem {
 		double maxVelocityMps = hardwareSpecs.maxVelocity.in(MetersPerSecond);
 		
 		return this.run(() -> {
-			var realPose = flipPoseIfRed ? AllianceFlipper.flip(blueTargetPose): blueTargetPose;
+			var realPose = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			repulsor.setGoal(realPose);
-			var desiredSpeeds = toDesiredSpeeds(
-				repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5)
-			);
+			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
+			var desiredSpeeds = toDesiredSpeeds(sample);
 			SwerveModuleState[] desiredStates;
 			if (setpointGenerator != null) {
 				currentSetpointRef.set(
@@ -552,14 +554,11 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	public void updateOdometry() {
-		Rotation2d latestHeading = getAngleFn.get();
+		Rotation2d latestHeading = gyroYawSupplier.get();
 		for (int i = 0; i < 4; i++) {
 			measuredModuleStates[i] = swerveModules[i].currentState();
 			measuredModulePositions[i] = swerveModules[i].currentPosition();
-			if (DriverStation.isDisabled()) {
-				swerveModules[i].setDriveVoltage(0.0);
-				swerveModules[i].setSteerVoltage(0.0);
-			}
+			if (DriverStation.isDisabled()) requestStop();
 		}
 		poseEstimator.update(latestHeading, measuredModulePositions);
 		singleTagPoseEstimator.update(latestHeading, measuredModulePositions);

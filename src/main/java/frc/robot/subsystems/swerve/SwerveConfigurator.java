@@ -33,13 +33,14 @@ public class SwerveConfigurator {
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
 	public static final SwerveHardwareSpecs HARDWARE_SPECS =
 		new SwerveHardwareSpecs(
-			Inches.of(27), // trackwidth
-			Inches.of(32), // wheelbase
+			Inches.of(29.375), // trackwidth(width)
+			Inches.of(35.375), // wheelbase(height)
 			DCMotor.getKrakenX60(1), // drive motor type
-			DCMotor.getNEO(1), // turn motor type
+			DCMotor.getKrakenX60(1), // turn motor type
 			MetersPerSecond.of(4.5), // max linear speed
 			DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
-			Kilograms.of(45) // mass
+			Pounds.of(84), // mass
+			Inches.of(2) // width of bumpers
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(

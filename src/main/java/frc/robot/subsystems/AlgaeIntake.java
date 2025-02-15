@@ -35,8 +35,9 @@ public class AlgaeIntake extends StandardSubsystem {
 	}
 	
 	@Override
-	public Command stopCmd() {
-		return setPowerCmd(() -> 0).withName("StopAlgaeIntake");
+	protected void requestStop() {
+		leftMotor.setVoltage(0);
+		rightMotor.setVoltage(0);
 	}
 	
 	@Override

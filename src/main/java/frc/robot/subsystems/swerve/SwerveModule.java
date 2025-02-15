@@ -25,7 +25,6 @@ import org.jetbrains.annotations.Nullable;
 import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
-// creates a constructor w/ all variables marked final(i.e driveMotor, steerMotor, etc.)
 public class SwerveModule implements LogLocal, AutoCloseable {
 	@Logged private final Motor driveMotor;
 	@Logged private final Motor steerMotor;
@@ -86,6 +85,7 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	}
 	
 	public void setDesiredState(SwerveModuleState state, boolean closedLoop, double additionalFeedforward) {
+		log("additionalFeedforward", additionalFeedforward);
 		steerMotor.moveToPosition(state.angle.getRadians());
 		if (closedLoop) {
 			var speedSetpoint = state.speedMetersPerSecond / wheelRadius.in(Meters);
@@ -125,11 +125,6 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	
 	public void setDriveVoltage(double voltage){
 		driveMotor.setVoltage(voltage);
-	}
-	
-	public void stop() {
-		steerMotor.setVoltage(0);
-		driveMotor.setVoltage(0);
 	}
 	
 	@Override

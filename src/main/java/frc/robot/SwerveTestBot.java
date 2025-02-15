@@ -97,6 +97,5 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		GlobalLog.logMetadata("GitBranch", BuildConstants.GIT_BRANCH);
 		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
 		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
-		ExtrasLogger.start(this, new PowerDistribution());
 	}
 }

@@ -15,13 +15,16 @@ import java.util.HashMap;
  * A utility to standardize flipping of coordinate data based on the current alliance across
  * different years.
  *
+ * <p>The corresponding flip() methods will always flip to the other side, regardless of alliance.
+ * On the other hand, the flipIfRed() methods will only flip poses/rotations to the blue side of the field.
+ *
  * <p>If every vendor used this, the user would be able to specify the year and no matter the year
  * the vendor's code is from, the user would be able to flip as expected.
  *
  * <p>This API still allows vendors and users to match case against the flipping variant as a way to
  * specially handle cases or throw errors if a variant is explicitly not supported.
  */
-public class AllianceFlipper {
+public class AllianceUtil {
 	/** The flipper to use for flipping coordinates. */
 	public enum Flipper {
 		/**
@@ -81,7 +84,7 @@ public class AllianceFlipper {
 		public abstract double flipHeading(double heading);
 	}
 	
-	private  record YearInfo(Flipper flipper, double fieldLength, double fieldWidth) {}
+	private record YearInfo(Flipper flipper, double fieldLength, double fieldWidth) {}
 	
 	// TODO: Update and expand this map
 	private static final HashMap<Integer, YearInfo> flipperMap =
@@ -95,7 +98,7 @@ public class AllianceFlipper {
 	private static YearInfo activeYear = flipperMap.get(2025);
 	
 	/** Default constructor. */
-	private AllianceFlipper() {}
+	private AllianceUtil() {}
 	
 	/**
 	 * Get the flipper that is currently active for flipping coordinates. It's recommended not to
@@ -220,6 +223,110 @@ public class AllianceFlipper {
 	 * @return The flipped pose.
 	 */
 	public static Pose3d flip(Pose3d pose) {
+		return new Pose3d(flip(pose.getTranslation()), flip(pose.getRotation()));
+	}
+	
+	/**
+	 * Flips the X coordinate.
+	 *
+	 * @param x The X coordinate to flip.
+	 * @return The flipped X coordinate.
+	 */
+	public static double flipXIfRed(double x) {
+		if (!isRed()) return x;
+		return activeYear.flipper.flipX(x);
+	}
+	
+	/**
+	 * Flips the Y coordinate.
+	 *
+	 * @param y The Y coordinate to flip.
+	 * @return The flipped Y coordinate.
+	 */
+	public static double flipYIfRed(double y) {
+		if (!isRed()) return y;
+		return activeYear.flipper.flipY(y);
+	}
+	
+	/**
+	 * Flips the heading.
+	 *
+	 * @param heading The heading to flip.
+	 * @return The flipped heading.
+	 */
+	public static double flipHeadingIfRed(double heading) {
+		if (!isRed()) return heading;
+		return activeYear.flipper.flipHeading(heading);
+	}
+	
+	/**
+	 * Flips the translation.
+	 *
+	 * @param translation The translation to flip.
+	 * @return The flipped translation.
+	 */
+	public static Translation2d flipIfRed(Translation2d translation) {
+		if (!isRed()) return translation;
+		return new Translation2d(flipX(translation.getX()), flipY(translation.getY()));
+	}
+	
+	/**
+	 * Flips the rotation.
+	 *
+	 * @param rotation The rotation to flip.
+	 * @return The flipped rotation.
+	 */
+	public static Rotation2d flipIfRed(Rotation2d rotation) {
+		if (!isRed()) return rotation;
+		return switch (activeYear.flipper) {
+			case MIRRORED -> new Rotation2d(-rotation.getCos(), rotation.getSin());
+			case ROTATE_AROUND -> new Rotation2d(-rotation.getCos(), -rotation.getSin());
+		};
+	}
+	
+	/**
+	 * Flips the pose.
+	 *
+	 * @param pose The pose to flip.
+	 * @return The flipped pose.
+	 */
+	public static Pose2d flipIfRed(Pose2d pose) {
+		if (!isRed()) return pose;
+		return new Pose2d(flip(pose.getTranslation()), flip(pose.getRotation()));
+	}
+	
+	/**
+	 * Flips the translation.
+	 *
+	 * @param translation The translation to flip.
+	 * @return The flipped translation.
+	 */
+	public static Translation3d flipIfRed(Translation3d translation) {
+		if (!isRed()) return translation;
+		return new Translation3d(
+			flipX(translation.getX()), flipY(translation.getY()), translation.getZ());
+	}
+	
+	/**
+	 * Flips the rotation.
+	 *
+	 * @param rotation The rotation to flip.
+	 * @return The flipped rotation.
+	 */
+	public static Rotation3d flipIfRed(Rotation3d rotation) {
+		if (!isRed()) return rotation;
+		return new Rotation3d(
+			rotation.getX(), rotation.getY(), flip(rotation.toRotation2d()).getRadians());
+	}
+	
+	/**
+	 * Flips the pose.
+	 *
+	 * @param pose The pose to flip.
+	 * @return The flipped pose.
+	 */
+	public static Pose3d flipIfRed(Pose3d pose) {
+		if (!isRed()) return pose;
 		return new Pose3d(flip(pose.getTranslation()), flip(pose.getRotation()));
 	}
 	

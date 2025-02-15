@@ -20,13 +20,12 @@ import static edu.wpi.first.units.Units.Radians;
 
 // Currently, a positive angle means pointing up, and a negative one is pointing down
 public class CoralIntakePivot extends StandardSubsystem {
-	@Logged
-	private final Motor leaderMotor;
+	@Logged private final Motor leaderMotor;
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final Angle TOLERANCE = Degrees.of(2.0);
 	private static final double GEAR_RATIO = 12.0;
-	private static final TunableNum KP = new TunableNum("CoralIntake/kP", 2.0);
-	private static final TunableNum KD = new TunableNum("CoralIntake/kD", 0.02);
+	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 2.0);
+	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.02);
 	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("CoralIntake/demoAngle(deg)", 0);
 
 	public CoralIntakePivot() {
@@ -72,5 +71,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 	
 	@Override
-	public Command stopCmd() { return this.runOnce(() -> leaderMotor.setVoltage(0)); }
+	public void requestStop() {
+		leaderMotor.setVoltage(0);
+	}
 }

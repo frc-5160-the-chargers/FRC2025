@@ -20,7 +20,7 @@ import frc.chargers.utils.LaserCanUtil;
 
 @Logged
 public class CoralIntake extends StandardSubsystem {
-	private static final double GEAR_RATIO = 1.0;
+	private static final double GEAR_RATIO = 5;
 	private static final int ID = -1000;
 	private static final double DISTANCE_TOLERANCE_MM = 20;
 	private static final double OUTTAKE_VOLTAGE = 8;
@@ -90,8 +90,8 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	@Override
-	public Command stopCmd() {
-		return this.run(() -> motor.setVoltage(0)).withName("StopCoralIntake");
+	protected void requestStop() {
+		motor.setVoltage(0);
 	}
 	
 	@Override

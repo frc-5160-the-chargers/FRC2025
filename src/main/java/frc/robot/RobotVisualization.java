@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.chargers.utils.AllianceUtil;
 import frc.robot.constants.FieldConstants;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -18,8 +19,7 @@ import monologue.LogLocal;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnFly;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.*;
 
 /** A class for rendering poses for advantagescope visualization. */
 public class RobotVisualization implements LogLocal {
@@ -46,11 +46,15 @@ public class RobotVisualization implements LogLocal {
 			// if close to either source(and stopped), simulate the robot getting a gamepiece
 			new Trigger(() -> {
 				var driveTrans = drivetrain.bestPose().getTranslation();
-				var distFromNorthSource = driveTrans.getDistance(FieldConstants.CoralStation.leftCenterFace.getTranslation());
-				var distFromSouthSource = driveTrans.getDistance(FieldConstants.CoralStation.rightCenterFace.getTranslation());
-				return (distFromNorthSource < 0.5 || distFromSouthSource < 0.5)
-					       && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.2
-						   && coralIntake.speedRadPerSec() < 0.5;
+				var distFromNorthSource = driveTrans.getDistance(
+					AllianceUtil.flipIfRed(FieldConstants.CoralStation.leftCenterFace.getTranslation())
+				);
+				var distFromSouthSource = driveTrans.getDistance(
+					AllianceUtil.flipIfRed(FieldConstants.CoralStation.rightCenterFace.getTranslation())
+				);
+				return (distFromNorthSource < 0.8 || distFromSouthSource < 0.8)
+					       && Math.abs(drivetrain.getOverallSpeed().in(MetersPerSecond)) < 0.5
+						   && Math.abs(coralIntake.speedRadPerSec()) > 0.5;
 			})
 				.onTrue(coralIntake.setHasCoralInSimCmd(true));
 		}
@@ -94,8 +98,8 @@ public class RobotVisualization implements LogLocal {
 				        drivetrain.getMeasuredSpeeds(),
 				        drivetrain.bestPose().getRotation(),
 				        robotCenterToCoral.getMeasureZ(),
-				        MetersPerSecond.of(4),
-				        Radians.of(coralIntakePivot.angleRads())
+				        MetersPerSecond.of(2),
+				        Radians.of(coralIntakePivot.angleRads() - 0.2)
 			        )
 		        );
 			})

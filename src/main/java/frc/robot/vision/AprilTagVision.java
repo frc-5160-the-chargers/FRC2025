@@ -44,7 +44,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	static {
 		ARDUCAM_SIM_PROPERTIES.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
-		ARDUCAM_SIM_PROPERTIES.setCalibError(0.25, 0.08);
+		ARDUCAM_SIM_PROPERTIES.setCalibError(0.25, 0.15);
 		ARDUCAM_SIM_PROPERTIES.setAvgLatencyMs(35);
 		ARDUCAM_SIM_PROPERTIES.setLatencyStdDevMs(5);
 		ARDUCAM_SIM_PROPERTIES.setFPS(20);
@@ -55,7 +55,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double Z_ERROR_SCALAR = 100.0;
 	private static final double LINEAR_STD_DEV_BASELINE = 0.08;
 	private static final double ANGULAR_STD_DEV_BASELINE = 15.0;
-	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
+	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
 	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
 		new PhotonCamConfig("ABC", 1.0, new Transform3d(
 			Inches.of(16),

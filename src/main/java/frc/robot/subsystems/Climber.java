@@ -9,29 +9,30 @@ import frc.chargers.hardware.motorcontrol.SimMotor;
 
 @Logged
 public class Climber extends StandardSubsystem {
-	private final Motor leaderMotor1;
-	private final Motor leaderMotor2;
+	private final Motor motor2;
+	private final Motor motor1;
 
 	public Climber() {
-		leaderMotor1 = new SimMotor(
+		motor2 = new SimMotor(
 				SimMotor.SimMotorType.DC(DCMotor.getNEO(1), 0.004),
 				null);
-		leaderMotor2 = new SimMotor(
+		motor1 = new SimMotor(
 				SimMotor.SimMotorType.DC(DCMotor.getNEO(1), 0.004),
 				null);
 	}
 
 	public Command setVoltage(double voltage) {
 		return this.run(() -> {
-			leaderMotor1.setVoltage(voltage);
-			leaderMotor2.setVoltage(voltage);
+			motor2.setVoltage(voltage);
+			motor1.setVoltage(voltage);
 		});
 	}
 
 
 	@Override
-	public Command stopCmd() {
-		return setVoltage(0);
+	protected void requestStop() {
+		motor2.setVoltage(0);
+		motor1.setVoltage(0);
 	}
 
 	public Command climbUp() {

@@ -38,8 +38,8 @@ public class KitBotCoralOut extends StandardSubsystem {
     }
 
     @Override
-    public Command stopCmd() {
-        return this.runOnce(() -> motor.setVoltage(0));
+    protected void requestStop() {
+       motor.setVoltage(0);
     }
 
     @Override
