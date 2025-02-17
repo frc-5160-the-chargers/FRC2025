@@ -1,7 +1,4 @@
-/*
-Credits: 6328(AdvantageScope)
- */
-import {Decoder, Encoder} from "@msgpack/msgpack";
+import { Decoder, Encoder } from "@msgpack/msgpack";
 
 const typestrIdxLookup = {
     boolean: 0,
@@ -21,7 +18,7 @@ const typestrIdxLookup = {
     "string[]": 20
 };
 
-export type NTType = keyof typeof typestrIdxLookup;
+export type NTType = keyof typeof typestrIdxLookup
 
 class NT4_Subscription {
     uid = -1;
@@ -93,6 +90,9 @@ export class NT4_Client {
     private PORT = 5810;
     private RTT_PERIOD_MS_V40 = 1000;
     private RTT_PERIOD_MS_V41 = 250;
+    private TIMEOUT_MS_V40 = 5000;
+    private TIMEOUT_MS_V41 = 1000;
+
     private appName: string;
     private onTopicAnnounce: (topic: NT4_Topic) => void;
     private onTopicUnannounce: (topic: NT4_Topic) => void;
@@ -103,9 +103,9 @@ export class NT4_Client {
     private serverBaseAddr;
     private ws: WebSocket | null = null;
     private rttWs: WebSocket | null = null;
-    private timestampIntervalId: number | null = null;
-    private rttWsTimestampIntervalId: number | null = null;
-    private disconnectTimeoutId: number | null = null;
+    private timestampInterval: NodeJS.Timeout | null = null;
+    private rttWsTimestampInterval: NodeJS.Timeout | null = null;
+    private disconnectTimeout: NodeJS.Timeout | null = null;
     private serverAddr = "";
     private serverConnectionActive = false;
     private serverConnectionRequested = false;
@@ -146,13 +146,13 @@ export class NT4_Client {
         this.onConnect = onConnect;
         this.onDisconnect = onDisconnect;
 
-        this.timestampIntervalId = setInterval(() => {
+        this.timestampInterval = setInterval(() => {
             if (this.rttWs === null) {
                 // Use v4.0 timeout (RTT ws not created)
                 this.ws_sendTimestamp();
             }
         }, this.RTT_PERIOD_MS_V40);
-        setInterval(() => {
+        this.rttWsTimestampInterval = setInterval(() => {
             if (this.rttWs !== null) {
                 // Use v4.1 timeout (RTT ws was created)
                 this.ws_sendTimestamp();
@@ -195,14 +195,14 @@ export class NT4_Client {
             if (this.serverConnectionActive && this.ws) {
                 this.ws_onClose(new CloseEvent("close"), this.ws);
             }
-            if (this.timestampIntervalId !== null) {
-                clearInterval(this.timestampIntervalId);
+            if (this.timestampInterval !== null) {
+                clearInterval(this.timestampInterval);
             }
-            if (this.rttWsTimestampIntervalId !== null) {
-                clearInterval(this.rttWsTimestampIntervalId);
+            if (this.rttWsTimestampInterval !== null) {
+                clearInterval(this.rttWsTimestampInterval);
             }
-            if (this.disconnectTimeoutId !== null) {
-                clearTimeout(this.disconnectTimeoutId);
+            if (this.disconnectTimeout !== null) {
+                clearTimeout(this.disconnectTimeout);
             }
         }
     }
@@ -487,8 +487,8 @@ export class NT4_Client {
         this.rttWs?.close();
         this.ws = null;
         this.rttWs = null;
-        if (this.disconnectTimeoutId !== null) {
-            clearTimeout(this.disconnectTimeoutId);
+        if (this.disconnectTimeout !== null) {
+            clearTimeout(this.disconnectTimeout);
         }
 
         // User connection-closed hook
@@ -518,6 +518,8 @@ export class NT4_Client {
     }
 
     private ws_onMessage(event: MessageEvent, rttOnly: boolean) {
+        this.ws_resetTimeout();
+
         if (typeof event.data === "string") {
             // Exit if RTT only
             if (rttOnly) {
@@ -597,22 +599,7 @@ export class NT4_Client {
             for (let unpackedData of this.msgpackDecoder.decodeMulti(event.data)) {
                 let topicID = (unpackedData as unknown[])[0] as number;
                 let timestamp_us = (unpackedData as unknown[])[1] as number;
-                let typeIdx = (unpackedData as unknown[])[2] as number;
                 let value = (unpackedData as unknown[])[3];
-
-                // Validate types
-                if (topicID == null) {
-                    console.warn("[NT4] Ignoring binary data, topic ID is not a number");
-                    return;
-                }
-                if (timestamp_us == null) {
-                    console.warn("[NT4] Ignoring binary data, timestamp is not a number");
-                    return;
-                }
-                if (typeIdx == null) {
-                    console.warn("[NT4] Ignoring binary data, type index is not a number");
-                    return;
-                }
 
                 // Process data
                 if (topicID >= 0) {
@@ -640,18 +627,18 @@ export class NT4_Client {
         }
     }
 
-    // private ws_resetTimeout() {
-    //     if (this.disconnectTimeoutId !== null) {
-    //         clearTimeout(this.disconnectTimeoutId);
-    //     }
-    //     const timeout = this.rttWs === null ? this.TIMEOUT_MS_V40 : this.TIMEOUT_MS_V41;
-    //     this.disconnectTimeoutId = setTimeout(() => {
-    //         console.log("[NT4] No data for " + timeout.toString() + "ms, closing");
-    //         if (this.ws) {
-    //             this.ws_onClose(new CloseEvent("close"), this.ws);
-    //         }
-    //     }, timeout);
-    // }
+    private ws_resetTimeout() {
+        if (this.disconnectTimeout !== null) {
+            clearTimeout(this.disconnectTimeout);
+        }
+        const timeout = this.rttWs === null ? this.TIMEOUT_MS_V40 : this.TIMEOUT_MS_V41;
+        this.disconnectTimeout = setTimeout(() => {
+            console.log("[NT4] No data for " + timeout.toString() + "ms, closing");
+            if (this.ws) {
+                this.ws_onClose(new CloseEvent("close"), this.ws);
+            }
+        }, timeout);
+    }
 
     private ws_connect(rttWs = false) {
         this.serverAddr = "ws://" + this.serverBaseAddr + ":" + this.PORT.toString() + "/nt/" + this.appName;

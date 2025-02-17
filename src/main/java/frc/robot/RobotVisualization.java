@@ -19,7 +19,8 @@ import monologue.LogLocal;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnFly;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Radians;
 
 /** A class for rendering poses for advantagescope visualization. */
 public class RobotVisualization implements LogLocal {
@@ -61,7 +62,7 @@ public class RobotVisualization implements LogLocal {
 	}
 	
 	/** Renders the robot visualization. Must be called periodically. */
-	public void render() {
+	public void periodic() {
 		// logs relative positions for advantagescope visualization
 		double currentHeight = elevator.extensionHeight();
 		log("stage1Position", Pose3d.kZero);
@@ -98,8 +99,8 @@ public class RobotVisualization implements LogLocal {
 				        drivetrain.getMeasuredSpeeds(),
 				        drivetrain.bestPose().getRotation(),
 				        robotCenterToCoral.getMeasureZ(),
-				        MetersPerSecond.of(2),
-				        Radians.of(coralIntakePivot.angleRads() - 0.2)
+				        MetersPerSecond.of(5),
+				        Radians.of(coralIntakePivot.angleRads())
 			        )
 		        );
 			})

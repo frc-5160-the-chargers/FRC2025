@@ -1,4 +1,4 @@
-package frc.robot.vision;
+package frc.robot.components.vision;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -12,10 +12,8 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.TimedRobot;
 import lombok.Setter;
 import monologue.LogLocal;
-import org.jetbrains.annotations.Nullable;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
@@ -39,17 +37,7 @@ import static frc.chargers.utils.UtilMethods.toIntArray;
 public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
 		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
-	
 	private static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
-	
-	static {
-		ARDUCAM_SIM_PROPERTIES.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
-		ARDUCAM_SIM_PROPERTIES.setCalibError(0.25, 0.15);
-		ARDUCAM_SIM_PROPERTIES.setAvgLatencyMs(35);
-		ARDUCAM_SIM_PROPERTIES.setLatencyStdDevMs(5);
-		ARDUCAM_SIM_PROPERTIES.setFPS(20);
-	}
-	
 	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.1;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
@@ -79,6 +67,15 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		)).withSim(ARDUCAM_SIM_PROPERTIES)
 	);
 	
+	static {
+		ARDUCAM_SIM_PROPERTIES.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
+		ARDUCAM_SIM_PROPERTIES.setCalibError(0.25, 0.15);
+		ARDUCAM_SIM_PROPERTIES.setAvgLatencyMs(35);
+		ARDUCAM_SIM_PROPERTIES.setLatencyStdDevMs(5);
+		ARDUCAM_SIM_PROPERTIES.setFPS(20);
+		VISION_SYSTEM_SIM.ifPresent(it -> it.addAprilTags(FIELD_LAYOUT));
+	}
+	
 	private static class PhotonCamConfig {
 		public final PhotonCamera photonCam;
 		public final double stdDevFactor;
@@ -103,18 +100,15 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	@Setter private Consumer<GlobalPoseEstimate> globalEstimateConsumer = estimate -> {};
 	@Setter private Consumer<SingleTagPoseEstimate> singleTagEstimateConsumer = estimate -> {};
-	@Nullable @Setter private Supplier<Pose2d> simPoseSupplier = null;
+	@Setter private Supplier<Pose2d> simPoseSupplier = null;
+	
 	private final Alert connectionAlert = new Alert("", kError);
 	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
 	@Logged private final List<Pose3d> rejectedPoses = new ArrayList<>();
 	private final Set<Integer> fiducialIds = new HashSet<>();
 	
-	public AprilTagVision(TimedRobot robot) {
-		robot.addPeriodic(this::periodic, 0.02);
-		VISION_SYSTEM_SIM.ifPresent(it -> it.addAprilTags(FIELD_LAYOUT));
-	}
-	
-	private void periodic() {
+	/** Must be called periodically in the robotPeriodic method of the Robot class. */
+	public void periodic() {
 		acceptedPoses.clear();
 		rejectedPoses.clear();
 		fiducialIds.clear();

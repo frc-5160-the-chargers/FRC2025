@@ -7,7 +7,8 @@ import edu.wpi.first.util.struct.StructSerializable;
 
 import java.util.Map;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.util.struct.StructGenerator.genRecord;
 import static java.util.Map.entry;
 
@@ -19,11 +20,11 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget) implements St
 		entry(1, new Setpoint(Meters.zero(), Degrees.zero())),
 		entry(2, new Setpoint(Meters.of(0.42), Degrees.of(-30))),
 		entry(3, new Setpoint(Meters.of(0.82), Degrees.of(-30))),
-		entry(4, new Setpoint(Meters.of(1.18), Degrees.of(0)))
+		entry(4, new Setpoint(Meters.of(1.2), Degrees.of(0)))
 	);
 	
 	public static final Setpoint STOW = new Setpoint(Meters.zero(), Degrees.of(70));
-	public static final Setpoint SOURCE_INTAKE = new Setpoint(Meters.zero(), Degrees.of(0));
+	public static final Setpoint SOURCE_INTAKE = new Setpoint(Meters.of(0.22), Degrees.of(30));
 	
 	public static Setpoint score(int level) {
 		if (level < 1 || level > 4) {

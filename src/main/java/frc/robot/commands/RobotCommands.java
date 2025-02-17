@@ -6,7 +6,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
-import frc.robot.constants.PathfindingPoses;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -26,7 +25,7 @@ import static monologue.Monologue.GlobalLog;
  * robotCommands.moveTo(Setpoint.score(3)) // moves arm and elevator to L3
  * robotCommands.scoreSequence(3) // moves arm and elevator to L3, auto-outtakes, and stows. Only used in auto
  * // pathfind to reef position 4, then move arm + elevator
- * robotCommands.pathfindAndMoveTo(Setpoint.score(3), PathfindingPoses.reef(4))
+ * robotCommands.pathfindAndMoveTo(Setpoint.score(3), pathfindingPoses.reefBlue[4])
  * </code></pre>
  */
 @RequiredArgsConstructor
@@ -36,7 +35,6 @@ public class RobotCommands {
 	private final CoralIntakePivot coralIntakePivot;
 	private final Elevator elevator;
 	private final SwerveSetpointGenerator setpointGen;
-	private final PathfindingPoses pathfindingPoses;
 	
 	private Trigger readyToScore(Pose2d blueTargetPose) {
 		return new Trigger(() -> {
@@ -50,7 +48,7 @@ public class RobotCommands {
 	
 	public Command moveTo(Setpoint setpoint) {
 		return Commands.parallel(
-			Commands.runOnce(() -> GlobalLog.log("CurrentSetpoint", setpoint)),
+			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint)),
 			elevator.moveToHeightCmd(setpoint.elevatorHeight()),
 			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
 		).withName("moveToSetpoint");
@@ -76,20 +74,6 @@ public class RobotCommands {
 			moveTo(Setpoint.SOURCE_INTAKE),
 			coralIntake.intakeCmd()
 		).withName("sourceIntake");
-	}
-	
-	public Command pathfindAndIntakeNorthSource() {
-		return Commands.parallel(
-			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, pathfindingPoses.northSource()),
-			coralIntake.intakeCmd()
-		).withName("northSourcePathfindIntake");
-	}
-	
-	public Command pathfindAndIntakeSouthSource() {
-		return Commands.parallel(
-			pathfindAndMoveTo(Setpoint.SOURCE_INTAKE, pathfindingPoses.southSource()),
-			coralIntake.intakeCmd()
-		).withName("southSourcePathfindIntake");
 	}
 	
 	public Command moveToDemoSetpoint() {

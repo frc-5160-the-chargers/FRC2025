@@ -65,14 +65,7 @@ public class AutoCommands {
 		
 		return routine.cmd();
 	}
-
-	/*
-	autoFactory.trajectoryCmd("pathName").andThen(
-		command1,
-		command2,
-		command3
-	)
-	 */
+	
 	public Command figureEight() {
 		var routine = autoFactory.newRoutine("FigureEight");
 		var figureEight = routine.trajectory("FigureEight");

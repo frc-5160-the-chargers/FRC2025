@@ -1,5 +1,5 @@
 import {Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState} from "react";
-import {NT4_Client, NTType} from "./NT4.ts";
+import {NT4_Client, NTType} from "@/app/nt4/NT4";
 
 export function useNtPublisher<T>(
     client: NT4_Client,

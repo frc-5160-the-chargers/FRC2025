@@ -77,7 +77,7 @@ public class CoralIntake extends StandardSubsystem {
 	
 	public Command intakeCmd() {
 		return this.run(() -> motor.setVoltage(INTAKE_VOLTAGE))
-			       .until(hasCoral.and(() -> !runContinuously))
+			       .until(hasCoral)
 			       .andThen(this.run(() -> motor.setVoltage(INTAKE_VOLTAGE)).withTimeout(DELAY_SECS))
 			       .withName("CoralIntakeCmd");
 	}
@@ -87,6 +87,14 @@ public class CoralIntake extends StandardSubsystem {
 			       .until(hasCoral.negate().and(() -> !runContinuously))
 			       .andThen(this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(DELAY_SECS))
 			       .withName("CoralOuttakeCmd");
+	}
+	
+	public Command intakeForeverCmd() {
+		return this.run(() -> motor.setVoltage(INTAKE_VOLTAGE)).withName("CoralIntakeCmd(Forever)");
+	}
+	
+	public Command outtakeForeverCmd() {
+		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withName("CoralOuttakeCmd(Forever)");
 	}
 	
 	@Override

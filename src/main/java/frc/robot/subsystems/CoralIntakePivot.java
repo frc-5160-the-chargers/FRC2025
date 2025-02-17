@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
+import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.TunableValues.TunableNum;
 
@@ -20,22 +21,23 @@ import static edu.wpi.first.units.Units.Radians;
 
 // Currently, a positive angle means pointing up, and a negative one is pointing down
 public class CoralIntakePivot extends StandardSubsystem {
-	@Logged private final Motor leaderMotor;
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final Angle TOLERANCE = Degrees.of(2.0);
 	private static final double GEAR_RATIO = 12.0;
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 2.0);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.02);
 	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("CoralIntake/demoAngle(deg)", 0);
+	
+	@Logged private final Motor motor;
 
 	public CoralIntakePivot() {
 		if (RobotBase.isSimulation()) {
-			leaderMotor = new SimMotor(
+			motor = new SimMotor(
 				SimMotor.SimMotorType.DC(DCMotor.getKrakenX60(1), 0.025),
 				null
 			);
 		} else {
-			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, null);
+			motor = new ChargerTalonFX(LEFT_MOTOR_ID, true, null);
 		}
 		
 		setGearRatioAndPID();
@@ -44,7 +46,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 	
 	private void setGearRatioAndPID() {
-		leaderMotor.setControlsConfig(
+		motor.setControlsConfig(
 			Motor.ControlsConfig.EMPTY
 				.withGearRatio(GEAR_RATIO)
 				.withPositionPID(new PIDConstants(KP.get(), 0.0, KD.get()))
@@ -57,13 +59,17 @@ public class CoralIntakePivot extends StandardSubsystem {
 
 	public Command setAngleCmd(Angle target) {
 		return this.run(() -> {
-			leaderMotor.moveToPosition(target.in(Radians));
+			motor.moveToPosition(target.in(Radians));
 			log("targetAngle", target);
 		}).until(atAngle(target));
 	}
 	
+	public Command setPowerCmd(InputStream controllerInput) {
+		return this.run(() -> motor.setVoltage(controllerInput.get() * 12));
+	}
+	
 	public double angleRads() {
-		return leaderMotor.encoder().positionRad();
+		return motor.encoder().positionRad();
 	}
 	
 	public Trigger atAngle(Angle target) {
@@ -72,6 +78,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	@Override
 	public void requestStop() {
-		leaderMotor.setVoltage(0);
+		motor.setVoltage(0);
 	}
 }
