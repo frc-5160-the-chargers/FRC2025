@@ -5,9 +5,12 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.StatusSignalRefresher;
@@ -43,6 +46,11 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		logMetadata();
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
+		DriverStation.silenceJoystickConnectionWarning(true);
+		SmartDashboard.putData(
+			"View Connection warnings",
+			Commands.runOnce(() -> DriverStation.silenceJoystickConnectionWarning(false))
+		);
 		
 		mapTriggers();
 		mapDefaultCommands();

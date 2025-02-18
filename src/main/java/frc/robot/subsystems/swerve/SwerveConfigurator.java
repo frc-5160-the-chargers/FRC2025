@@ -45,7 +45,7 @@ public class SwerveConfigurator {
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(2, 0.0, 0.0), // azimuth pid
+			new PIDConstants(4.5, 0.001, 0.2), // azimuth pid
 			new PIDConstants(2.0, 0.0, 0.01), // velocity pid
 			new SimpleMotorFeedforward(0.032, 2.73), // velocity feedforward
 			new PIDConstants(5.0, 0.0, 0.0), // path translation pid
@@ -70,7 +70,7 @@ public class SwerveConfigurator {
 	
 	private static class RealDriveMotor extends ChargerTalonFX {
 		public RealDriveMotor(SwerveCorner corner) {
-			super(getId(corner), true, getConfig(corner));
+			super(getId(corner), true, getConfig());
 			//super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
 		}
 		
@@ -83,7 +83,7 @@ public class SwerveConfigurator {
 			};
 		}
 		
-		private static TalonFXConfiguration getConfig(SwerveCorner corner) {
+		private static TalonFXConfiguration getConfig() {
 			var config = new TalonFXConfiguration();
 			config.CurrentLimits
 				.withStatorCurrentLimit(DRIVE_STATOR_CURRENT_LIMIT)
@@ -139,10 +139,10 @@ public class SwerveConfigurator {
 		private static CANcoderConfiguration getConfig(SwerveCorner corner) {
 			var config = new CANcoderConfiguration();
 			var offset = switch (corner) {
-				case TOP_LEFT -> Radians.of(1.13);
-				case TOP_RIGHT -> Radians.of(-0.18);
-				case BOTTOM_LEFT -> Radians.of(1.702);
-				case BOTTOM_RIGHT -> Radians.of(-1.6);
+				case TOP_LEFT -> Radians.of(-0.63).plus(Degrees.of(-45));
+				case TOP_RIGHT -> Radians.of(0).plus(Degrees.of(45));
+				case BOTTOM_LEFT -> Radians.of(0.12).plus(Degrees.of(45));
+				case BOTTOM_RIGHT -> Radians.of(-1.32).plus(Degrees.of(-45));
 			};
 			
 			config.MagnetSensor

@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
@@ -115,10 +116,15 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
 		//vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
 		vision.setSimPoseSupplier(drivetrain::bestPose);
+		DriverStation.silenceJoystickConnectionWarning(true);
+		SmartDashboard.putData(
+			"View Connection warnings",
+			Commands.runOnce(() -> DriverStation.silenceJoystickConnectionWarning(false))
+		);
+		
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
-			DriverStation.silenceJoystickConnectionWarning(true);
 		}
 	}
 	
