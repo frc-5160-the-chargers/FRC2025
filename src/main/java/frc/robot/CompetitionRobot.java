@@ -11,13 +11,14 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
@@ -29,6 +30,7 @@ import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.commands.WheelRadiusCharacterization.Direction;
 import frc.robot.components.GyroWrapper;
 import frc.robot.components.OperatorUi;
+import frc.robot.components.vision.AprilTagVision;
 import frc.robot.constants.PathfindingPoses;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
@@ -36,7 +38,6 @@ import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import frc.robot.components.vision.AprilTagVision;
 import monologue.ExtrasLogger;
 import monologue.LogLocal;
 import monologue.Monologue;
@@ -117,6 +118,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+			DriverStation.silenceJoystickConnectionWarning(true);
 		}
 	}
 	
@@ -225,23 +227,43 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		ExtrasLogger.start(this, new PowerDistribution());
 	}
 	
+	private static class SimulatedAutoEnder extends Command {
+		private double startTime = 0.0;
+		
+		@Override
+		public void initialize() {
+			startTime = System.nanoTime();
+		}
+		
+		@Override
+		public boolean isFinished() {
+			return (System.nanoTime() - startTime) / 1e9 > 15.3;
+		}
+		
+		@Override
+		public void end(boolean interrupted) {
+			DriverStationSim.setEnabled(false);
+		}
+	}
+	
 	private void mapAutoModes() {
 		// TODO
 		autoChooser.addCmd("multi piece center", autoCommands::multiPieceCenter);
+		autoChooser.addCmd("multi piece test", autoCommands::multiPieceTest);
 		autoChooser.addCmd("figure eight", autoCommands::figureEight);
 		autoChooser.addCmd("simple path", autoCommands::pathTest);
 		
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		autonomous()
 			.onTrue(autoChooser.selectedCommandScheduler())
-			.onTrue(Commands.waitSeconds(15.3).andThen(() -> DriverStationSim.setEnabled(false)));
+			.onTrue(new SimulatedAutoEnder());
 	}
 	
 	private void mapTestCommands() {
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd(
 			"(Test) Pathfind",
-			() -> drivetrain.pathfindCmd(pathfindingPoses.reefBlue[1], true, setpointGen)
+			() -> drivetrain.pathfindCmd(pathfindingPoses.reefBlue[5], true, setpointGen)
 		);
 		testModeChooser.addCmd(
 			"(Test) Outtake",

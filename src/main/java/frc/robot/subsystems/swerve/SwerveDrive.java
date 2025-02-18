@@ -30,6 +30,7 @@ import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -37,10 +38,10 @@ import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
-import frc.robot.subsystems.StandardSubsystem;
 import frc.robot.components.vision.GlobalPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimator;
+import frc.robot.subsystems.StandardSubsystem;
 import lombok.RequiredArgsConstructor;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.COTS;
@@ -58,6 +59,7 @@ import java.util.function.Supplier;
 import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 
 /**
  * A drivetrain with 4 drive motors and 4 steer motors.
@@ -223,6 +225,8 @@ public class SwerveDrive extends StandardSubsystem {
 		this.rotationController = controlsConfig.pathRotationPID.asController();
 		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
 		
+		int[] steerIds = new int[4];
+		int[] driveIds = new int[4];
 		for (int i = 0; i < 4; i++) {
 			Motor steerMotor;
 			Motor driveMotor;
@@ -253,6 +257,9 @@ public class SwerveDrive extends StandardSubsystem {
 					.withVelocityPID(controlsConfig.velocityPID)
 			);
 			
+			steerIds[i] = steerMotor.id();
+			driveIds[i] = driveMotor.id();
+			
 			this.swerveModules[i] = new SwerveModule(
 				driveMotor, steerMotor, absoluteEncoder,
 				moduleType.wheelRadius,
@@ -260,6 +267,8 @@ public class SwerveDrive extends StandardSubsystem {
 				controlsConfig.velocityFeedforward
 			);
 		}
+		log("steerIds", steerIds);
+		log("driveIds", driveIds);
 		if (RobotBase.isSimulation()) {
 			// assuming perfect gyro
 			this.gyroYawSupplier = () -> mapleSim.getSimulatedDriveTrainPose().getRotation();
@@ -271,6 +280,18 @@ public class SwerveDrive extends StandardSubsystem {
 		this.topRightModule = this.swerveModules[1];
 		this.bottomLeftModule = this.swerveModules[2];
 		this.bottomRightModule = this.swerveModules[3];
+		
+		disabled()
+			.onTrue(Commands.runOnce(() -> {
+				for (var module: swerveModules) {
+					module.setCoast(true);
+				}
+			}))
+			.onFalse(Commands.runOnce(() -> {
+				for (var module: swerveModules) {
+					module.setCoast(false);
+				}
+			}));
 	}
 
 	private boolean isRedAlliance() {
@@ -554,11 +575,11 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	public void updateOdometry() {
+		log("OdometryIsUpdating", true);
 		Rotation2d latestHeading = gyroYawSupplier.get();
 		for (int i = 0; i < 4; i++) {
 			measuredModuleStates[i] = swerveModules[i].currentState();
 			measuredModulePositions[i] = swerveModules[i].currentPosition();
-			if (DriverStation.isDisabled()) requestStop();
 		}
 		poseEstimator.update(latestHeading, measuredModulePositions);
 		singleTagPoseEstimator.update(latestHeading, measuredModulePositions);
@@ -583,6 +604,9 @@ public class SwerveDrive extends StandardSubsystem {
 	@Override
 	public void periodic() {
 		if (controlsConfig.poseEstimationMode == PoseEstimationMode.AUTOMATIC) updateOdometry();
+		if (DriverStation.isDisabled()) {
+			requestStop();
+		}
 	}
 	
 	@Override

@@ -41,23 +41,25 @@ public class RobotVisualization implements LogLocal {
 		
 		if (RobotBase.isSimulation()) {
 			coralIntake.hasCoral
-				.and(() -> coralIntake.speedRadPerSec() > 0.5)
+				.and(() -> coralIntake.velocityRadPerSec() > 0.5)
 				.onTrue(visualizeCoralOuttakeCmd());
 			
 			// if close to either source(and stopped), simulate the robot getting a gamepiece
 			new Trigger(() -> {
 				var driveTrans = drivetrain.bestPose().getTranslation();
-				var distFromNorthSource = driveTrans.getDistance(
+				var distFromEastSource = driveTrans.getDistance(
 					AllianceUtil.flipIfRed(FieldConstants.CoralStation.leftCenterFace.getTranslation())
 				);
-				var distFromSouthSource = driveTrans.getDistance(
+				var distFromWestSource = driveTrans.getDistance(
 					AllianceUtil.flipIfRed(FieldConstants.CoralStation.rightCenterFace.getTranslation())
 				);
-				return (distFromNorthSource < 0.8 || distFromSouthSource < 0.8)
-					       && Math.abs(drivetrain.getOverallSpeed().in(MetersPerSecond)) < 0.5
-						   && Math.abs(coralIntake.speedRadPerSec()) > 0.5;
+				log("distFromEastSource", distFromEastSource);
+				log("distFromWestSource", distFromWestSource);
+				return (distFromEastSource < 1 || distFromWestSource < 1)
+					       && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.1
+						   && Math.abs(coralIntake.velocityRadPerSec()) > 0.5;
 			})
-				.onTrue(coralIntake.setHasCoralInSimCmd(true));
+				.onTrue(Commands.waitSeconds(0.5).andThen(coralIntake.setHasCoralInSimCmd(true)));
 		}
 	}
 	

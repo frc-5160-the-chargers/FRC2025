@@ -27,6 +27,7 @@ public interface Motor extends AutoCloseable {
 	double outputVoltage();
 	double statorCurrent();
 	double tempCelsius();
+	int id();
 	
 	void setControlsConfig(ControlsConfig newConfig);
 	void setVoltage(double volts);

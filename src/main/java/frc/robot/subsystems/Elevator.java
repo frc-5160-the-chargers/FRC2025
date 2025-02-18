@@ -41,10 +41,10 @@ public class Elevator extends StandardSubsystem {
 	private static final double GEAR_RATIO = 54.0 / 8.0;
 	private static final Distance DRUM_RADIUS = Inches.of(1.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(0.05);
-	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2.0);
+	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2.5);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(10.0);
 	private static final Distance TOLERANCE = Inches.of(0.5);
-	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.3);
+	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.4);
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final int RIGHT_MOTOR_ID = 6;
@@ -85,6 +85,8 @@ public class Elevator extends StandardSubsystem {
 		} else {
 			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
 		}
+		leaderMotor.encoder().setPositionReading(Radians.zero());
+		
 		followerMotor = new TalonFX(RobotBase.isSimulation() ? SimMotor.getDummyId() : RIGHT_MOTOR_ID);
 		tryUntilOk(followerMotor, () -> followerMotor.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
 		BaseStatusSignal.setUpdateFrequencyForAll(50, followerMotor.getStatorCurrent(), followerMotor.getDeviceTemp());
@@ -101,9 +103,9 @@ public class Elevator extends StandardSubsystem {
 		// required to enable following
 		followerMotor.setControl(new Follower(LEFT_MOTOR_ID, false));
 		
-		leaderMotor.encoder().setPositionReading(Radians.zero());
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		readyForMovement = movingUp.negate().and(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
+		
 		sysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
 				null, null, null,
@@ -116,6 +118,7 @@ public class Elevator extends StandardSubsystem {
 				"Elevator routine"
 			)
 		);
+		
 		setGearRatioAndPID();
 		KP.changed.or(KD.changed)
 			.onTrue(Commands.runOnce(this::setGearRatioAndPID));

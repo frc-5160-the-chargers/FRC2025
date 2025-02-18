@@ -1,4 +1,4 @@
-import { Decoder, Encoder } from "@msgpack/msgpack";
+import {Decoder, Encoder} from "@msgpack/msgpack";
 
 const typestrIdxLookup = {
     boolean: 0,

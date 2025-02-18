@@ -112,7 +112,7 @@ public class FieldConstants {
 				Map<ReefHeight, Pose3d> fillRight = new HashMap<>();
 				Map<ReefHeight, Pose3d> fillLeft = new HashMap<>();
 				for (var level : ReefHeight.values()) {
-					Pose2d poseDirection = new Pose2d(center, Rotation2d.fromDegrees(-(60 * face)));
+					Pose2d poseDirection = new Pose2d(center, Rotation2d.fromDegrees(180 - (60 * face)));
 					double adjustX = Units.inchesToMeters(30.738);
 					double adjustY = Units.inchesToMeters(6.469);
 					

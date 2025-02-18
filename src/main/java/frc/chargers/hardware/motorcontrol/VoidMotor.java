@@ -10,9 +10,10 @@ public class VoidMotor implements Motor {
 	private static final Encoder ENCODER = new VoidEncoder();
 	
 	public Encoder encoder() { return ENCODER; }
-	public double outputVoltage() { return 0; }
-	public double statorCurrent() { return 0; }
-	public double tempCelsius() { return 0; }
+	public double outputVoltage() { return -1; }
+	public double statorCurrent() { return -1; }
+	public double tempCelsius() { return -1; }
+	public int id() { return -1; }
 	public void setControlsConfig(ControlsConfig newConfig) {}
 	public void setVoltage(double volts) {}
 	public void setVelocity(double velocityRadPerSec, double ffVolts) {}

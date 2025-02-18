@@ -16,13 +16,16 @@ import kotlin.system.exitProcess
 class ChoreoVariableWriter : TimedRobot() {
     init {
         val pathfindingPoses = PathfindingPoses(
-            Translation2d(Inches.of(-7.5), Inches.of(-15.0)),  // reef offset
+            Translation2d(Inches.of(-15.0), Inches.of(-7.5)),  // reef offset
             Translation2d(Meters.of(-0.13), Meters.of(-0.5)),  // north source offset,
             Translation2d(Meters.of(-0.13), Meters.of(0.5)),  // south source offset
             SwerveConfigurator.HARDWARE_SPECS
         )
         if (isReal()) throw RuntimeException("Dont run this on the real robot...")
         val choreoFile = ChoreoFile.from(File(Filesystem.getDeployDirectory().path + "/choreo/Autos.chor"))
+        repeat(12) { i ->
+            choreoFile.setVariable("reef$i", pathfindingPoses.reefBlue[i])
+        }
         choreoFile.setVariable("northSource", pathfindingPoses.eastSourceBlue)
         choreoFile.setVariable("southSource", pathfindingPoses.westSourceBlue)
         choreoFile.write()

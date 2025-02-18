@@ -6,12 +6,15 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
+import frc.chargers.utils.TunableValues.TunableNum;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
+
+import java.util.function.BooleanSupplier;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
@@ -54,11 +57,23 @@ public class RobotCommands {
 		).withName("moveToSetpoint");
 	}
 	
-	/** A complete scoring sequence(move to position, outtake, then move back). Only use in auto. */
-	public Command scoreSequence(int scoringLevel) {
+	/**
+	 * A complete scoring sequence(move to position, outtake, then move back). Only use in auto.
+	 * @param scoringLevel the level to score on(L1-L4)
+	 * @param outtakeEvent once this supplier returns true, the command will begin to outtake coral.
+	 */
+	public Command scoreSequence(int scoringLevel, BooleanSupplier outtakeEvent) {
 		return moveTo(Setpoint.score(scoringLevel))
-			       .andThen(coralIntake.outtakeCmd(), moveTo(Setpoint.STOW))
-			       .withName("scoreSequenceL" + scoringLevel);
+			       .andThen(
+					   Commands.waitUntil(outtakeEvent),
+					   coralIntake.outtakeCmd(),
+				       moveTo(Setpoint.STOW)
+			       )
+			       .withName("l" + scoringLevel + "ScoreSequence");
+	}
+	
+	public Command scoreSequence(int scoringLevel) {
+		return scoreSequence(scoringLevel, () -> true);
 	}
 	
 	public Command pathfindAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose) {

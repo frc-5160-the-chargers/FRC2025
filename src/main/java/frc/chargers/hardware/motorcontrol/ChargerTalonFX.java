@@ -131,6 +131,11 @@ public class ChargerTalonFX implements Motor {
 	}
 	
 	@Override
+	public int id() {
+		return baseApi.getDeviceID();
+	}
+	
+	@Override
 	public void moveToPosition(double positionRads, double ffVolts) {
 		if (useTorqueCurrentControl) {
 			setAngleWithTorqueRequest.Position = radiansToRotations(positionRads);

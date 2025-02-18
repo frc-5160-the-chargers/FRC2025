@@ -22,6 +22,7 @@ import monologue.LogLocal;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
 
+import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
@@ -80,6 +81,11 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		});
 	}
 	
+	@Logged
+	public Rotation2d relativeSteerPosition() {
+		return Rotation2d.fromRadians(angleModulus(steerMotor.encoder().positionRad()));
+	}
+	
 	public void resetSteerEncoder() {
 		steerMotor.encoder().setPositionReading(absoluteEncoder.position());
 	}
@@ -93,6 +99,7 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		} else {
 			FF_ALERT.set(additionalFeedforward > 0.0);
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
+			log("!!!!!desiredVolts", voltage);
 			driveMotor.setVoltage(voltage);
 		}
 	}
@@ -125,6 +132,11 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 	
 	public void setDriveVoltage(double voltage){
 		driveMotor.setVoltage(voltage);
+	}
+	
+	public void setCoast(boolean enabled) {
+		driveMotor.setCoastMode(enabled);
+		steerMotor.setCoastMode(enabled);
 	}
 	
 	@Override

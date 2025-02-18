@@ -114,6 +114,11 @@ public class ChargerSpark implements Motor {
 	public double tempCelsius() { return baseApi.getMotorTemperature(); }
 	
 	@Override
+	public int id() {
+		return baseApi.getDeviceId();
+	}
+	
+	@Override
 	public void setVoltage(double volts) { baseApi.setVoltage(volts); }
 	
 	@Override

@@ -4,6 +4,7 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -48,7 +49,7 @@ public class SwerveConfigurator {
 			new PIDConstants(2.0, 0.0, 0.01), // velocity pid
 			new SimpleMotorFeedforward(0.032, 2.73), // velocity feedforward
 			new PIDConstants(5.0, 0.0, 0.0), // path translation pid
-			new PIDConstants(5.0, 0.0, 0.0), // path rotation pid,
+			new PIDConstants(10.0, 0.0, 0.0), // path rotation pid,
 			0.0, // kT
 			PoseEstimationMode.AUTOMATIC
 		);
@@ -69,7 +70,7 @@ public class SwerveConfigurator {
 	
 	private static class RealDriveMotor extends ChargerTalonFX {
 		public RealDriveMotor(SwerveCorner corner) {
-			super(getId(corner), true, getConfig());
+			super(getId(corner), true, getConfig(corner));
 			//super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
 		}
 		
@@ -82,13 +83,16 @@ public class SwerveConfigurator {
 			};
 		}
 		
-		private static TalonFXConfiguration getConfig() {
+		private static TalonFXConfiguration getConfig(SwerveCorner corner) {
 			var config = new TalonFXConfiguration();
 			config.CurrentLimits
 				.withStatorCurrentLimit(DRIVE_STATOR_CURRENT_LIMIT)
 				.withStatorCurrentLimitEnable(true)
 				.withSupplyCurrentLimit(DRIVE_CURRENT_LIMIT)
 				.withSupplyCurrentLimitEnable(true);
+			config.MotorOutput
+				.withNeutralMode(NeutralModeValue.Brake)
+				.withInverted(InvertedValue.CounterClockwise_Positive);
 			return config;
 		}
 	}
@@ -115,7 +119,9 @@ public class SwerveConfigurator {
 				.withStatorCurrentLimitEnable(true)
 				.withSupplyCurrentLimit(60)
 				.withSupplyCurrentLimitEnable(true);
-			config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+			config.MotorOutput
+				.withInverted(InvertedValue.Clockwise_Positive)
+				.withNeutralMode(NeutralModeValue.Brake);
 			return config;
 		}
 	}
@@ -133,13 +139,15 @@ public class SwerveConfigurator {
 		private static CANcoderConfiguration getConfig(SwerveCorner corner) {
 			var config = new CANcoderConfiguration();
 			var offset = switch (corner) {
-				case TOP_LEFT -> Radians.of(-0.614 + 0.037).plus(Degrees.of(45));
-				case TOP_RIGHT -> Radians.of(.002).plus(Degrees.of(-45));
-				case BOTTOM_LEFT -> Radians.of(.156 - .754).plus(Degrees.of(-45));
-				case BOTTOM_RIGHT -> Radians.of(-1.301).plus(Degrees.of(45));
+				case TOP_LEFT -> Radians.of(1.13);
+				case TOP_RIGHT -> Radians.of(-0.18);
+				case BOTTOM_LEFT -> Radians.of(1.702);
+				case BOTTOM_RIGHT -> Radians.of(-1.6);
 			};
 			
-			config.MagnetSensor.withMagnetOffset(offset).withSensorDirection(SensorDirectionValue.CounterClockwise_Positive);
+			config.MagnetSensor
+				.withMagnetOffset(offset)
+				.withSensorDirection(SensorDirectionValue.CounterClockwise_Positive);
 			return config;
 		}
 		

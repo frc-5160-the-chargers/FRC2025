@@ -17,7 +17,7 @@ public class PathfindingPoses {
 	 * A list of pathfinding poses corresponding to the various scoring locations
 	 * the robot should target on the blue alliance side.
 	 * The pose at index 0 is the bottom scoring position on the side of the reef
-	 * facing the driver station(green balls in choreo). The order is counterclockwise positive.
+	 * facing the driver station(green balls in choreo). The order is clockwise positive.
 	 */
 	public final Pose2d[] reefBlue = new Pose2d[12];
 	/** The north source intaking position on the blue alliance side. */

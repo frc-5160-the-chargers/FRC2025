@@ -59,7 +59,7 @@ public class CoralIntake extends StandardSubsystem {
 		);
 	}
 	
-	public double speedRadPerSec() {
+	public double velocityRadPerSec() {
 		return motor.encoder().velocityRadPerSec();
 	}
 	
