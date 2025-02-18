@@ -8,12 +8,8 @@ import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.DataLogManager;
-import edu.wpi.first.wpilibj.PowerDistribution;
-import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -105,6 +101,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		DataLogManager.start();
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
+		if (RobotBase.isSimulation()) DriverStation.silenceJoystickConnectionWarning(true);
 		
 		mapTriggers();
 		mapDefaultCommands();

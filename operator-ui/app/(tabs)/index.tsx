@@ -1,11 +1,11 @@
-import {Button, StyleSheet, Text, View} from "react-native";
+import {AppState, Button, StyleSheet, Text, View} from "react-native";
 import {useEffect, useState} from "react";
 import {useNtPublisher} from "@/app/nt4/useNtPublisher";
 import {NT4_Client} from "@/app/nt4/NT4";
 
-const IS_SIM = false
+const IS_SIM = true
 
-export function Index() {
+export default function Index() {
     const [isLoading, setLoading] = useState(false)
     const [client] = useState(
         new NT4_Client(
@@ -23,8 +23,11 @@ export function Index() {
 
     useEffect(() => {
         client.connect().then(() => console.log("Client connected"))
-        addEventListener("pagehide", () => client.disconnect())
+        const appStateId = AppState.addEventListener('change', client.disconnect);
+        return appStateId.remove;
     }, []);
+
+    console.log("I should be here....")
 
     return (
         <View style={styles}>
@@ -32,7 +35,10 @@ export function Index() {
             <Button
                 title="Broadcast test"
                 disabled={isLoading}
-                onPress={() => setRawValue(true)}
+                onPress={() => {
+                    setRawValue(true)
+                    console.log("press just happened! conn active: " + client.serverConnectionActive)
+                }}
             />
             <Text>Edit app/index.tsx to edit this screen.</Text>
         </View>

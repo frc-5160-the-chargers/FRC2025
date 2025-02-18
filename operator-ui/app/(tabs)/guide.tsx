@@ -1,9 +1,10 @@
 import {View} from "react-native";
+import {Text} from "react-native";
 
-export function Guide() {
+export default function Guide() {
     return (
         <View>
-            Yo whassup... this is tbd
+            <Text>Yo whassup this is tbd</Text>
         </View>
     )
 }

@@ -97,19 +97,12 @@
       "Epilogue": {
         "Stats": {
           "open": true
-        },
-        "open": true
+        }
       },
       "GlobalLog": {
         "RadioStatus": {
           "open": true
         },
-        "open": true
-      },
-      "Metadata": {
-        "open": true
-      },
-      "RadioStatus": {
         "open": true
       },
       "RepulsorConfig": {
@@ -231,7 +224,6 @@
             "open": true
           }
         },
-        "open": true,
         "otherLift": {
           "open": true
         },
@@ -259,8 +251,7 @@
               "open": true
             },
             "open": true
-          },
-          "open": true
+          }
         }
       },
       "SmartDashboard": {
@@ -278,11 +269,7 @@
             "open": true
           },
           "open": true
-        },
-        "open": true
-      },
-      "SystemStats": {
-        "open": true
+        }
       },
       "photonvision": {
         "ABC": {
@@ -295,6 +282,12 @@
     }
   },
   "NetworkTables Info": {
+    "Connections": {
+      "open": true
+    },
+    "Server": {
+      "open": true
+    },
     "visible": true
   }
 }

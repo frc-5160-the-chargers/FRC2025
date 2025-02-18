@@ -96,5 +96,10 @@
       <option name="name" value="WPI8ef3423d-9532-4665-8339-206dae1d7168_0Release" />
       <option name="url" value="https://storage.googleapis.com/grapple-frc-maven" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="WPILocal" />
+      <option name="name" value="WPILocal" />
+      <option name="url" value="file:$USER_HOME$/wpilib/2025/maven" />
+    </remote-repository>
   </component>
 </project>

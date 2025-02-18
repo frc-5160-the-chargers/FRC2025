@@ -107,7 +107,7 @@ export class NT4_Client {
     private rttWsTimestampInterval: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
     private serverAddr = "";
-    private serverConnectionActive = false;
+    serverConnectionActive = false;
     private serverConnectionRequested = false;
     private serverTimeOffset_us: number | null = null;
     private networkLatency_us: number = 0;
