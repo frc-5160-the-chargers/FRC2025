@@ -17,7 +17,7 @@ import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static monologue.Monologue.GlobalLog;
 
 /**
- * Commands that need more than one subsystem.
+ * Competition robot-specific commands that need more than one subsystem.
  * Example usage:
  * <pre><code>
  * RobotCommands robotCommands = new RobotCommands(...);

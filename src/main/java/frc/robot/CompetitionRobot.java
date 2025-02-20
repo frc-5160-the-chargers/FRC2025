@@ -15,9 +15,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
@@ -27,6 +25,7 @@ import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
+import frc.robot.commands.SimulatedAutoEnder;
 import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.commands.WheelRadiusCharacterization.Direction;
 import frc.robot.components.GyroWrapper;
@@ -233,25 +232,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
 		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
 		ExtrasLogger.start(this, new PowerDistribution());
-	}
-	
-	private static class SimulatedAutoEnder extends Command {
-		private double startTime = 0.0;
-		
-		@Override
-		public void initialize() {
-			startTime = System.nanoTime();
-		}
-		
-		@Override
-		public boolean isFinished() {
-			return (System.nanoTime() - startTime) / 1e9 > 15.3;
-		}
-		
-		@Override
-		public void end(boolean interrupted) {
-			DriverStationSim.setEnabled(false);
-		}
 	}
 	
 	private void mapAutoModes() {

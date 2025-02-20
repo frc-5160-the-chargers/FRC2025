@@ -29,6 +29,7 @@ import static monologue.Monologue.GlobalLog;
  * An implementation of 6328's trig-based pose estimation algorithm.
  * This algorithm provides a significant decrease in estimation uncertainty,
  * at the cost of a slight increase in innacuracy(as well as focusing only on 1 tag at a time).
+ * TODO: This is not working yet...
  */
 public class SingleTagPoseEstimator {
 	// Must be less than 2.0
