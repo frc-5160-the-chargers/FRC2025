@@ -14,7 +14,6 @@ import frc.chargers.hardware.encoders.ChargerCANcoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.utils.PIDConstants;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
-import frc.robot.subsystems.swerve.SwerveDrive.PoseEstimationMode;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveCorner;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveHardwareSpecs;
@@ -26,7 +25,7 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
-	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(90);
+	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(110);
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
 	public static final double ODOMETRY_FREQUENCY_HZ = 200;
@@ -40,18 +39,17 @@ public class SwerveConfigurator {
 			DCMotor.getKrakenX60(1), // turn motor type
 			MetersPerSecond.of(4.5), // max linear speed
 			DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
-			Pounds.of(84), // mass
+			Pounds.of(120), // mass
 			Inches.of(2) // width of bumpers
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(4.5, 0.001, 0.2), // azimuth pid
-			new PIDConstants(2.0, 0.0, 0.01), // velocity pid
-			new SimpleMotorFeedforward(0.032, 2.73), // velocity feedforward
-			new PIDConstants(5.0, 0.0, 0.0), // path translation pid
-			new PIDConstants(10.0, 0.0, 0.0), // path rotation pid,
-			0.0, // kT
-			PoseEstimationMode.AUTOMATIC
+			new PIDConstants(8, 0.001, 0.2), // azimuth pid
+			new PIDConstants(5.0, 0, 0), // velocity pid
+			new SimpleMotorFeedforward(0, 0.128), // velocity feedforward
+			new PIDConstants(10.0, 0, 0), // path translation pid
+			new PIDConstants(10.0, 0, 0), // path rotation pid,
+			0.0 // kT
 		);
 	public static final SwerveMotorConfig DEFAULT_MOTOR_CONFIG =
 		new SwerveMotorConfig(

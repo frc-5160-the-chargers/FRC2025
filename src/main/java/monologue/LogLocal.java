@@ -327,8 +327,9 @@ public interface LogLocal {
    */
   default <R extends StructSerializable> R log(String key, R value) {
     if (Monologue.IS_DISABLED) return value;
-    var struct = StructFetcher.fetchStruct((Class<R>) value.getClass()).orElseThrow();
-    return log(key, value, struct);
+    var structOpt = StructFetcher.fetchStruct((Class<R>) value.getClass());
+    if (structOpt.isEmpty()) return value;
+    return log(key, value, structOpt.get());
   }
 
   /**
@@ -341,8 +342,9 @@ public interface LogLocal {
    */
   default <R extends StructSerializable> R[] log(String key, R[] value) {
     if (Monologue.IS_DISABLED) return value;
-    var struct = StructFetcher.fetchStruct((Class<R>) value.getClass().getComponentType()).orElseThrow();
-    return log(key, value, struct);
+    var structOpt = StructFetcher.fetchStruct((Class<R>) value.getClass().getComponentType());
+    if (structOpt.isEmpty()) return value;
+    return log(key, value, structOpt.get());
   }
 
   /**

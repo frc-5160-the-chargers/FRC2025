@@ -112,6 +112,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		mapDefaultCommands();
 		mapAutoModes();
 		mapTestCommands();
+		
+		addPeriodic(drivetrain::updateOdometry, 0.02);
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
 		//vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
@@ -180,7 +182,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		driverController.R1()
 			.whileTrue(coralIntake.outtakeForeverCmd());
 		driverController.L1()
-			.whileTrue(botCommands.moveTo(Setpoint.STOW));
+			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
 		driverController.R2()
 			.whileTrue(botCommands.sourceIntake());
 		
@@ -254,7 +256,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapAutoModes() {
 		// TODO
-		autoChooser.addCmd("multi piece center", autoCommands::multiPieceCenter);
+		autoChooser.addCmd("multi piece center", () -> autoCommands.multiPieceCenter(4));
 		autoChooser.addCmd("multi piece test", autoCommands::multiPieceTest);
 		autoChooser.addCmd("figure eight", autoCommands::figureEight);
 		autoChooser.addCmd("simple path", autoCommands::pathTest);
@@ -282,7 +284,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		if (RobotBase.isSimulation()) {
 			testModeChooser.addCmd(
 				"(Test) StowAndSimulateCoral",
-				() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.moveTo(Setpoint.STOW))
+				() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.moveTo(Setpoint.STOW_LOW))
 			);
 		}
 		testModeChooser.addCmd(
@@ -296,6 +298,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd(
 			"ElevatorCharacterization",
 			elevator::sysIdCmd
+		);
+		testModeChooser.addCmd(
+			"DriveCharacteriation",
+			drivetrain::sysIdCmd
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);

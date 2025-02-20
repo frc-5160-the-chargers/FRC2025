@@ -1,5 +1,6 @@
 package frc.robot;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -19,8 +20,12 @@ import monologue.LogLocal;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnFly;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 
 /** A class for rendering poses for advantagescope visualization. */
 public class RobotVisualization implements LogLocal {
@@ -33,6 +38,8 @@ public class RobotVisualization implements LogLocal {
 	private Transform3d robotCenterToPivot = Transform3d.kZero;
 	private final Transform3d pivotToCoralPosition = new Transform3d(0.3, 0, 0.1, Rotation3d.kZero);
 	
+	@Logged private final List<Pose3d> coralOuttakePositions = new ArrayList<>();
+	
 	public RobotVisualization(SwerveDrive drivetrain, CoralIntake coralIntake, CoralIntakePivot coralIntakePivot, Elevator elevator) {
 		this.drivetrain = drivetrain;
 		this.coralIntake = coralIntake;
@@ -43,6 +50,9 @@ public class RobotVisualization implements LogLocal {
 			coralIntake.hasCoral
 				.and(() -> coralIntake.velocityRadPerSec() > 0.5)
 				.onTrue(visualizeCoralOuttakeCmd());
+			
+			autonomous()
+				.onTrue(Commands.runOnce(coralOuttakePositions::clear));
 			
 			// if close to either source(and stopped), simulate the robot getting a gamepiece
 			new Trigger(() -> {
@@ -56,7 +66,7 @@ public class RobotVisualization implements LogLocal {
 				log("distFromEastSource", distFromEastSource);
 				log("distFromWestSource", distFromWestSource);
 				return (distFromEastSource < 1 || distFromWestSource < 1)
-					       && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.1
+					       && drivetrain.getOverallSpeedMPS() < 0.1
 						   && Math.abs(coralIntake.velocityRadPerSec()) > 0.5;
 			})
 				.onTrue(Commands.waitSeconds(0.5).andThen(coralIntake.setHasCoralInSimCmd(true)));
@@ -93,18 +103,21 @@ public class RobotVisualization implements LogLocal {
 		return Commands.waitSeconds(0.3).andThen(
 			coralIntake.setHasCoralInSimCmd(false),
 			Commands.runOnce(() -> {
-		        var robotCenterToCoral = robotCenterToPivot.plus(pivotToCoralPosition).getTranslation();
-		        SimulatedArena.getInstance().addGamePieceProjectile(
-			        new ReefscapeCoralOnFly(
-				        drivetrain.bestPose().getTranslation(),
-				        robotCenterToCoral.toTranslation2d(),
-				        drivetrain.getMeasuredSpeeds(),
-				        drivetrain.bestPose().getRotation(),
-				        robotCenterToCoral.getMeasureZ(),
-				        MetersPerSecond.of(5),
-				        Radians.of(coralIntakePivot.angleRads())
-			        )
-		        );
+				var robotCenterToCoral = robotCenterToPivot.plus(pivotToCoralPosition).getTranslation();
+				SimulatedArena.getInstance().addGamePieceProjectile(
+					new ReefscapeCoralOnFly(
+						drivetrain.bestPose().getTranslation(),
+						robotCenterToCoral.toTranslation2d(),
+						drivetrain.getMeasuredSpeeds(),
+						drivetrain.bestPose().getRotation(),
+						robotCenterToCoral.getMeasureZ(),
+						MetersPerSecond.of(5),
+						Radians.of(coralIntakePivot.angleRads())
+					)
+				);
+				coralOuttakePositions.add(
+					new Pose3d(drivetrain.bestPose()).plus(new Transform3d(robotCenterToCoral, Rotation3d.kZero))
+				);
 			})
        );
 	}

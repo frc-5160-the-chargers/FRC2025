@@ -44,6 +44,8 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		Monologue.setup(this, Epilogue.getConfig());
 		DataLogManager.start();
 		logMetadata();
+		
+		addPeriodic(drivetrain::updateOdometry, 0.02);
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		DriverStation.silenceJoystickConnectionWarning(true);

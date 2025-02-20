@@ -6,7 +6,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
-import frc.chargers.utils.TunableValues.TunableNum;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -14,9 +13,6 @@ import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
-import java.util.function.BooleanSupplier;
-
-import static edu.wpi.first.units.Units.MetersPerSecond;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static monologue.Monologue.GlobalLog;
 
@@ -45,7 +41,7 @@ public class RobotCommands {
 				AllianceUtil.flipIfRed(blueTargetPose),
 				drivetrain.poseEstimate()
 			) < 0.2;
-			return almostAtTarget && drivetrain.getOverallSpeed().in(MetersPerSecond) < 0.2;
+			return almostAtTarget && drivetrain.getOverallSpeedMPS() < 0.2;
 		});
 	}
 	
@@ -60,20 +56,15 @@ public class RobotCommands {
 	/**
 	 * A complete scoring sequence(move to position, outtake, then move back). Only use in auto.
 	 * @param scoringLevel the level to score on(L1-L4)
-	 * @param outtakeEvent once this supplier returns true, the command will begin to outtake coral.
 	 */
-	public Command scoreSequence(int scoringLevel, BooleanSupplier outtakeEvent) {
+	public Command scoreSequence(int scoringLevel) {
 		return moveTo(Setpoint.score(scoringLevel))
 			       .andThen(
-					   Commands.waitUntil(outtakeEvent),
+					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.05),
 					   coralIntake.outtakeCmd(),
-				       moveTo(Setpoint.STOW)
+				       moveTo(Setpoint.STOW_MID)
 			       )
 			       .withName("l" + scoringLevel + "ScoreSequence");
-	}
-	
-	public Command scoreSequence(int scoringLevel) {
-		return scoreSequence(scoringLevel, () -> true);
 	}
 	
 	public Command pathfindAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose) {
@@ -86,7 +77,7 @@ public class RobotCommands {
 	
 	public Command sourceIntake() {
 		return Commands.parallel(
-			moveTo(Setpoint.SOURCE_INTAKE),
+			moveTo(Setpoint.INTAKE),
 			coralIntake.intakeCmd()
 		).withName("sourceIntake");
 	}
@@ -95,6 +86,6 @@ public class RobotCommands {
 		return Commands.parallel(
 			coralIntakePivot.setDemoAngleCmd(),
 			elevator.moveToDemoHeightCmd()
-		).withName("MoveToDemoSetpoint");
+		).withName("moveToDemoSetpoint");
 	}
 }

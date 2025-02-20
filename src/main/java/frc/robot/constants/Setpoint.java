@@ -20,11 +20,13 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget) implements St
 		entry(1, new Setpoint(Meters.zero(), Degrees.zero())),
 		entry(2, new Setpoint(Meters.of(0.42), Degrees.of(-30))),
 		entry(3, new Setpoint(Meters.of(0.82), Degrees.of(-30))),
-		entry(4, new Setpoint(Meters.of(1.2), Degrees.of(0)))
+		entry(4, new Setpoint(Meters.of(1.15), Degrees.zero()))
 	);
 	
-	public static final Setpoint STOW = new Setpoint(Meters.zero(), Degrees.of(70));
-	public static final Setpoint SOURCE_INTAKE = new Setpoint(Meters.of(0.22), Degrees.of(30));
+	public static final Setpoint STOW_LOW = new Setpoint(Meters.zero(), Degrees.of(70));
+	public static final Setpoint STOW_MID = new Setpoint(Meters.of(0.22), Degrees.of(70));
+	public static final Setpoint INTAKE = new Setpoint(Meters.of(0.22), Degrees.of(30));
+	public static final Setpoint SCOOCH = new Setpoint(Meters.of(1.25), Degrees.zero());
 	
 	public static Setpoint score(int level) {
 		if (level < 1 || level > 4) {

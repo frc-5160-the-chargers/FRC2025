@@ -4,6 +4,7 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.Elevator;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class AutoCommands {
 	/**
 	 * A shorter way to run <code>step1.done().onTrue(step2.andThen(step3.cmd()));</code> <br />
 	 */
-	private static void chain(AutoTrajectory step1, Command step2, AutoTrajectory step3) {
+	private void chain(AutoTrajectory step1, Command step2, AutoTrajectory step3) {
 		step1.done().onTrue(step2.andThen(step3.spawnCmd()));
 	}
 	
@@ -29,7 +30,7 @@ public class AutoCommands {
 		).withName("pathTest");
 	}
 	
-	public Command multiPieceCenter() {
+	public Command multiPieceCenter(int lastPieceLevel) {
 		var routine = autoFactory.newRoutine("ThreePiece");
 		var lineToReef1 = routine.trajectory("lineToReef1");
 		var reef1ToSource = routine.trajectory("reef1ToSource");
@@ -41,26 +42,22 @@ public class AutoCommands {
 			lineToReef1.resetOdometry().andThen(lineToReef1.spawnCmd())
 		);
 		
-		lineToReef1.active().onTrue(
-			botCommands.scoreSequence(4, lineToReef1.done())
-		);
+		lineToReef1.active().onTrue(botCommands.scoreSequence(4));
 		// wait until elevator has retracted enough so that CoG is low, then drive next path
 		chain(lineToReef1, Commands.waitUntil(elevator.readyForMovement), reef1ToSource);
 		
-		reef1ToSource.atTime(1.0).onTrue(botCommands.sourceIntake());
+		reef1ToSource.active().onTrue(coralIntake.intakeCmd());
+		reef1ToSource.atTime(1.0).onTrue(botCommands.moveTo(Setpoint.INTAKE));
 		chain(reef1ToSource, Commands.waitUntil(coralIntake.hasCoral), sourceToReef11);
 		
-		sourceToReef11.atTime(1.1).onTrue(botCommands.scoreSequence(4));
+		sourceToReef11.atTime(1.0).onTrue(botCommands.scoreSequence(4));
 		chain(sourceToReef11, Commands.waitUntil(elevator.readyForMovement), reef11ToSource);
 		
-		reef11ToSource.atTime(0.5).onTrue(botCommands.sourceIntake());
+		reef11ToSource.active().onTrue(coralIntake.intakeCmd());
+		reef11ToSource.atTime(0.5).onTrue(botCommands.moveTo(Setpoint.INTAKE));
 		chain(reef11ToSource, Commands.waitUntil(coralIntake.hasCoral), sourceToReef10);
 		
-		sourceToReef10.atTime(1.1).onTrue(botCommands.scoreSequence(4));
-		sourceToReef10.done().onTrue(
-			Commands.print("DONEEE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		);
-		
+		sourceToReef10.atTime(1.0).onTrue(botCommands.scoreSequence(lastPieceLevel));
 		return routine.cmd();
 	}
 	

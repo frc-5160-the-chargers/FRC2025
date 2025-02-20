@@ -1,6 +1,7 @@
 package frc.robot.subsystems.swerve;
 
 import choreo.auto.AutoFactory;
+import choreo.auto.AutoTrajectory;
 import choreo.trajectory.SwerveSample;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.pathplanner.lib.config.ModuleConfig;
@@ -31,6 +32,8 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -52,6 +55,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -64,7 +68,10 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 /**
  * A drivetrain with 4 drive motors and 4 steer motors.
  * Each steer motor can control the exact position of each drive motor,
- * allowing for omnidirectional movement and driving while turning.
+ * allowing for omnidirectional movement and driving while turning. <br/>
+ *
+ * Note: for pose estimation to work, you must call drivetrain.updateOdometry()
+ * in robotPeriodic or through an addPeriodic() call for higher frequency.
  */
 public class SwerveDrive extends StandardSubsystem {
 	public record SwerveMotorConfig(
@@ -100,8 +107,7 @@ public class SwerveDrive extends StandardSubsystem {
 		SimpleMotorFeedforward velocityFeedforward,
 		PIDConstants pathTranslationPID,
 		PIDConstants pathRotationPID,
-		double forceKT,
-		PoseEstimationMode poseEstimationMode
+		double forceKT
 	){}
 	
 	/** Use ModuleType.MK4iL2 and ModuleType.Mk4iL3. */
@@ -138,21 +144,23 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SingleTagPoseEstimator singleTagPoseEstimator;
 	private final SwerveDriveSimulation mapleSim;
+	private final SysIdRoutine sysIdRoutine;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
 	@Logged private boolean acceptVisionObservations = true;
 	@Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
 
-	private final PIDController xPoseController;
-	private final PIDController yPoseController;
-	private final PIDController rotationController;
+	@Logged private final PIDController xPoseController;
+	@Logged private final PIDController yPoseController;
+	@Logged private final PIDController rotationController;
 
 	private final Supplier<Rotation2d> gyroYawSupplier;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
 	@Logged(name = "singleTagEstimation/id")
 	private int targetTagId = -1;
 	private boolean useSingleTagEstimation = false;
+	@Logged private ChassisSpeeds robotRelativeSpeeds = new ChassisSpeeds();
 
 	// workaround before array logging comes around
 	@Logged private final SwerveModule topLeftModule;
@@ -214,12 +222,24 @@ public class SwerveDrive extends StandardSubsystem {
 						Volts.of(0.1),
 						Volts.of(0.2),
 						moduleType.wheelRadius,
-						KilogramSquareMeters.of(0.03),
+						KilogramSquareMeters.of(0.025),
 						hardwareSpecs.coefficientOfFriction
 					)
 				);
 
 		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, Pose2d.kZero);
+		this.sysIdRoutine = new SysIdRoutine(
+			new SysIdRoutine.Config(Volts.of(0.5).per(Second), Volts.of(3), Seconds.of(10), state -> log("sysIdState", state.toString())),
+			new SysIdRoutine.Mechanism(
+				voltage -> {
+					for (var module: swerveModules) {
+						module.setDriveVoltage(voltage.in(Volts));
+					}
+				},
+				log -> {},
+				this
+			)
+		);
 		this.xPoseController = controlsConfig.pathTranslationPID.asController();
 		this.yPoseController = controlsConfig.pathTranslationPID.asController();
 		this.rotationController = controlsConfig.pathRotationPID.asController();
@@ -321,7 +341,7 @@ public class SwerveDrive extends StandardSubsystem {
 	private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample) {
 		var vx = trajSample.vx + xPoseController.calculate(poseEstimate().getX(), trajSample.x);
 		var vy = trajSample.vy + yPoseController.calculate(poseEstimate().getY(), trajSample.y);
-		var rotationV = trajSample.omega + trajSample.omega + rotationController.calculate(
+		var rotationV = trajSample.omega + rotationController.calculate(
 			angleModulus(poseEstimate().getRotation().getRadians()),
 			angleModulus(trajSample.heading)
 		);
@@ -336,7 +356,6 @@ public class SwerveDrive extends StandardSubsystem {
 			// a function that runs trajectory following
 			(SwerveSample trajSample) -> {
 				var desiredModuleStates = toDesiredModuleStates(toDesiredSpeeds(trajSample), false);
-				log("choreoDesiredStates", desiredModuleStates);
 				for (int i = 0; i < 4; i++) {
 					var desiredState = desiredModuleStates[i];
 					double wheelTorqueNm = moduleType.wheelRadius.in(Meters) * (
@@ -452,10 +471,9 @@ public class SwerveDrive extends StandardSubsystem {
 		}
 	}
 	
-	public LinearVelocity getOverallSpeed() {
-		var measuredSpeeds = getMeasuredSpeeds();
-		return MetersPerSecond.of(
-			Math.hypot(measuredSpeeds.vxMetersPerSecond, measuredSpeeds.vyMetersPerSecond)
+	public double getOverallSpeedMPS() {
+		return Math.hypot(
+			robotRelativeSpeeds.vxMetersPerSecond, robotRelativeSpeeds.vyMetersPerSecond
 		);
 	}
 
@@ -552,6 +570,39 @@ public class SwerveDrive extends StandardSubsystem {
 	       .until(() -> repulsor.atGoal(0.03))
 	       .withName("PathfindCmd");
 	}
+	
+	/** Aligns to the final pose of a trajectory. */
+	public Command nudgeToFinalPose(AutoTrajectory traj) {
+		var isDone = new AtomicBoolean();
+		return this.run(() -> {
+			var target = traj.<SwerveSample>getRawTrajectory().getFinalPose(true);
+			log("currentTrajectory/hasFinalPose", target.isPresent());
+			if (target.isEmpty()) {
+				requestStop();
+				return;
+			}
+			var swerveSample = new SwerveSample(
+				0, target.get().getX(), target.get().getY(), target.get().getRotation().getRadians(),
+				0, 0, 0, 0, 0, 0, new double[4], new double[4]
+			);
+			var desiredStates = toDesiredModuleStates(toDesiredSpeeds(swerveSample), true);
+			for (int i = 0; i < 4; i++) {
+				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
+			}
+			isDone.set(
+				poseEstimate().getTranslation().getDistance(target.get().getTranslation()) < 0.3
+			);
+		}).until(isDone::get);
+	}
+	
+	/** A command that is used to characterize velocity feedforward/velocity PID constants of the drivetrain. */
+	public Command sysIdCmd() {
+		return sysIdRoutine.quasistatic(Direction.kForward).andThen(
+			sysIdRoutine.quasistatic(Direction.kReverse),
+			sysIdRoutine.dynamic(Direction.kForward),
+			sysIdRoutine.dynamic(Direction.kReverse)
+		);
+	}
 
 	/**
 	 * Creates a rotation input stream that locks the robot's heading.
@@ -574,13 +625,18 @@ public class SwerveDrive extends StandardSubsystem {
 		);
 	}
 	
-	public void updateOdometry() {
-		log("OdometryIsUpdating", true);
-		Rotation2d latestHeading = gyroYawSupplier.get();
+	public void refreshData() {
 		for (int i = 0; i < 4; i++) {
 			measuredModuleStates[i] = swerveModules[i].currentState();
 			measuredModulePositions[i] = swerveModules[i].currentPosition();
 		}
+		robotRelativeSpeeds = kinematics.toChassisSpeeds(measuredModuleStates);
+	}
+	
+	/** Must be called periodically at whatever frequency you want. */
+	public void updateOdometry() {
+		Rotation2d latestHeading = gyroYawSupplier.get();
+		refreshData();
 		poseEstimator.update(latestHeading, measuredModulePositions);
 		singleTagPoseEstimator.update(latestHeading, measuredModulePositions);
 		// If robot is rotating too fast, ignore vision observations.
@@ -603,10 +659,7 @@ public class SwerveDrive extends StandardSubsystem {
 
 	@Override
 	public void periodic() {
-		if (controlsConfig.poseEstimationMode == PoseEstimationMode.AUTOMATIC) updateOdometry();
-		if (DriverStation.isDisabled()) {
-			requestStop();
-		}
+		if (DriverStation.isDisabled()) requestStop();
 	}
 	
 	@Override

@@ -34,8 +34,8 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 50);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 10);
+	private static final TunableNum KP = new TunableNum("elevator/kP", 300);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 70);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
 	
 	private static final double GEAR_RATIO = 54.0 / 8.0;
@@ -79,7 +79,7 @@ public class Elevator extends StandardSubsystem {
 	Elevator(boolean simulateGravity) {
 		if (RobotBase.isSimulation()) {
 			leaderMotor = new SimMotor(
-				SimMotorType.elevator(DCMotor.getKrakenX60(2), ELEVATOR_MASS, simulateGravity),
+				SimMotorType.elevator(DCMotor.getNEO(2), ELEVATOR_MASS, simulateGravity),
 				null
 			);
 		} else {
@@ -165,10 +165,7 @@ public class Elevator extends StandardSubsystem {
 				log("motionProfileState/positionRad", profileState.position);
 				leaderMotor.moveToPosition(profileState.position);
 			}).until(atHeight(targetHeight)),
-			Commands.runOnce(() -> {
-				leaderMotor.setVoltage(0);
-				log("targetHeight", Double.NaN);
-			})
+			Commands.runOnce(() -> log("targetHeight", Double.NaN))
 		).withName("MoveToHeightCmd");
 	}
 	

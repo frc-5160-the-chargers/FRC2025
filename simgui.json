@@ -18,6 +18,7 @@
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/TestChooser": "String Chooser",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
+      "/SmartDashboard/View Connection warnings": "Command",
       "/SmartDashboard/VisionSystemSim-main/Sim Field": "Field2d",
       "Robot/Dummy Field": "PIDController",
       "Robot/autoChooser": "String Chooser",

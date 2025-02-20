@@ -38,6 +38,7 @@ public class Kitbot extends TimedRobot implements LogLocal {
         Monologue.setup(this, Epilogue.getConfig());
         log("TestPose3d", new Pose3d(0.0, 0, 0.5, Rotation3d.kZero));
 
+        addPeriodic(drivetrain::updateOdometry, 0.02);
         drivetrain.setDefaultCommand(drivetrain.stopCmd());
 
         if (RobotBase.isSimulation()) {
