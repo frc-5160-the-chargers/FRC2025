@@ -27,25 +27,6 @@ import static java.lang.Math.PI;
 /**
  * A Spark Max/Spark Flex that implements the Motor interface.
  * To access more low-level capabilities of the base api, inherit from this class.
- * Here is an example:
- * <pre><code>
- *     class ArmHardware {
- *         interface BaseArmMotor extends Motor {
- *             default void setCoastMode(boolean on) {}
- *         }
- *
- *         class RealArmMotor extends ChargerSpark implements BaseArmMotor {
- *              public RealArmMotor() {
- *                  super(5, SparkModel.SPARK_MAX);
- *                  // Here, the baseApi is the SparkBase class
- *                  baseApi.doSomething();
- *              }
- *              void setCoastMode(boolean on) { ... }
- *         }
- *
- *         class SimArmMotor extends SimMotor {}
- *     }
- * </code></pre>
  */
 public class ChargerSpark implements Motor {
 	public final SparkBase baseApi;
@@ -71,16 +52,18 @@ public class ChargerSpark implements Motor {
 	
 	/**
 	 * A utility method to disable common unused signals.
-	 * @param config The current spark config to-apply.
+	 * @param configs The spark configs to-apply.
 	 */
-	public static void optimizeBusUtilizationOn(SparkBaseConfig config) {
-		config.signals
-			.analogPositionPeriodMs(65535)
-			.analogVelocityPeriodMs(65535)
-			.externalOrAltEncoderPosition(65535)
-			.externalOrAltEncoderVelocity(65535)
-			.analogVoltagePeriodMs(65535)
-			.iAccumulationPeriodMs(65535);
+	public static void optimizeBusUtilizationOn(SparkBaseConfig... configs) {
+		for (var config: configs) {
+			config.signals
+				.analogPositionPeriodMs(65535)
+				.analogVelocityPeriodMs(65535)
+				.externalOrAltEncoderPosition(65535)
+				.externalOrAltEncoderVelocity(65535)
+				.analogVoltagePeriodMs(65535)
+				.iAccumulationPeriodMs(65535);
+		}
 	}
 	
 	public enum SparkModel {

@@ -1,10 +1,10 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkBaseConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -19,7 +19,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
-import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
+import frc.chargers.hardware.motorcontrol.ChargerSpark;
+import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.hardware.motorcontrol.SimMotor.SimMotorType;
@@ -29,6 +30,9 @@ import frc.chargers.utils.TunableValues.TunableNum;
 
 import java.util.Set;
 
+import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
+import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
+import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
@@ -41,18 +45,33 @@ public class Elevator extends StandardSubsystem {
 	private static final double GEAR_RATIO = 54.0 / 8.0;
 	private static final Distance DRUM_RADIUS = Inches.of(1.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(0.05);
+	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(12.0);
+	
 	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.7);
-	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
-	private static final int LEFT_MOTOR_ID = 5;
-	private static final int RIGHT_MOTOR_ID = 6;
+	
+	private static final int LEADER_MOTOR_ID = 5;
+	private static final int FOLLOWER_MOTOR_ID = 6;
+	
+	private static final int CURRENT_LIMIT = 80;
+	private static final int SECONDARY_CURRENT_LIMIT = 90;
+	
+	private static final SparkBaseConfig LEADER_CONFIG =
+		new SparkMaxConfig()
+			.smartCurrentLimit(CURRENT_LIMIT)
+			.secondaryCurrentLimit(SECONDARY_CURRENT_LIMIT)
+			.idleMode(IdleMode.kBrake);
+	private static final SparkBaseConfig FOLLOWER_CONFIG =
+		new SparkMaxConfig()
+			.smartCurrentLimit(CURRENT_LIMIT)
+			.secondaryCurrentLimit(SECONDARY_CURRENT_LIMIT)
+			.idleMode(IdleMode.kBrake)
+			.follow(LEADER_MOTOR_ID);
 	
 	static {
-		ELEVATOR_CONFIG.CurrentLimits.StatorCurrentLimitEnable = true;
-		ELEVATOR_CONFIG.CurrentLimits.StatorCurrentLimit = 60;
-		ELEVATOR_CONFIG.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+		ChargerSpark.optimizeBusUtilizationOn(LEADER_CONFIG, FOLLOWER_CONFIG);
 	}
 	
 	// convert to angular constraints
@@ -66,7 +85,7 @@ public class Elevator extends StandardSubsystem {
 	private final SysIdRoutine sysIdRoutine;
 	
 	@Logged private final Motor leaderMotor;
-	private final TalonFX followerMotor;
+	private final SparkMax followerMotor;
 	
 	@Logged public final Trigger movingUp;
 	@Logged public final Trigger atLowPosition;
@@ -78,30 +97,26 @@ public class Elevator extends StandardSubsystem {
 	// package-private; for unit tests
 	Elevator(boolean simulateGravity) {
 		if (RobotBase.isSimulation()) {
-			leaderMotor = new SimMotor(
-				SimMotorType.elevator(DCMotor.getNEO(2), ELEVATOR_MASS, simulateGravity),
-				null
-			);
+			var simConfig = new TalonFXConfiguration();
+			simConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+			simConfig.CurrentLimits.StatorCurrentLimit = CURRENT_LIMIT;
+			leaderMotor = new SimMotor(SimMotorType.elevator(DCMotor.getNEO(2), ELEVATOR_MASS, simulateGravity), simConfig);
 		} else {
-			leaderMotor = new ChargerTalonFX(LEFT_MOTOR_ID, true, ELEVATOR_CONFIG);
+			leaderMotor = new ChargerSpark(LEADER_MOTOR_ID, SparkModel.SPARK_MAX, LEADER_CONFIG);
 		}
 		leaderMotor.encoder().setPositionReading(Radians.zero());
 		
-		followerMotor = new TalonFX(RobotBase.isSimulation() ? SimMotor.getDummyId() : RIGHT_MOTOR_ID);
-		tryUntilOk(followerMotor, () -> followerMotor.getConfigurator().apply(ELEVATOR_CONFIG, 0.01));
-		BaseStatusSignal.setUpdateFrequencyForAll(50, followerMotor.getStatorCurrent(), followerMotor.getDeviceTemp());
+		followerMotor = new SparkMax(RobotBase.isSimulation() ? SimMotor.getDummyId() : FOLLOWER_MOTOR_ID, kBrushless);
+		tryUntilOk(followerMotor, () -> followerMotor.configure(FOLLOWER_CONFIG.follow(LEADER_MOTOR_ID), kResetSafeParameters, kPersistParameters));
 		disabled()
 			.onTrue(Commands.runOnce(() -> {
 				leaderMotor.setCoastMode(true);
-				followerMotor.setNeutralMode(NeutralModeValue.Coast);
+				followerMotor.configure(FOLLOWER_CONFIG.idleMode(IdleMode.kCoast), kResetSafeParameters, kPersistParameters);
 			}))
 			.onFalse(Commands.runOnce(() -> {
 				leaderMotor.setCoastMode(false);
-				followerMotor.setNeutralMode(NeutralModeValue.Brake);
+				followerMotor.configure(FOLLOWER_CONFIG.idleMode(IdleMode.kBrake), kResetSafeParameters, kPersistParameters);
 			}));
-		followerMotor.optimizeBusUtilization();
-		// required to enable following
-		followerMotor.setControl(new Follower(LEFT_MOTOR_ID, false));
 		
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		atLowPosition = new Trigger(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
@@ -199,8 +214,8 @@ public class Elevator extends StandardSubsystem {
 	
 	@Override
 	public void periodic() {
-		log("follower/tempCelsius", followerMotor.getDeviceTemp().getValueAsDouble());
-		log("follower/statorCurrent", followerMotor.getStatorCurrent().getValueAsDouble());
+		log("follower/tempCelsius", followerMotor.getMotorTemperature());
+		log("follower/statorCurrent", followerMotor.getOutputCurrent());
 	}
 	
 	@Override

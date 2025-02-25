@@ -26,24 +26,6 @@ import static java.lang.Math.PI;
 /**
  * A TalonFX that implements the Motor interface.
  * To access more low-level capabilities of the base api, inherit from this class.
- * Here is an example:
- * <pre><code>
- *     class ArmHardware {
- *         interface BaseArmMotor extends Motor {
- *             default void setCoastMode(boolean on) {}
- *         }
- *
- *         class RealArmMotor extends ChargerTalonFX implements BaseArmMotor {
- *              public RealArmMotor() {
- *                  // Here, the baseApi is the TalonFX class
- *                  baseApi.doSomething();
- *              }
- *              public void setCoastMode(boolean on) { ... }
- *         }
- *
- *         class SimArmMotor extends SimMotor {}
- *     }
- * </code></pre>
  */
 public class ChargerTalonFX implements Motor {
 	public final TalonFX baseApi;
