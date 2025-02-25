@@ -4,7 +4,6 @@ import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
@@ -35,16 +34,22 @@ public class RobotCommands {
 	private final Elevator elevator;
 	private final SwerveSetpointGenerator setpointGen;
 	
-	private Trigger readyToScore(Pose2d blueTargetPose) {
-		return new Trigger(() -> {
-			boolean almostAtTarget = distanceBetween(
-				AllianceUtil.flipIfRed(blueTargetPose),
-				drivetrain.poseEstimate()
-			) < 0.2;
-			return almostAtTarget && drivetrain.getOverallSpeedMPS() < 0.2;
-		});
+	/**
+	 * A command that waits until the intake is not holding coral,
+	 * the elevator is moving down, and the elevator is at a low position.
+	 */
+	public Command waitUntilReady() {
+		return Commands.waitUntil(
+			coralIntake.hasCoral.negate()
+				.and(elevator.atLowPosition)
+				.and(elevator.movingUp.negate())
+		);
 	}
 	
+	/**
+	 * Moves the elevator and pivot to a certain position.
+	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
+	 */
 	public Command moveTo(Setpoint setpoint) {
 		return Commands.parallel(
 			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint)),
@@ -64,17 +69,21 @@ public class RobotCommands {
 					   coralIntake.outtakeCmd(),
 				       moveTo(Setpoint.STOW_MID)
 			       )
-			       .withName("l" + scoringLevel + "ScoreSequence");
+			       .withName("scoreSequence(L" + scoringLevel + ")");
 	}
 	
+	/** A command that pathfinds to a pose while moving to a certain setpoint. */
 	public Command pathfindAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose) {
 		return Commands.parallel(
 			drivetrain.pathfindCmd(blueAlliancePose, true, setpointGen),
-			Commands.waitUntil(readyToScore(blueAlliancePose))
-				.andThen(moveTo(setpoint))
+			Commands.waitUntil(() -> {
+				var distance = distanceBetween(AllianceUtil.flipIfRed(blueAlliancePose), drivetrain.poseEstimate());
+				return distance < 0.2 && drivetrain.getOverallSpeedMPS() < 0.2;
+			}).andThen(moveTo(setpoint))
 		).withName("moveToSetpoint(and pathfind)");
 	}
 	
+	/** Runs the intake and moves the elevator and pivot to the intake position. */
 	public Command sourceIntake() {
 		return Commands.parallel(
 			moveTo(Setpoint.INTAKE),
@@ -82,6 +91,7 @@ public class RobotCommands {
 		).withName("sourceIntake");
 	}
 	
+	/** Moves to a setpoint specified by tunable dashboard values. */
 	public Command moveToDemoSetpoint() {
 		return Commands.parallel(
 			coralIntakePivot.setDemoAngleCmd(),

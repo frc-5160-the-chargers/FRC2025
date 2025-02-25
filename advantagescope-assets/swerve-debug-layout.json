@@ -1,0 +1,403 @@
+{
+  "hubs": [
+    {
+      "x": -7,
+      "y": -7,
+      "width": 1294,
+      "height": 790,
+      "state": {
+        "sidebar": {
+          "width": 345,
+          "expanded": [
+            "/Robot/drivetrainOne/bottomLeftModule/steerMotor/encoder",
+            "/Robot/drivetrainOne/desiredStates/0",
+            "/Robot/drivetrainOne/desiredStates/0/angle",
+            "/Robot/drivetrainOne/measuredModuleStates/0",
+            "/Robot/drivetrainOne/measuredModuleStates/0/angle",
+            "/Robot/motor",
+            "/Robot/motor/encoder",
+            "/Robot/drivetrainOne/topLeftModule/steerMotor",
+            "/Robot/drivetrainOne/topLeftModule/steerMotor/encoder",
+            "/Robot/drivetrainOne/topLeftModule/driveMotor",
+            "/Robot/drivetrainOne/bottomRightModule/driveMotor",
+            "/Robot/drivetrainOne/bottomLeftModule/targetState",
+            "/Robot/drivetrainOne/bottomLeftModule/targetState/angle",
+            "/Robot/drivetrainOne/bottomLeftModule/driveMotor/encoder",
+            "/Robot/simIds",
+            "/Robot/lift",
+            "/Tuning/RepulsorConfig",
+            "/Robot/drivetrainOne/repulsor/arrows/1/translation",
+            "/Robot/drivetrainOne/repulsor",
+            "/Epilogue",
+            "/Epilogue/Stats",
+            "/Robot/StatusSignals",
+            "/Robot/StatusSignals/statusCode",
+            "/Robot/statusSignals",
+            "/NT/SmartDashboard/Alerts/infos",
+            "/SmartDashboard/Alerts/infos",
+            "/NT/SmartDashboard/Alerts/errors",
+            "/NT/LiveWindow/.status",
+            "/NT/Shuffleboard/.metadata",
+            "/Alerts",
+            "/Alerts/errors",
+            "/Alerts/infos",
+            "/AprilTagArducam",
+            "/AprilTagArducam/robotPoseEstimates",
+            "/AprilTagArducam/visionTargets",
+            "/Drivetrain(Swerve)",
+            "/GroundIntake/intakeCurrents(SI Value)",
+            "/IMU",
+            "/ObjectDetector/visionTargets",
+            "/Pivot",
+            "/RealOutputs",
+            "/RealOutputs/Drivetrain(Swerve)",
+            "/RealOutputs/Drivetrain(Swerve)/DesiredModuleStates/0",
+            "/Drivetrain(Swerve)/BottomLeftModule",
+            "/RealOutputs/LoggedRobot",
+            "/RealOutputs/ObjectDetector",
+            "/RealOutputs/PhotonCamera(AprilTag Arducam)",
+            "/RealOutputs/PhotonCamera(ML Webcam)",
+            "/Shooter",
+            "/Robot/drivetrainOne/desiredSpeeds",
+            "/Robot/accel(rpm per s)",
+            "/Robot/USAYPT",
+            "/Robot/DogLog",
+            "/Robot/velocity(rpm)",
+            "/Robot",
+            "/Robot/position(rot)",
+            "/Robot/drivetrain/actualPoseInSim",
+            "/Robot/drivetrain/actualPoseInSim/rotation",
+            "/Robot/drivetrain/desiredStates/0",
+            "/Robot/drivetrain/desiredStates/0/angle",
+            "/Robot/drivetrain/desiredStates/1",
+            "/Robot/drivetrain/desiredStates/1/angle",
+            "/Robot/drivetrainOne/measuredModuleStates/1",
+            "/Robot/drivetrainOne/measuredModuleStates/1/angle",
+            "/Robot/drivetrainOne/measuredModuleStates/2",
+            "/Robot/drivetrainOne/measuredModuleStates/2/angle",
+            "/SmartDashboard/Alerts",
+            "/SmartDashboard/MapleArenaSimulation",
+            "/SmartDashboard/Alerts/errors",
+            "/Robot/drivetrainOne/bottomLeftModule",
+            "/Robot/drivetrainOne/bottomLeftModule/driveMotor",
+            "/Robot/elevator/leaderMotor/encoder",
+            "/Robot/drivetrain/setpointGen/speeds",
+            "/Robot/visualizer/stage3Position/translation",
+            "/TunableValues",
+            "/TunableValues/elevator",
+            "/Robot/commands",
+            "/Robot/elevator/motionProfileState",
+            "/Robot/coralIntakePivot/leaderMotor",
+            "/Robot/coralIntakePivot/leaderMotor/encoder",
+            "/NT/Robot/drivetrain",
+            "/NT",
+            "/NT/SmartDashboard",
+            "/Robot/drivetrain/actualPose(if run in sim)/translation",
+            "/Robot/WheelRadiusCharacterization",
+            "/Robot/coralIntake/motor/encoder",
+            "/Robot/drivetrain/poseEstimate/translation",
+            "/Robot/drivetrain/bottomLeftModule/steerMotor/encoder",
+            "/Robot/drivetrain/topRightModule/absoluteEncoder",
+            "/Robot/drivetrain/topRightModule/steerMotor/encoder",
+            "/TunableValues/RobotState",
+            "/Robot/drivetrain/bottomRightModule/steerMotor/encoder",
+            "/Robot/visualizer/drivetrain",
+            "/Robot/visualizer/drivetrain/singleTagEstimation",
+            "/SmartDashboard",
+            "/NT/Robot",
+            "/NT/Robot/drivetrain/bottomLeftModule",
+            "/NT/Robot/drivetrain/bottomLeftModule/absoluteEncoder",
+            "/NT/Robot/drivetrain/topLeftModule",
+            "/NT/Robot/drivetrain/topLeftModule/absoluteEncoder",
+            "/Robot/drivetrain/topLeftModule/steerMotor/encoder",
+            "/Robot/gyroWrapper/yaw",
+            "/Robot/drivetrain/bottomRightModule/driveMotor/encoder",
+            "/SmartDashboard/Alerts/warnings",
+            "/Robot/visualizer/tests",
+            "/Robot/commandStats/Trajectory_SimplePath",
+            "/Robot/commandStats/simple path",
+            "/Robot/commandStats/SwerveDriveCmd(Open Loop)",
+            "/Robot/commandStats/StopCoralIntake",
+            "/Robot/commandStats/StopCmd(Elevator)",
+            "/Robot/commandStats/SequentialCommandGroup",
+            "/Robot/commandStats/InstantCommand",
+            "/Robot/drivetrain/poseEstimate/rotation",
+            "/Robot/drivetrain/actualPose(if run in sim)/rotation",
+            "/Robot/commandStats/scoreSequenceL4",
+            "/Robot/commandStats/SimulateHasCoral",
+            "/Robot/commandStats/Stow",
+            "/Robot/pathfindPoses",
+            "/Robot/pathfindPoses2",
+            "/TunableValues/CoralIntake",
+            "/Robot/drivetrain/pathfinding",
+            "/Robot/commandStats/PathfindTest",
+            "/Robot/commandStats/PathfindTest232",
+            "/Robot/drivetrain/topLeftModule/driveMotor/encoder",
+            "/Robot/drivetrain/topRightModule/driveMotor/encoder",
+            "/Robot/drivetrain/bottomLeftModule/driveMotor/encoder",
+            "/Robot/drivetrain/actualPose(if run in sim)",
+            "/Robot/drivetrain/topRightModule/driveMotor",
+            "/Robot/drivetrain/bottomRightModule",
+            "/Robot/drivetrain/topRightModule/steerMotor",
+            "/Robot/drivetrain/steerIds",
+            "/Robot/drivetrain/bottomLeftModule",
+            "/Robot/drivetrain/bottomLeftModule/absoluteEncoder",
+            "/Robot/drivetrain/bottomRightModule/absoluteEncoder",
+            "/Robot/drivetrain/topLeftModule/absoluteEncoder",
+            "/Robot/pathfindingPoses/reefBlue/5",
+            "/Robot/pathfindingPoses/reefBlue/5/translation",
+            "/Robot/pathfindingPoses/initialPoses",
+            "/Robot/pathfindingPoses/reefBlue",
+            "/Robot/commandStats/multi piece center",
+            "/Robot/commandStats/sourceIntake",
+            "/Robot/commandStats/Trajectory_Reef1ToSource",
+            "/Robot/visualizer",
+            "/Robot/drivetrain",
+            "/Robot/commandStats",
+            "/Robot/commandStats/multi piece test"
+          ]
+        },
+        "tabs": {
+          "selected": 1,
+          "tabs": [
+            {
+              "type": 0,
+              "title": "",
+              "controller": null,
+              "controllerUUID": "jftrgixasft6tl9y6i4gsw5r8d5zaakr",
+              "renderer": "#/",
+              "controlsHeight": 0
+            },
+            {
+              "type": 1,
+              "title": "Line Graph",
+              "controller": {
+                "leftSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/topLeftModule/absoluteEncoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#80588e",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/topRightModule/absoluteEncoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#2b66a2",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/bottomLeftModule/absoluteEncoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#e5b31b",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/bottomRightModule/absoluteEncoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#af2437",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/loopRuntime",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#c0b487",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "rightSources": [
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/topLeftModule/driveMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#c0b487",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/topRightModule/driveMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#858584",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/bottomLeftModule/driveMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#3b875a",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/bottomRightModule/driveMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": false,
+                    "options": {
+                      "color": "#d993aa",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/topLeftModule/steerMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#5f4528",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/topRightModule/steerMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#2b66a2",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/bottomLeftModule/steerMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#e5b31b",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "stepped",
+                    "logKey": "NT:Robot/drivetrain/bottomRightModule/steerMotor/encoder/positionRad",
+                    "logType": "Number",
+                    "visible": true,
+                    "options": {
+                      "color": "#af2437",
+                      "size": "normal"
+                    }
+                  }
+                ],
+                "discreteSources": [],
+                "leftLockedRange": null,
+                "rightLockedRange": null,
+                "leftUnitConversion": {
+                  "type": null,
+                  "factor": 1
+                },
+                "rightUnitConversion": {
+                  "type": "angle",
+                  "factor": 1,
+                  "from": "radians",
+                  "to": "degrees"
+                },
+                "leftFilter": 0,
+                "rightFilter": 0
+              },
+              "controllerUUID": "sddvvghp9vxsqaeyqvykfh4illkwcdbi",
+              "renderer": null,
+              "controlsHeight": 303
+            },
+            {
+              "type": 9,
+              "title": "Swerve",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "states",
+                    "logKey": "NT:Robot/drivetrain/desiredStates",
+                    "logType": "SwerveModuleState[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#ff0000",
+                      "arrangement": "0,1,2,3"
+                    }
+                  },
+                  {
+                    "type": "states",
+                    "logKey": "NT:Robot/drivetrain/measuredModuleStates",
+                    "logType": "SwerveModuleState[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#00ff00",
+                      "arrangement": "0,1,2,3"
+                    }
+                  }
+                ],
+                "maxSpeed": 5,
+                "sizeX": 0.65,
+                "sizeY": 0.65,
+                "orientation": 1
+              },
+              "controllerUUID": "doi253vcu5shan2tdfjno679sr7h8x59",
+              "renderer": null,
+              "controlsHeight": 200
+            },
+            {
+              "type": 2,
+              "title": "Odometry",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "ghost",
+                    "logKey": "NT:Robot/drivetrain/poseEstimate",
+                    "logType": "Pose2d",
+                    "visible": true,
+                    "options": {
+                      "color": "#00ff00"
+                    }
+                  },
+                  {
+                    "type": "robot",
+                    "logKey": "NT:Robot/drivetrain/actualPose(if run in sim)",
+                    "logType": "Pose2d",
+                    "visible": true,
+                    "options": {}
+                  }
+                ],
+                "game": "2025 Field (Welded)",
+                "bumpers": "auto",
+                "origin": "blue",
+                "orientation": 0,
+                "size": 30
+              },
+              "controllerUUID": "xau8whpzkxkw9kggz3ufepdyn6cy1uoz",
+              "renderer": null,
+              "controlsHeight": 200
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "satellites": [],
+  "version": "4.1.0"
+}

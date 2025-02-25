@@ -52,7 +52,10 @@ public class RobotVisualization implements LogLocal {
 				.onTrue(visualizeCoralOuttakeCmd());
 			
 			autonomous()
-				.onTrue(Commands.runOnce(coralOuttakePositions::clear));
+				.onTrue(Commands.runOnce(() -> {
+					SimulatedArena.getInstance().clearGamePieces();
+					coralOuttakePositions.clear();
+				}));
 			
 			// if close to either source(and stopped), simulate the robot getting a gamepiece
 			new Trigger(() -> {
@@ -65,7 +68,7 @@ public class RobotVisualization implements LogLocal {
 				);
 				log("distFromEastSource", distFromEastSource);
 				log("distFromWestSource", distFromWestSource);
-				return (distFromEastSource < 1 || distFromWestSource < 1)
+				return (distFromEastSource < 1.3 || distFromWestSource < 1.3)
 					       && drivetrain.getOverallSpeedMPS() < 0.1
 						   && Math.abs(coralIntake.velocityRadPerSec()) > 0.5;
 			})
@@ -111,7 +114,7 @@ public class RobotVisualization implements LogLocal {
 						drivetrain.getMeasuredSpeeds(),
 						drivetrain.bestPose().getRotation(),
 						robotCenterToCoral.getMeasureZ(),
-						MetersPerSecond.of(5),
+						MetersPerSecond.of(0.5),
 						Radians.of(coralIntakePivot.angleRads())
 					)
 				);

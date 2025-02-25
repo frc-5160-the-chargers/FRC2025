@@ -26,7 +26,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double GEAR_RATIO = 12.0;
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 2.0);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.02);
-	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("CoralIntake/demoAngle(deg)", 0);
+	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("coralIntakePivot/demoAngle(deg)", 0);
 	
 	@Logged private final Motor motor;
 

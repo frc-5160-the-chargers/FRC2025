@@ -44,7 +44,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double LINEAR_STD_DEV_BASELINE = 0.08;
 	private static final double ANGULAR_STD_DEV_BASELINE = 15.0;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
-	private static final List<PhotonCamConfig> PHOTON_TAG_CAMERAS = List.of(
+	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
 		new PhotonCamConfig("ABC", 1.0, new Transform3d(
 			Inches.of(16),
 			Inches.of(12),
@@ -99,7 +99,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	}
 	
 	@Setter private Consumer<GlobalPoseEstimate> globalEstimateConsumer = estimate -> {};
-	@Setter private Consumer<SingleTagPoseEstimate> singleTagEstimateConsumer = estimate -> {};
 	@Setter private Supplier<Pose2d> simPoseSupplier = null;
 	
 	private final Alert connectionAlert = new Alert("", kError);
@@ -116,16 +115,16 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
 		}
 		var disconnectedCamNames = new ArrayList<String>();
-		for (var cam: PHOTON_TAG_CAMERAS) {
-			if (!RobotBase.isSimulation() && !cam.photonCam.isConnected()) {
-				disconnectedCamNames.add(cam.photonCam.getName());
+		for (var config: PHOTON_CAM_CONFIGS) {
+			if (!RobotBase.isSimulation() && !config.photonCam.isConnected()) {
+				disconnectedCamNames.add(config.photonCam.getName());
 				continue;
 			}
-			for (var camData: cam.photonCam.getAllUnreadResults()) {
+			for (var camData: config.photonCam.getAllUnreadResults()) {
 				boolean ambiguityExceeded = camData.targets.size() == 1 && camData.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
 				if (!camData.hasTargets() || ambiguityExceeded) continue;
 				fiducialIds.addAll(camData.targets.stream().map(it -> it.fiducialId).toList());
-				var result = cam.poseEstimator.update(camData);
+				var result = config.poseEstimator.update(camData);
 				if (result.isEmpty()) continue;
 				var pose = result.get().estimatedPose;
 				if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters) // Must have realistic Z coordinate
@@ -145,8 +144,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				}
 				double stdDevMultiplier = Math.pow(tagDistSum / camData.targets.size(), 2) / camData.targets.size();
 				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
-				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * cam.stdDevFactor;
-				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * cam.stdDevFactor;
+				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * config.stdDevFactor;
+				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * config.stdDevFactor;
 				
 				globalEstimateConsumer.accept(
 					new GlobalPoseEstimate(
@@ -165,7 +164,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	@Override
 	public void close() {
-		for (var cam: PHOTON_TAG_CAMERAS) {
+		for (var cam: PHOTON_CAM_CONFIGS) {
 			cam.photonCam.close();
 		}
 	}

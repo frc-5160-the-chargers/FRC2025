@@ -14,8 +14,17 @@
   "cameras": [
     {
       "name": "position testing pov",
-      "rotations": [],
-      "position": [0.43, 0.368, 0.15],
+      "rotations": [
+        {
+          "axis": "z",
+          "degrees": -25
+        },
+        {
+          "axis": "y",
+          "degrees": -50
+        }
+      ],
+      "position": [0, -0.3, 0.6096],
       "resolution": [1280, 800],
       "fov": 70
     }

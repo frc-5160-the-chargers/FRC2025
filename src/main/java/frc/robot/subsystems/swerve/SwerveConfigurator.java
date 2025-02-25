@@ -25,7 +25,7 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
-	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(110);
+	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(90);
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
 	public static final double ODOMETRY_FREQUENCY_HZ = 200;
@@ -44,8 +44,8 @@ public class SwerveConfigurator {
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(8, 0.001, 0.2), // azimuth pid
-			new PIDConstants(5.0, 0, 0), // velocity pid
+			new PIDConstants(3, 0.001, 0.1), // azimuth pid
+			new PIDConstants(2.0, 0, 0), // velocity pid
 			new SimpleMotorFeedforward(0, 0.128), // velocity feedforward
 			new PIDConstants(10.0, 0, 0), // path translation pid
 			new PIDConstants(10.0, 0, 0), // path rotation pid,

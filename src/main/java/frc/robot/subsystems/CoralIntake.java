@@ -23,7 +23,7 @@ public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 5;
 	private static final int ID = -1000;
 	private static final double DISTANCE_TOLERANCE_MM = 20;
-	private static final double OUTTAKE_VOLTAGE = 8;
+	private static final double OUTTAKE_VOLTAGE = 12;
 	private static final double INTAKE_VOLTAGE = -12;
 	private static final double DELAY_SECS = 0.5;
 	

@@ -1,7 +1,6 @@
 package frc.robot.subsystems.swerve;
 
 import choreo.auto.AutoFactory;
-import choreo.auto.AutoTrajectory;
 import choreo.trajectory.SwerveSample;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.pathplanner.lib.config.ModuleConfig;
@@ -55,7 +54,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -222,7 +220,7 @@ public class SwerveDrive extends StandardSubsystem {
 						Volts.of(0.1),
 						Volts.of(0.2),
 						moduleType.wheelRadius,
-						KilogramSquareMeters.of(0.025),
+						KilogramSquareMeters.of(0.004),
 						hardwareSpecs.coefficientOfFriction
 					)
 				);
@@ -306,12 +304,12 @@ public class SwerveDrive extends StandardSubsystem {
 				for (var module: swerveModules) {
 					module.setCoast(true);
 				}
-			}))
+			}).ignoringDisable(true))
 			.onFalse(Commands.runOnce(() -> {
 				for (var module: swerveModules) {
 					module.setCoast(false);
 				}
-			}));
+			}).ignoringDisable(true));
 	}
 
 	private boolean isRedAlliance() {
@@ -338,14 +336,16 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	/** Obtains desired module states from a choreo trajectory sample. */
-	private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample) {
+	private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample, double linearVelMultiplier) {
 		var vx = trajSample.vx + xPoseController.calculate(poseEstimate().getX(), trajSample.x);
 		var vy = trajSample.vy + yPoseController.calculate(poseEstimate().getY(), trajSample.y);
 		var rotationV = trajSample.omega + rotationController.calculate(
-			angleModulus(poseEstimate().getRotation().getRadians()),
+			angleModulus(bestPose().getRotation().getRadians()),
 			angleModulus(trajSample.heading)
 		);
-		return ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, poseEstimate().getRotation());
+		vx *= linearVelMultiplier;
+		vy *= linearVelMultiplier;
+		return ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, bestPose().getRotation());
 	}
 	
 	/** Creates a choreo AutoFactory. You should cache this in your Robot or AutoCommands class. */
@@ -355,7 +355,7 @@ public class SwerveDrive extends StandardSubsystem {
 			this::resetPose,
 			// a function that runs trajectory following
 			(SwerveSample trajSample) -> {
-				var desiredModuleStates = toDesiredModuleStates(toDesiredSpeeds(trajSample), false);
+				var desiredModuleStates = toDesiredModuleStates(toDesiredSpeeds(trajSample, 1), false);
 				for (int i = 0; i < 4; i++) {
 					var desiredState = desiredModuleStates[i];
 					double wheelTorqueNm = moduleType.wheelRadius.in(Meters) * (
@@ -550,7 +550,7 @@ public class SwerveDrive extends StandardSubsystem {
 			var realPose = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			repulsor.setGoal(realPose);
 			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-			var desiredSpeeds = toDesiredSpeeds(sample);
+			var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
 			SwerveModuleState[] desiredStates;
 			if (setpointGenerator != null) {
 				currentSetpointRef.set(
@@ -567,32 +567,9 @@ public class SwerveDrive extends StandardSubsystem {
 				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 			}
 		})
-	       .until(() -> repulsor.atGoal(0.03))
+	       .until(() -> repulsor.atGoal(0.01))
+	       .andThen(super.stopCmd())
 	       .withName("PathfindCmd");
-	}
-	
-	/** Aligns to the final pose of a trajectory. */
-	public Command nudgeToFinalPose(AutoTrajectory traj) {
-		var isDone = new AtomicBoolean();
-		return this.run(() -> {
-			var target = traj.<SwerveSample>getRawTrajectory().getFinalPose(true);
-			log("currentTrajectory/hasFinalPose", target.isPresent());
-			if (target.isEmpty()) {
-				requestStop();
-				return;
-			}
-			var swerveSample = new SwerveSample(
-				0, target.get().getX(), target.get().getY(), target.get().getRotation().getRadians(),
-				0, 0, 0, 0, 0, 0, new double[4], new double[4]
-			);
-			var desiredStates = toDesiredModuleStates(toDesiredSpeeds(swerveSample), true);
-			for (int i = 0; i < 4; i++) {
-				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
-			}
-			isDone.set(
-				poseEstimate().getTranslation().getDistance(target.get().getTranslation()) < 0.3
-			);
-		}).until(isDone::get);
 	}
 	
 	/** A command that is used to characterize velocity feedforward/velocity PID constants of the drivetrain. */

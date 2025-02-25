@@ -81,10 +81,14 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	);
 	
 	/* Commands */
-	@NotLogged private final RobotCommands botCommands =
-		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen);
-	@NotLogged private final AutoCommands autoCommands =
-		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, elevator);
+	@NotLogged private final RobotCommands botCommands = new RobotCommands(
+		drivetrain, coralIntake, coralIntakePivot,
+		elevator, setpointGen
+	);
+	@NotLogged private final AutoCommands autoCommands = new AutoCommands(
+		botCommands, drivetrain.createAutoFactory(), coralIntake,
+		elevator, drivetrain, pathfindingPoses
+	);
 	
 	/* Auto choosers */
 	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
@@ -236,10 +240,13 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapAutoModes() {
 		// TODO
-		autoChooser.addCmd("multi piece center", () -> autoCommands.multiPieceCenter(4));
-		autoChooser.addCmd("multi piece test", autoCommands::multiPieceTest);
-		autoChooser.addCmd("figure eight", autoCommands::figureEight);
-		autoChooser.addCmd("simple path", autoCommands::pathTest);
+		autoChooser.addCmd("3x L4 Right", autoCommands::tripleL4South);
+		autoChooser.addCmd("4x L1 Right", autoCommands::quadL1South);
+		autoChooser.addCmd("L4 L1 L1 Right", autoCommands::l4L1L1South);
+		autoChooser.addCmd("L4 L4 L1 Right", autoCommands::l4L4L1South);
+		autoChooser.addCmd("(TEST ONLY) figure eight", autoCommands::figureEight);
+		autoChooser.addCmd("(TEST ONLY) simple path", autoCommands::pathTest);
+		autoChooser.addCmd("(TEST ONLY) multi piece", autoCommands::multiPieceTest);
 		
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		autonomous()
@@ -250,39 +257,28 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private void mapTestCommands() {
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd(
-			"(Test) Pathfind",
+			"Pathfind",
 			() -> drivetrain.pathfindCmd(pathfindingPoses.reefBlue[5], true, setpointGen)
 		);
 		testModeChooser.addCmd(
-			"(Test) Outtake",
+			"Outtake",
 			() -> coralIntake.setHasCoralInSimCmd(true).andThen(coralIntake.outtakeCmd())
 		);
-		testModeChooser.addCmd(
-			"(Test) ScoreL4",
-			() -> botCommands.scoreSequence(4)
-		);
+		testModeChooser.addCmd("Score L4", () -> botCommands.scoreSequence(4));
 		if (RobotBase.isSimulation()) {
 			testModeChooser.addCmd(
-				"(Test) StowAndSimulateCoral",
+				"Stow and simulate coral",
 				() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.moveTo(Setpoint.STOW_LOW))
 			);
 		}
+		testModeChooser.addCmd("Move to L3", () -> botCommands.moveTo(Setpoint.score(3)));
 		testModeChooser.addCmd(
-			"(Test) MoveToL3",
-			() -> botCommands.moveTo(Setpoint.score(3))
-		);
-		testModeChooser.addCmd(
-			"(Test) WheelRadiusCharacterization",
+			"Wheel radius characterization",
 			() -> new WheelRadiusCharacterization(drivetrain, Direction.COUNTER_CLOCKWISE)
 		);
-		testModeChooser.addCmd(
-			"ElevatorCharacterization",
-			elevator::sysIdCmd
-		);
-		testModeChooser.addCmd(
-			"DriveCharacteriation",
-			drivetrain::sysIdCmd
-		);
+		testModeChooser.addCmd("Elevator characterization", elevator::sysIdCmd);
+		testModeChooser.addCmd("Drive FF Characterization", drivetrain::sysIdCmd);
+		testModeChooser.addCmd("Reset odo test", autoCommands::resetOdometryTest);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
 		test().onTrue(testModeChooser.selectedCommandScheduler().ignoringDisable(true));

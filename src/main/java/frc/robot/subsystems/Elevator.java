@@ -34,17 +34,17 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 300);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 70);
+	private static final TunableNum KP = new TunableNum("elevator/kP", RobotBase.isSimulation() ? 2000 : 800);
+	private static final TunableNum KD = new TunableNum("elevator/kD", RobotBase.isSimulation() ? 500 : 30);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
 	
 	private static final double GEAR_RATIO = 54.0 / 8.0;
 	private static final Distance DRUM_RADIUS = Inches.of(1.0);
 	private static final Mass ELEVATOR_MASS = Kilograms.of(0.05);
-	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2.5);
-	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(10.0);
+	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2);
+	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(12.0);
 	private static final Distance TOLERANCE = Inches.of(0.5);
-	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.4);
+	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.7);
 	private static final TalonFXConfiguration ELEVATOR_CONFIG = new TalonFXConfiguration();
 	private static final int LEFT_MOTOR_ID = 5;
 	private static final int RIGHT_MOTOR_ID = 6;
@@ -69,7 +69,7 @@ public class Elevator extends StandardSubsystem {
 	private final TalonFX followerMotor;
 	
 	@Logged public final Trigger movingUp;
-	@Logged public final Trigger readyForMovement;
+	@Logged public final Trigger atLowPosition;
 	
 	public Elevator() {
 		this(false);
@@ -104,7 +104,7 @@ public class Elevator extends StandardSubsystem {
 		followerMotor.setControl(new Follower(LEFT_MOTOR_ID, false));
 		
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
-		readyForMovement = movingUp.negate().and(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
+		atLowPosition = new Trigger(() -> extensionHeight() < COG_LOW_BOUNDARY.in(Meters));
 		
 		sysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
@@ -165,7 +165,10 @@ public class Elevator extends StandardSubsystem {
 				log("motionProfileState/positionRad", profileState.position);
 				leaderMotor.moveToPosition(profileState.position);
 			}).until(atHeight(targetHeight)),
-			Commands.runOnce(() -> log("targetHeight", Double.NaN))
+			Commands.runOnce(() -> {
+				log("targetHeight", Double.NaN);
+				requestStop();
+			})
 		).withName("MoveToHeightCmd");
 	}
 	
