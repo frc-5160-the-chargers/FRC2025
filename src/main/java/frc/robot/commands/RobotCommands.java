@@ -4,6 +4,7 @@ import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
@@ -13,6 +14,7 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
 import static frc.chargers.utils.UtilMethods.distanceBetween;
+import static frc.robot.constants.OtherConstants.NUDGE_ANGLE;
 import static monologue.Monologue.GlobalLog;
 
 /**
@@ -43,7 +45,26 @@ public class RobotCommands {
 			coralIntake.hasCoral.negate()
 				.and(elevator.atLowPosition)
 				.and(elevator.movingUp.negate())
+		).withName("wait until ready");
+	}
+	
+	/** Outtakes while nudging the pivot upwards to reduce innacuracy. */
+	private Command outtakeWithNudge() {
+		return Commands.parallel(
+			coralIntake.outtakeCmd(),
+			Commands.waitUntil(coralIntake.hasCoral)
+				.andThen(
+					Commands.waitUntil(coralIntake.hasCoral.negate()),
+					coralIntakePivot.setAngleCmd(NUDGE_ANGLE)
+				)
 		);
+	}
+	
+	/** A command that outtakes, nudging only when the elevator is at L4. */
+	public Command outtake() {
+		Trigger atL4 = elevator.atHeight(Setpoint.score(4).elevatorHeight());
+		return Commands.either(coralIntake.outtakeCmd(), outtakeWithNudge(), atL4)
+			       .withName("outtake (maybe nudge)");
 	}
 	
 	/**
@@ -55,7 +76,7 @@ public class RobotCommands {
 			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint)),
 			elevator.moveToHeightCmd(setpoint.elevatorHeight()),
 			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
-		).withName("moveToSetpoint");
+		).withName("move to setpoint");
 	}
 	
 	/**
@@ -66,10 +87,10 @@ public class RobotCommands {
 		return moveTo(Setpoint.score(scoringLevel))
 			       .andThen(
 					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.05),
-					   coralIntake.outtakeCmd(),
+					   outtake(),
 				       moveTo(Setpoint.STOW_MID)
 			       )
-			       .withName("scoreSequence(L" + scoringLevel + ")");
+			       .withName("score sequence(L" + scoringLevel + ")");
 	}
 	
 	/** A command that pathfinds to a pose while moving to a certain setpoint. */
@@ -80,7 +101,7 @@ public class RobotCommands {
 				var distance = distanceBetween(AllianceUtil.flipIfRed(blueAlliancePose), drivetrain.poseEstimate());
 				return distance < 0.2 && drivetrain.getOverallSpeedMPS() < 0.2;
 			}).andThen(moveTo(setpoint))
-		).withName("moveToSetpoint(and pathfind)");
+		).withName("move to setpoint(and pathfind)");
 	}
 	
 	/** Runs the intake and moves the elevator and pivot to the intake position. */
@@ -88,7 +109,7 @@ public class RobotCommands {
 		return Commands.parallel(
 			moveTo(Setpoint.INTAKE),
 			coralIntake.intakeCmd()
-		).withName("sourceIntake");
+		).withName("source intake");
 	}
 	
 	/** Moves to a setpoint specified by tunable dashboard values. */
@@ -96,6 +117,6 @@ public class RobotCommands {
 		return Commands.parallel(
 			coralIntakePivot.setDemoAngleCmd(),
 			elevator.moveToDemoHeightCmd()
-		).withName("moveToDemoSetpoint");
+		).withName("move to demo setpoint");
 	}
 }

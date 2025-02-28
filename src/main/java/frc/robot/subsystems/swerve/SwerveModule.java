@@ -99,7 +99,7 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		} else {
 			FF_ALERT.set(additionalFeedforward > 0.0);
 			var voltage = state.speedMetersPerSecond / maxVelocity.in(MetersPerSecond) * 12.0;
-			log("!!!!!desiredVolts", voltage);
+			log("desiredVolts", voltage);
 			driveMotor.setVoltage(voltage);
 		}
 	}

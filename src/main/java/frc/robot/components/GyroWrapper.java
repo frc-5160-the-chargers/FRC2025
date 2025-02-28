@@ -16,7 +16,9 @@ public class GyroWrapper {
 		pitch = pigeon.getPitch(),
 		roll = pigeon.getRoll();
 	
-	public final Trigger isTipping = new Trigger(() -> false);
+	public final Trigger isTipping = new Trigger(
+		() -> Math.abs(pitch().getDegrees()) > 25 || Math.abs(roll().getDegrees()) > 25
+	);
 	
 	public GyroWrapper() {
 		// automatically calls refresh() on signals

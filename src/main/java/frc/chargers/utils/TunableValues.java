@@ -6,15 +6,17 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.Setter;
 
+import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
+
 /**
- * An API to read data from NetworkTables.
- * Can be used for replay, receiving data, or tunable values.
+ * An API to handle tunable dashboard values.
  */
 public class TunableValues {
 	@Setter private static boolean tuningMode = false;
 	
 	/** A number that can be tuned from the dashboard. */
-	public static class TunableNum {
+	public static class TunableNum implements DoubleSupplier {
 		private final DoubleEntry entry;
 		private double defaultValue;
 		private double previousValue;
@@ -44,10 +46,15 @@ public class TunableValues {
 		public double get() {
 			return tuningMode ? entry.get(defaultValue) : defaultValue;
 		}
+		
+		@Override
+		public double getAsDouble() {
+			return get();
+		}
 	}
 	
 	/** A boolean that can be tuned from the dashboard. */
-	public static class TunableBool {
+	public static class TunableBool implements BooleanSupplier {
 		private final BooleanEntry entry;
 		private boolean defaultValue;
 		private boolean previousValue = false;
@@ -75,6 +82,11 @@ public class TunableValues {
 		
 		public boolean get() {
 			return tuningMode ? entry.get(defaultValue) : defaultValue;
+		}
+		
+		@Override
+		public boolean getAsBoolean() {
+			return get();
 		}
 	}
 }

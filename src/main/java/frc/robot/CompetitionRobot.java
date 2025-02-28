@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
+import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
 import frc.robot.commands.AutoCommands;
@@ -30,6 +31,7 @@ import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.commands.WheelRadiusCharacterization.Direction;
 import frc.robot.components.GyroWrapper;
 import frc.robot.components.OperatorUi;
+import frc.robot.components.RobotVisualization;
 import frc.robot.components.vision.AprilTagVision;
 import frc.robot.constants.PathfindingPoses;
 import frc.robot.constants.Setpoint;
@@ -43,15 +45,13 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 import static frc.chargers.utils.TriggerUtil.bind;
+import static frc.robot.constants.OtherConstants.*;
 import static monologue.Monologue.GlobalLog;
 
 @Logged
 public class CompetitionRobot extends TimedRobot implements LogLocal {
-	private static final boolean USE_PATHFINDING = true;
-	
 	/* Subsystems/Components */
 	private final GyroWrapper gyroWrapper = new GyroWrapper();
 	private final SwerveDrive drivetrain = new SwerveDrive(
@@ -70,13 +70,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final RobotVisualization visualizer =
 		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
 	private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
-		KilogramSquareMeters.of(6.283),  // robot moi
-		Amps.of(60) // drive current limit
+		SwerveConfigurator.BODY_MOI, SwerveConfigurator.DRIVE_CURRENT_LIMIT
 	);
 	private final PathfindingPoses pathfindingPoses = new PathfindingPoses(
-		new Translation2d(Inches.of(-15), Inches.of(-7.5)), // reef offset
-		new Translation2d(Meters.of(-0.13), Meters.of(-0.5)), // north source offset,
-		new Translation2d(Meters.of(-0.13), Meters.of(0.5)), // south source offset
+		REEF_SCORE_OFFSET, SOURCE_OFFSET,
+		new Translation2d(SOURCE_OFFSET.getX(), -SOURCE_OFFSET.getY()),
 		SwerveConfigurator.HARDWARE_SPECS
 	);
 	
@@ -95,13 +93,15 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	@NotLogged private final AutoChooser testModeChooser = new AutoChooser();
 	
 	/* Controllers/Driver input */
-	private final CommandPS5Controller driverController = new CommandPS5Controller(0);
+	private final CommandPS5Controller driverController = new CommandPS5Controller(DRIVER_CONTROLLER_PORT);
 	private final OperatorUi operatorUi = new OperatorUi();
-	private final CommandXboxController manualOverrideController = new CommandXboxController(1);
+	private final CommandXboxController manualOverrideController = new CommandXboxController(MANUAL_CONTROLLER_PORT);
 	
 	public CompetitionRobot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
 		StatusSignalRefresher.startPeriodic(this);
+		// calls runTcp() and setups jni
+		LaserCanUtil.setup(true);
 		// logging setup(required)
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
@@ -189,6 +189,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		driverController.R2()
 			.whileTrue(botCommands.sourceIntake());
 		
+		// anti-tipping
+		gyroWrapper.isTipping
+			.onTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+		
 		/* Manual override controller bindings */
 		var elevatorInput =
 			InputStream.of(manualOverrideController::getLeftY)
@@ -262,7 +266,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		);
 		testModeChooser.addCmd(
 			"Outtake",
-			() -> coralIntake.setHasCoralInSimCmd(true).andThen(coralIntake.outtakeCmd())
+			() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.outtake())
 		);
 		testModeChooser.addCmd("Score L4", () -> botCommands.scoreSequence(4));
 		if (RobotBase.isSimulation()) {

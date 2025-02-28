@@ -15,11 +15,11 @@ public abstract class StandardSubsystem extends SubsystemBase implements LogLoca
 	
 	/** A command that stops the subsystem once. */
 	public Command stopCmd() {
-		return this.runOnce(this::requestStop).withName("StopCmd(" + getName() + ")");
+		return this.runOnce(this::requestStop).withName("stop command(" + getName() + ")");
 	}
 	
 	/** A command that stops the subsystem indefinitely, until cancelled. */
 	public Command idleCmd() {
-		return this.run(this::requestStop).withName("IdleCmd(" + getName() + ")");
+		return this.run(this::requestStop).withName("idle command(" + getName() + ")");
 	}
 }

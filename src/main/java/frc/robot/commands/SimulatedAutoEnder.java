@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 /**
  * A command that ends auto after 15.3 seconds.
  * Uses System.nanoTime() instead, as Timer.getTimestamp() is simulated
- * (which means lags in sim will cause the auto to be prematurely cancelled.
+ * (which means lagging in sim will cause the auto to be prematurely cancelled).
  */
 public class SimulatedAutoEnder extends Command {
 	private double startTime = 0.0;

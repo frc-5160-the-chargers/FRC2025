@@ -39,7 +39,7 @@ public class SwerveConfigurator {
 			DCMotor.getKrakenX60(1), // turn motor type
 			MetersPerSecond.of(4.5), // max linear speed
 			DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
-			Pounds.of(120), // mass
+			Pounds.of(81), // mass
 			Inches.of(2) // width of bumpers
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =

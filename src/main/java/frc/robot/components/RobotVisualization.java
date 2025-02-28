@@ -1,4 +1,4 @@
-package frc.robot;
+package frc.robot.components;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;

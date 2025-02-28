@@ -7,8 +7,11 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.hardware.motorcontrol.Motor;
+import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.robot.subsystems.swerve.SwerveDrive;
+
+import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
 @Logged
 public class KitBotCoralOut extends StandardSubsystem {
@@ -21,7 +24,7 @@ public class KitBotCoralOut extends StandardSubsystem {
         this.drive = drive;
 
         motor = new SimMotor(
-                SimMotor.SimMotorType.DC(DCMotor.getNEO(1), 0.004),
+                SimDynamics.of(DCMotor.getNEO(1), 1.0, KilogramSquareMeters.of(.004)),
                 null
         );
 //        }
