@@ -2,7 +2,7 @@ package frc.robot.subsystems;
 
 import au.grapplerobotics.LaserCan;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.MomentOfInertia;
@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
-import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
+import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
@@ -23,7 +23,7 @@ import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
 @Logged
 public class CoralIntake extends StandardSubsystem {
-	private static final double GEAR_RATIO = 5;
+	private static final double GEAR_RATIO = 1; // no gear ratio - sadge
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(.004);
 	
 	private static final int MOTOR_ID = -1000;
@@ -48,15 +48,15 @@ public class CoralIntake extends StandardSubsystem {
 	
 	public CoralIntake() {
 		if (RobotBase.isSimulation()) {
-			motor = new SimMotor(SimDynamics.of(DCMotor.getNEO(1), GEAR_RATIO, MOI), null);
+			motor = new SimMotor(SimDynamics.of(DCMotor.getNeoVortex(1), GEAR_RATIO, MOI), null);
 		} else {
-			var config = new SparkMaxConfig();
+			var config = new SparkFlexConfig();
 			ChargerSpark.optimizeBusUtilizationOn(config);
 			config
 				.smartCurrentLimit(60)
 				.idleMode(IdleMode.kBrake)
 				.voltageCompensation(12.0);
-			motor = new ChargerSpark(MOTOR_ID, SparkModel.SPARK_MAX, config);
+			motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, config);
 		}
 		motor.setControlsConfig(
 			ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO)

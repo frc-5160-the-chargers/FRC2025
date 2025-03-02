@@ -44,17 +44,16 @@ public class Monologue {
       var totalRuns = new HashMap<String, Integer>();
       var numInterrupts = new HashMap<String, Integer>();
       BiConsumer<Command, Boolean> handleFinish = (command, wasInterrupted) -> {
-        log("commandStats/" + command.getName() + "/isRunning", false);
-        log(
-            "commandStats/" + command.getName() + "/numInterrupts",
-            numInterrupts.merge(command.getName(), 1, Integer::sum)
-        );
+        String path = "commandStats/" + command.getName();
+        log(path + "/isRunning", false);
+        if (wasInterrupted) {
+          log(path + "/numInterrupts", numInterrupts.merge(command.getName(), 1, Integer::sum));
+        }
       };
       scheduler.onCommandInitialize(command -> {
-        log(
-            "commandStats/"+ command.getName() + "/totalRuns",
-            totalRuns.merge(command.getName(), 1, Integer::sum)
-        );
+        String path = "commandStats/"+ command.getName();
+        log(path + "/requirements", command.getRequirements().toString());
+        log(path + "/totalRuns", totalRuns.merge(command.getName(), 1, Integer::sum));
         log("commandStats/" + command.getName() + "/isRunning", true);
       });
       scheduler.onCommandFinish(command -> handleFinish.accept(command, false));

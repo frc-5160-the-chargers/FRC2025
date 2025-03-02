@@ -4,8 +4,8 @@ import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
+import frc.chargers.utils.InputStream;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -14,18 +14,17 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
 import static frc.chargers.utils.UtilMethods.distanceBetween;
-import static frc.robot.constants.OtherConstants.NUDGE_ANGLE;
 import static monologue.Monologue.GlobalLog;
 
 /**
  * Competition robot-specific commands that need more than one subsystem.
  * Example usage:
  * <pre><code>
- * RobotCommands robotCommands = new RobotCommands(...);
- * robotCommands.moveTo(Setpoint.score(3)) // moves arm and elevator to L3
- * robotCommands.scoreSequence(3) // moves arm and elevator to L3, auto-outtakes, and stows. Only used in auto
+ * RobotCommands botCommands = new RobotCommands(...);
+ * botCommands.moveTo(Setpoint.score(3)) // moves arm and elevator to L3
+ * botCommands.scoreSequence(3) // moves arm and elevator to L3, auto-outtakes, and stows. Only used in auto
  * // pathfind to reef position 4, then move arm + elevator
- * robotCommands.pathfindAndMoveTo(Setpoint.score(3), pathfindingPoses.reefBlue[4])
+ * botCommands.pathfindAndMoveTo(Setpoint.score(3), pathfindingPoses.reefBlue[4])
  * </code></pre>
  */
 @RequiredArgsConstructor
@@ -48,25 +47,6 @@ public class RobotCommands {
 		).withName("wait until ready");
 	}
 	
-	/** Outtakes while nudging the pivot upwards to reduce innacuracy. */
-	private Command outtakeWithNudge() {
-		return Commands.parallel(
-			coralIntake.outtakeCmd(),
-			Commands.waitUntil(coralIntake.hasCoral)
-				.andThen(
-					Commands.waitUntil(coralIntake.hasCoral.negate()),
-					coralIntakePivot.setAngleCmd(NUDGE_ANGLE)
-				)
-		);
-	}
-	
-	/** A command that outtakes, nudging only when the elevator is at L4. */
-	public Command outtake() {
-		Trigger atL4 = elevator.atHeight(Setpoint.score(4).elevatorHeight());
-		return Commands.either(coralIntake.outtakeCmd(), outtakeWithNudge(), atL4)
-			       .withName("outtake (maybe nudge)");
-	}
-	
 	/**
 	 * Moves the elevator and pivot to a certain position.
 	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
@@ -86,8 +66,8 @@ public class RobotCommands {
 	public Command scoreSequence(int scoringLevel) {
 		return moveTo(Setpoint.score(scoringLevel))
 			       .andThen(
-					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.05),
-					   outtake(),
+					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.01),
+					   coralIntake.outtakeCmd(),
 				       moveTo(Setpoint.STOW_MID)
 			       )
 			       .withName("score sequence(L" + scoringLevel + ")");
@@ -105,11 +85,16 @@ public class RobotCommands {
 	}
 	
 	/** Runs the intake and moves the elevator and pivot to the intake position. */
-	public Command sourceIntake() {
+	public Command sourceIntakeWithAim(Pose2d sourcePoseBlue, InputStream forward, InputStream strafe) {
 		return Commands.parallel(
 			moveTo(Setpoint.INTAKE),
-			coralIntake.intakeCmd()
-		).withName("source intake");
+			coralIntake.intakeCmd(),
+			drivetrain.driveWithAimCmd(
+				forward, strafe,
+				AllianceUtil.flipIfRed(sourcePoseBlue.getRotation()).getMeasure(),
+				true
+			)
+		).withName("source intake with aim");
 	}
 	
 	/** Moves to a setpoint specified by tunable dashboard values. */

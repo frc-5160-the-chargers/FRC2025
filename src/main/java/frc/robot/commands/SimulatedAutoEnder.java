@@ -5,7 +5,7 @@ import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj2.command.Command;
 
 /**
- * A command that ends auto after 15.3 seconds.
+ * A command that ends auto(in sim) after 15.3 seconds.
  * Uses System.nanoTime() instead, as Timer.getTimestamp() is simulated
  * (which means lagging in sim will cause the auto to be prematurely cancelled).
  */

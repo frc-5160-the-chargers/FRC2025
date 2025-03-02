@@ -11,6 +11,11 @@ public abstract class StandardSubsystem extends SubsystemBase implements LogLoca
 		System.out.println("Warning: subsystem " + getName() + " closed without closing resources.");
 	}
 	
+	@Override
+	public String toString() {
+		return getName();
+	}
+	
 	protected abstract void requestStop();
 	
 	/** A command that stops the subsystem once. */

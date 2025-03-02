@@ -7,12 +7,10 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -33,14 +31,13 @@ import frc.robot.components.GyroWrapper;
 import frc.robot.components.OperatorUi;
 import frc.robot.components.RobotVisualization;
 import frc.robot.components.vision.AprilTagVision;
-import frc.robot.constants.PathfindingPoses;
+import frc.robot.constants.TargetPoses;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
-import monologue.ExtrasLogger;
 import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
@@ -72,21 +69,14 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
 		SwerveConfigurator.BODY_MOI, SwerveConfigurator.DRIVE_CURRENT_LIMIT
 	);
-	private final PathfindingPoses pathfindingPoses = new PathfindingPoses(
-		REEF_SCORE_OFFSET, SOURCE_OFFSET,
-		new Translation2d(SOURCE_OFFSET.getX(), -SOURCE_OFFSET.getY()),
-		SwerveConfigurator.HARDWARE_SPECS
-	);
+	private final TargetPoses targetPoses =
+		new TargetPoses(REEF_SCORE_OFFSET, SOURCE_OFFSET, SwerveConfigurator.HARDWARE_SPECS);
 	
 	/* Commands */
-	@NotLogged private final RobotCommands botCommands = new RobotCommands(
-		drivetrain, coralIntake, coralIntakePivot,
-		elevator, setpointGen
-	);
-	@NotLogged private final AutoCommands autoCommands = new AutoCommands(
-		botCommands, drivetrain.createAutoFactory(), coralIntake,
-		elevator, drivetrain, pathfindingPoses
-	);
+	@NotLogged private final RobotCommands botCommands =
+		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen);
+	@NotLogged private final AutoCommands autoCommands =
+		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, drivetrain, targetPoses);
 	
 	/* Auto choosers */
 	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
@@ -96,6 +86,27 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final CommandPS5Controller driverController = new CommandPS5Controller(DRIVER_CONTROLLER_PORT);
 	private final OperatorUi operatorUi = new OperatorUi();
 	private final CommandXboxController manualOverrideController = new CommandXboxController(MANUAL_CONTROLLER_PORT);
+	
+	private final InputStream forwardOutput =
+		InputStream.of(driverController::getLeftY)
+			.negate()
+			.deadband(0.1, 1);
+	private final InputStream strafeOutput =
+		InputStream.of(driverController::getLeftX)
+			.negate()
+			.deadband(0.1, 1);
+	private final InputStream rotationOutput =
+		InputStream.of(driverController::getRightX)
+			.negate()
+			.deadband(0.1, 1);
+	private final InputStream manualElevatorInput =
+		InputStream.of(manualOverrideController::getLeftY)
+			.times(-0.7)
+			.signedPow(2);
+	private final InputStream manualPivotInput =
+		InputStream.of(manualOverrideController::getRightY)
+			.times(-0.3)
+			.signedPow(1.3);
 	
 	public CompetitionRobot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -164,7 +175,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 						.whileTrue(
 							botCommands.pathfindAndMoveTo(
 								Setpoint.score(wantedLevel),
-								pathfindingPoses.reefBlue[wantedPathTarget]
+								targetPoses.reefBlue[wantedPathTarget]
 							)
 						);
 				}
@@ -175,58 +186,37 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			}
 		}
 		
-		if (USE_PATHFINDING) {
-			driverController.square()
-				.whileTrue(drivetrain.pathfindCmd(pathfindingPoses.eastSourceBlue, true, setpointGen));
-			driverController.circle()
-				.whileTrue(drivetrain.pathfindCmd(pathfindingPoses.westSourceBlue, true, setpointGen));
-		}
+		driverController.square()
+			.whileTrue(botCommands.sourceIntakeWithAim(targetPoses.eastSourceBlue, forwardOutput, strafeOutput));
+		driverController.circle()
+			.whileTrue(botCommands.sourceIntakeWithAim(targetPoses.westSourceBlue, forwardOutput, strafeOutput));
 		
 		driverController.R1()
 			.whileTrue(coralIntake.outtakeForeverCmd());
 		driverController.L1()
 			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
-		driverController.R2()
-			.whileTrue(botCommands.sourceIntake());
 		
 		// anti-tipping
 		gyroWrapper.isTipping
 			.onTrue(botCommands.moveTo(Setpoint.STOW_LOW));
 		
 		/* Manual override controller bindings */
-		var elevatorInput =
-			InputStream.of(manualOverrideController::getLeftY)
-				.times(-0.7)
-				.signedPow(2)
-				.log("manualOverrideController/elevatorInput");
-		var pivotInput =
-			InputStream.of(manualOverrideController::getRightY)
-				.times(-0.3)
-				.signedPow(1.3)
-				.log("manualOverrideController/pivotInput");
-		operatorUi.isManualOverride
-			.and(teleop())
-			.whileTrue(elevator.setPowerCmd(elevatorInput))
-			.whileTrue(coralIntakePivot.setPowerCmd(pivotInput));
+		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());
+		
+		manualCtrlAllowed
+			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
+			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
+		manualCtrlAllowed
+			.and(manualOverrideController.leftBumper())
+			.whileTrue(coralIntake.intakeForeverCmd());
+		manualCtrlAllowed
+			.and(manualOverrideController.rightBumper())
+			.whileTrue(coralIntake.outtakeForeverCmd());
 	}
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(
-				InputStream.of(driverController::getLeftY)
-					.negate()
-					.deadband(0.1, 1)
-					.log("driverController/xOutput"),
-				InputStream.of(driverController::getLeftX)
-					.negate()
-					.deadband(0.1, 1)
-					.log("driverController/yOutput"),
-				InputStream.of(driverController::getRightX)
-					.negate()
-					.deadband(0.1, 1)
-					.log("driverController/rotationOutput"),
-				false
-			)
+			drivetrain.driveCmd(forwardOutput, strafeOutput, rotationOutput, false)
 		);
 		elevator.setDefaultCommand(elevator.idleCmd());
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
@@ -239,7 +229,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		GlobalLog.logMetadata("GitBranch", BuildConstants.GIT_BRANCH);
 		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
 		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
-		ExtrasLogger.start(this, new PowerDistribution());
 	}
 	
 	private void mapAutoModes() {
@@ -248,6 +237,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		autoChooser.addCmd("4x L1 Right", autoCommands::quadL1South);
 		autoChooser.addCmd("L4 L1 L1 Right", autoCommands::l4L1L1South);
 		autoChooser.addCmd("L4 L4 L1 Right", autoCommands::l4L4L1South);
+		autoChooser.addCmd("One Piece L4", autoCommands::onePieceL4);
 		autoChooser.addCmd("(TEST ONLY) figure eight", autoCommands::figureEight);
 		autoChooser.addCmd("(TEST ONLY) simple path", autoCommands::pathTest);
 		autoChooser.addCmd("(TEST ONLY) multi piece", autoCommands::multiPieceTest);
@@ -262,11 +252,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd(
 			"Pathfind",
-			() -> drivetrain.pathfindCmd(pathfindingPoses.reefBlue[5], true, setpointGen)
+			() -> drivetrain.pathfindCmd(targetPoses.reefBlue[5], true, setpointGen)
 		);
 		testModeChooser.addCmd(
 			"Outtake",
-			() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.outtake())
+			() -> coralIntake.setHasCoralInSimCmd(true).andThen(coralIntake.outtakeCmd())
 		);
 		testModeChooser.addCmd("Score L4", () -> botCommands.scoreSequence(4));
 		if (RobotBase.isSimulation()) {
@@ -282,7 +272,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		);
 		testModeChooser.addCmd("Elevator characterization", elevator::sysIdCmd);
 		testModeChooser.addCmd("Drive FF Characterization", drivetrain::sysIdCmd);
-		testModeChooser.addCmd("Reset odo test", autoCommands::resetOdometryTest);
+		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
+		testModeChooser.addCmd("Align", () -> drivetrain.alignCmd(new Pose2d(5,7, Rotation2d.kZero), false));
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
 		test().onTrue(testModeChooser.selectedCommandScheduler().ignoringDisable(true));

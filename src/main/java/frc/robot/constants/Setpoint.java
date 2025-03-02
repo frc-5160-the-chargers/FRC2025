@@ -18,14 +18,14 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget) implements St
 	
 	private static final Map<Integer, Setpoint> LEVEL_TO_SETPOINT_MAP = Map.ofEntries(
 		entry(1, new Setpoint(Meters.zero(), Degrees.zero())),
-		entry(2, new Setpoint(Meters.of(0.42), Degrees.of(-30))),
-		entry(3, new Setpoint(Meters.of(0.82), Degrees.of(-30))),
-		entry(4, new Setpoint(Meters.of(1.15), Degrees.zero()))
+		entry(2, new Setpoint(Meters.of(0.34), Degrees.of(-30))),
+		entry(3, new Setpoint(Meters.of(0.74), Degrees.of(-30))),
+		entry(4, new Setpoint(Meters.of(1.2), Degrees.zero()))
 	);
 	
-	public static final Setpoint STOW_LOW = new Setpoint(Meters.zero(), Degrees.of(70));
-	public static final Setpoint STOW_MID = new Setpoint(Meters.of(0.22), Degrees.of(70));
-	public static final Setpoint INTAKE = new Setpoint(Meters.of(0.22), Degrees.of(30));
+	public static final Setpoint STOW_LOW = new Setpoint(Meters.zero(), Degrees.of(80));
+	public static final Setpoint STOW_MID = new Setpoint(Meters.of(0.14), Degrees.of(80));
+	public static final Setpoint INTAKE = new Setpoint(Meters.of(0.14), Degrees.of(30));
 	
 	public static Setpoint score(int level) {
 		if (level < 1 || level > 4) {

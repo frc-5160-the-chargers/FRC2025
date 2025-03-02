@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
-import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
+import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.hardware.motorcontrol.SimMotor;
@@ -31,7 +31,7 @@ public class Climber extends StandardSubsystem {
 		if (RobotBase.isSimulation()) {
 			motor = new SimMotor(SimDynamics.of(DCMotor.getNEO(1), GEAR_RATIO, MOI), null);
 		} else {
-			motor = new ChargerSpark(5, SparkModel.SPARK_MAX, null);
+			motor = new ChargerSpark(5, Model.SPARK_MAX, null);
 		}
 	}
 	

@@ -44,7 +44,7 @@ public class OperatorUi {
 	
 	/**
 	 * A trigger that returns true when the operator ui requests the specified pathfind pose.
-	 * @see frc.robot.constants.PathfindingPoses
+	 * @see frc.robot.constants.TargetPoses
 	 */
 	public Trigger pathfindTargetIs(int id) {
 		return new Trigger(() -> this.pathfindTarget == id);

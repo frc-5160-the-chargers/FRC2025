@@ -24,7 +24,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
-import frc.chargers.hardware.motorcontrol.ChargerSpark.SparkModel;
+import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.hardware.motorcontrol.SimMotor;
@@ -41,10 +41,11 @@ import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
+import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 4000);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 500);
+	private static final TunableNum KP = new TunableNum("elevator/kP", 3000);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 400);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
 	
 	// verified values
@@ -57,7 +58,7 @@ public class Elevator extends StandardSubsystem {
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(18.0);
 	
 	private static final Distance TOLERANCE = Inches.of(0.5);
-	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.7);
+	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.5);
 	
 	private static final int LEADER_MOTOR_ID = 5;
 	private static final int FOLLOWER_MOTOR_ID = 6;
@@ -113,9 +114,9 @@ public class Elevator extends StandardSubsystem {
 				simConfig
 			);
 		} else {
-			leaderMotor = new ChargerSpark(LEADER_MOTOR_ID, SparkModel.SPARK_MAX, LEADER_CONFIG);
+			leaderMotor = new ChargerSpark(LEADER_MOTOR_ID, Model.SPARK_MAX, LEADER_CONFIG);
 		}
-		leaderMotor.encoder().setPositionReading(Radians.zero());
+		waitThenRun(2, () -> leaderMotor.encoder().setPositionReading(Radians.zero()));
 		
 		var plantInversionFF = new LinearPlantInversionFeedforward<>(
 			LinearSystemId.createElevatorSystem(

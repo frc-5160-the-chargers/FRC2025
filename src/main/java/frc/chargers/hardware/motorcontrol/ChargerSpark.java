@@ -66,19 +66,19 @@ public class ChargerSpark implements Motor {
 		}
 	}
 	
-	public enum SparkModel {
+	public enum Model {
 		SPARK_MAX, SPARK_FLEX
 	}
 	
-	public ChargerSpark(int id, SparkModel model, @Nullable SparkBaseConfig config) {
-		this.baseApi = model == SparkModel.SPARK_MAX ? new SparkMax(id, MotorType.kBrushless) : new SparkFlex(id, MotorType.kBrushless);
+	public ChargerSpark(int id, Model model, @Nullable SparkBaseConfig config) {
+		this.baseApi = model == Model.SPARK_MAX ? new SparkMax(id, MotorType.kBrushless) : new SparkFlex(id, MotorType.kBrushless);
 		this.baseEncoder = baseApi.getEncoder();
 		this.pidController = baseApi.getClosedLoopController();
 		if (config != null) {
 			this.initialConfig = config;
 			tryUntilOk(baseApi, () -> baseApi.configure(config, kResetSafeParameters, kPersistParameters));
 		} else {
-			this.initialConfig = model == SparkModel.SPARK_MAX ? new SparkMaxConfig() : new SparkFlexConfig();
+			this.initialConfig = model == Model.SPARK_MAX ? new SparkMaxConfig() : new SparkFlexConfig();
 		}
 	}
 	

@@ -5,10 +5,9 @@ import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.constants.PathfindingPoses;
+import frc.robot.constants.TargetPoses;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
-import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
@@ -18,11 +17,19 @@ public class AutoCommands {
 	private final RobotCommands botCommands;
 	private final AutoFactory autoFactory;
 	private final CoralIntake coralIntake;
-	private final Elevator elevator;
 	private final SwerveDrive drivetrain;
-	private final PathfindingPoses pathfindingPoses;
+	private final TargetPoses targetPoses;
 	
 	/* Utility classes/methods */
+	
+	/**
+	 * Represents the source location when looking at the choreo field map.
+	 * Here, TOP represents the source to the east from the driver station point of view,
+	 * while BOTTOM represents the source to the west.
+	 */
+	private enum SourceLoc {
+		TOP, BOTTOM
+	}
 	
 	/**
 	 * An auto "step" that represents scoring a piece of coral.
@@ -31,20 +38,20 @@ public class AutoCommands {
 	 * @param extendDelay Once the score trajectory starts,
 	 *                    wait this long before extending the elevator & wrist.
 	 */
-	public record ScoringStep(int level, int position, double extendDelay) {}
+	private record ScoringStep(int level, int position, double extendDelay) {}
 	
 	/**
 	 * An auto "step" that represents intaking from the human player station.
-	 * @param isSouthSource If false, intakes from the north source instead.
+	 * @param sourceLoc the source to go to
 	 * @param extendDelay Once the intake trajectory starts, wait this long before extending the wrist.
 	 */
-	public record IntakeStep(boolean isSouthSource, double extendDelay) {}
+	private record IntakeStep(SourceLoc sourceLoc, double extendDelay) {}
 	
 	/** A combined intake and scoring step. */
-	public record CombinedStep(IntakeStep intakeStep, ScoringStep scoringStep) {}
+	private record CombinedStep(IntakeStep intakeStep, ScoringStep scoringStep) {}
 	
 	/**
-	 * Assigns a series of auto steps to an auto routine.
+	 * Creates a generic auto routine.
 	 * To use this command, all trajectories must follow a standard naming format.
 	 * 1. The initial trajectory must be named "LineToReefX", where X is the location
 	 *      (an integer, specified in PathfindingPoses.java).
@@ -67,11 +74,11 @@ public class AutoCommands {
 		);
 		var previousScoreStep = initialScoreStep;
 		var previousTraj = initialScoreTraj;
-		var previousTarget = pathfindingPoses.reefBlue[initialScoreStep.position];
+		var previousTarget = targetPoses.reefBlue[initialScoreStep.position];
 		for (var autoStep: otherSteps) {
 			var intakeStep = autoStep.intakeStep;
 			var scoringStep = autoStep.scoringStep;
-			var sourceLoc = intakeStep.isSouthSource ? "SourceS" : "SourceN";
+			var sourceLoc = intakeStep.sourceLoc == SourceLoc.BOTTOM ? "SourceS" : "SourceN";
 			var intakeTraj = routine.trajectory("Reef" + previousScoreStep.position + "To" + sourceLoc);
 			var scoringTraj = routine.trajectory(sourceLoc + "ToReef" + scoringStep.position);
 			
@@ -79,14 +86,16 @@ public class AutoCommands {
 				previousTraj.done().onTrue(Commands.waitSeconds(1).andThen(intakeTraj.spawnCmd()));
 			} else {
 				previousTraj.atTranslation(previousTarget.getTranslation(), 0.4).onTrue(
-					drivetrain.pathfindCmd(previousTarget, true, null)
+					drivetrain.alignCmd(previousTarget, true)
 						.andThen(botCommands.waitUntilReady(), intakeTraj.spawnCmd())
+						.withName("intake traj spawner")
 				);
 			}
 			intakeTraj.active().onTrue(coralIntake.intakeCmd());
 			intakeTraj.atTime(intakeStep.extendDelay).onTrue(botCommands.moveTo(Setpoint.INTAKE));
 			intakeTraj.done().onTrue(
 				Commands.waitUntil(coralIntake.hasCoral).andThen(scoringTraj.spawnCmd())
+					.withName("scoring traj spawner")
 			);
 			scoringTraj.atTime(scoringStep.extendDelay).onTrue(
 				botCommands.scoreSequence(scoringStep.level)
@@ -94,7 +103,7 @@ public class AutoCommands {
 			
 			previousTraj = scoringTraj;
 			previousScoreStep = scoringStep;
-			previousTarget = pathfindingPoses.reefBlue[previousScoreStep.position];
+			previousTarget = targetPoses.reefBlue[previousScoreStep.position];
 		}
 		var taxiCmd = taxiTrajectory == null ? Commands.none() : taxiTrajectory.spawnCmd();
 		if (previousScoreStep.level == 1) {
@@ -102,8 +111,9 @@ public class AutoCommands {
 		} else {
 			previousTraj.atTranslation(previousTarget.getTranslation(), 0.4)
 				.onTrue(
-					drivetrain.pathfindCmd(previousTarget, true, null)
-						.andThen(Commands.waitUntil(elevator.atLowPosition), taxiCmd)
+					drivetrain.alignCmd(previousTarget, true)
+						.andThen(botCommands.waitUntilReady(), taxiCmd)
+						.withName("taxi traj spawner")
 				);
 		}
 		return routine.cmd();
@@ -114,7 +124,7 @@ public class AutoCommands {
 	/** Scores 3 L4 coral in auto. */
 	public Command tripleL4South() {
 		var routine = autoFactory.newRoutine("TripleL4South");
-		var intakeStep = new IntakeStep(true, 0.6);
+		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiShort"),
 			new ScoringStep(4, 9, 0.75),
@@ -123,9 +133,10 @@ public class AutoCommands {
 		);
 	}
 	
+	/** Scores 4 L1 coral in auto. */
 	public Command quadL1South() {
 		var routine = autoFactory.newRoutine("QuadL1South");
-		var intakeStep = new IntakeStep(true, 0.3);
+		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.3);
 		return genericAuto(
 			routine, null,
 			new ScoringStep(1, 9, 0),
@@ -138,7 +149,7 @@ public class AutoCommands {
 	/** Scores 1 L4 Coral and 2 L1 coral in auto. */
 	public Command l4L1L1South() {
 		var routine = autoFactory.newRoutine("L4L1L1South");
-		var intakeStep = new IntakeStep(true, 0.6);
+		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiLong"),
 			new ScoringStep(4, 7, 0),
@@ -150,13 +161,18 @@ public class AutoCommands {
 	/** Scores 2 L4 Coral and 1 L1 coral in auto. */
 	public Command l4L4L1South() {
 		var routine = autoFactory.newRoutine("L4L4L1South");
-		var intakeStep = new IntakeStep(true, 0.6);
+		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiLong"),
 			new ScoringStep(4, 7, 0),
 			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.7)),
 			new CombinedStep(intakeStep, new ScoringStep(1, 10, 0.8))
 		);
+	}
+	
+	public Command onePieceL4() {
+		var routine = autoFactory.newRoutine("OnePieceL4");
+		return genericAuto(routine, null, new ScoringStep(4, 7, 0.6));
 	}
 	
 	public Command pathTest() {

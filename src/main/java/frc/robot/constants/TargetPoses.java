@@ -9,9 +9,12 @@ import frc.robot.subsystems.swerve.SwerveDrive.SwerveHardwareSpecs;
 
 import static edu.wpi.first.units.Units.Meters;
 
-/** A struct for storing pathfinding poses related to the robot. */
+/**
+ * A struct for storing poses for locations a robot must drive to
+ * on the field(reef & source), taking into account offsets of the scoring mechanism.
+ */
 @Logged
-public class PathfindingPoses {
+public class TargetPoses {
 	@NotLogged private final SwerveHardwareSpecs hardwareSpecs;
 	/**
 	 * A list of pathfinding poses corresponding to the various scoring locations
@@ -25,10 +28,9 @@ public class PathfindingPoses {
 	/** The south source intaking position on the blue alliance side. */
 	public final Pose2d westSourceBlue;
 	
-	public PathfindingPoses(
+	public TargetPoses(
 		Translation2d reefOffset,
 		Translation2d eastSourceOffset,
-		Translation2d westSourceOffset,
 		SwerveHardwareSpecs hardwareSpecs
 	) {
 		this.hardwareSpecs = hardwareSpecs;
@@ -37,6 +39,7 @@ public class PathfindingPoses {
 			Pose2d nodePose = FieldConstants.Reef.branchPositions.get(i).get(FieldConstants.ReefHeight.L1).toPose2d();
 			reefBlue[i] = addOffset(nodePose, reefOffset);
 		}
+		var westSourceOffset = new Translation2d(eastSourceOffset.getX(), -eastSourceOffset.getY());
 		eastSourceBlue = addOffset(FieldConstants.CoralStation.leftCenterFace, eastSourceOffset);
 		westSourceBlue = addOffset(FieldConstants.CoralStation.rightCenterFace, westSourceOffset);
 	}

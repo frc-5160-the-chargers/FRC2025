@@ -40,6 +40,7 @@ import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
+import frc.chargers.utils.TunableValues.TunableNum;
 import frc.robot.components.vision.GlobalPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimator;
@@ -145,6 +146,10 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SysIdRoutine sysIdRoutine;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
+	private final TunableNum demoPoseX = new TunableNum("Drivetrain/demoPose/x", 0);
+	private final TunableNum demoPoseY = new TunableNum("Drivetrain/demoPose/y", 0);
+	private final TunableNum demoPoseHeadingDeg = new TunableNum("Drivetrain/demoPose/headingDeg", 0);
+	
 	@Logged private boolean acceptVisionObservations = true;
 	@Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
 	private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
@@ -242,6 +247,10 @@ public class SwerveDrive extends StandardSubsystem {
 		this.yPoseController = controlsConfig.pathTranslationPID.asController();
 		this.rotationController = controlsConfig.pathRotationPID.asController();
 		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
+		
+		this.xPoseController.setTolerance(0.02);
+		this.yPoseController.setTolerance(0.02);
+		this.rotationController.setTolerance(0.1);
 		
 		int[] steerIds = new int[4];
 		int[] driveIds = new int[4];
@@ -471,6 +480,15 @@ public class SwerveDrive extends StandardSubsystem {
 		}
 	}
 	
+	public void resetToDemoPose() {
+		resetPose(
+			new Pose2d(
+				demoPoseX.get(), demoPoseY.get(),
+				Rotation2d.fromDegrees(demoPoseHeadingDeg.get())
+			)
+		);
+	}
+	
 	public double getOverallSpeedMPS() {
 		return Math.hypot(
 			robotRelativeSpeeds.vxMetersPerSecond, robotRelativeSpeeds.vyMetersPerSecond
@@ -492,23 +510,23 @@ public class SwerveDrive extends StandardSubsystem {
 
 	/**
 	 * Creates a Command that, when scheduled,
-	 * drives the robot forever at the requested x, y, and rotation powers.
+	 * drives the robot forever at the requested forward, strafe, and rotation powers.
 	 * Does not move the robot at an exact velocity; so best used in teleop
 	 * where exact velocities are not important.
 	 * @see InputStream
 	 */
 	public Command driveCmd(
-		InputStream getXPower,
-		InputStream getYPower,
-		InputStream getRotationPower,
+		InputStream forwardOutput,
+		InputStream strafeOutput,
+		InputStream rotationOutput,
 		boolean fieldRelative
 	) {
 		var maxSpeedMps = hardwareSpecs.maxVelocity.in(MetersPerSecond);
 		return this.run(() -> {
 			var speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-				getXPower.get() * maxSpeedMps,
-				getYPower.get() * maxSpeedMps,
-				getRotationPower.get() * maxSpeedMps,
+				forwardOutput.get() * maxSpeedMps,
+				strafeOutput.get() * maxSpeedMps,
+				rotationOutput.get() * maxSpeedMps,
 				fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
 			);
 			if (Math.abs(speeds.vxMetersPerSecond) < 0.05 && Math.abs(speeds.vyMetersPerSecond) < 0.05 && Math.abs(speeds.omegaRadiansPerSecond) < 0.05) {
@@ -531,11 +549,44 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	/**
+	 * Returns a Command that simply aligns to a pose, with no obstacle avoidance.
+	 * @param blueTargetPose The target pose on the blue side of the field
+	 * @param flipPoseIfRed Whether to flip the pose if the alliance is red.
+	 * @return A command
+	 */
+	public Command alignCmd(Pose2d blueTargetPose, boolean flipPoseIfRed) {
+		return this.run(() -> {
+			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
+			log("align/goal", target);
+			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 3;
+			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 3;
+			var rotationV = rotationController.calculate(
+				angleModulus(bestPose().getRotation().getRadians()),
+				angleModulus(target.getRotation().getRadians())
+			);
+			var desiredStates = toDesiredModuleStates(
+				ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, bestPose().getRotation()),
+				true
+			);
+			for (int i = 0; i < 4; i++) {
+				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
+			}
+		})
+	       .until(
+			   () -> xPoseController.atSetpoint() &&
+			         yPoseController.atSetpoint() &&
+			         rotationController.atSetpoint()
+	       )
+	       .andThen(stopCmd())
+	       .withName("align(drivetrain)");
+	}
+	
+	/**
 	 * Returns a command that pathfinds the drivetrain to the correct pose.
 	 * @param blueTargetPose A function that returns the target pose.
 	 * @param flipPoseIfRed Whether to flip the pose if the alliance is red.
 	 * @param setpointGenerator Can be null. If not, will use the setpoint generator to generate
-	 *                          smoother pathfinding setpoints, reducing slipping.
+	 *                          smoother pathfinding setpoints, reducing inaccuracy in pose estimation.
 	 * @return a Command
 	 */
 	public Command pathfindCmd(
@@ -547,8 +598,8 @@ public class SwerveDrive extends StandardSubsystem {
 		double maxVelocityMps = hardwareSpecs.maxVelocity.in(MetersPerSecond);
 		
 		return this.run(() -> {
-			var realPose = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
-			repulsor.setGoal(realPose);
+			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
+			repulsor.setGoal(target);
 			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
 			var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
 			SwerveModuleState[] desiredStates;
@@ -560,14 +611,14 @@ public class SwerveDrive extends StandardSubsystem {
 			} else {
 				desiredStates = toDesiredModuleStates(desiredSpeeds, true);
 			}
-			log("pathfinding/goal", realPose);
+			log("pathfinding/goal", target);
 			log("setpointGen/speeds", currentSetpointRef.get().robotRelativeSpeeds());
 			log("setpointGen/states", currentSetpointRef.get().moduleStates());
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 			}
 		})
-	       .until(() -> repulsor.atGoal(0.01))
+	       .until(() -> repulsor.atGoal(0.02))
 	       .andThen(super.stopCmd())
 	       .withName("PathfindCmd");
 	}
@@ -580,26 +631,29 @@ public class SwerveDrive extends StandardSubsystem {
 			sysIdRoutine.dynamic(Direction.kReverse)
 		);
 	}
-
+	
 	/**
-	 * Creates a rotation input stream that locks the robot's heading.
-	 * Example:
-	 * <pre><code>
-	 * Command cmd = drivetrain.driveCmd(
-	 *      controller::getLeftX,
-	 *      controller::getLeftY,
-	 *      drivetrain.headingLockInputStream(Radians.of(2.0))
-	 * );
-	 * cmd.schedule();
+	 * Drives the robot while locking to a specific heading.
 	 */
-	public InputStream headingLockInputStream(Angle targetHeading) {
-		return () -> log(
-			"headingLockOutput",
-			rotationController.calculate(
-				poseEstimate().getRotation().getRadians(),
-				targetHeading.in(Radians)
-			)
-		);
+	public Command driveWithAimCmd(
+		InputStream forwardOutput,
+		InputStream strafeOutput,
+		Angle targetHeading,
+		boolean fieldRelative
+	) {
+		return driveCmd(
+			forwardOutput, strafeOutput,
+			() -> {
+				double currentHeading = bestPose().getRotation().getRadians();
+				double output =
+					rotationController.calculate(currentHeading, targetHeading.in(Radians))
+						/ hardwareSpecs.maxVelocity.in(MetersPerSecond);
+				log("targetHeading", targetHeading);
+				log("aimingSpeed", output);
+				return output;
+			},
+			fieldRelative
+		).withName("drive with aim");
 	}
 	
 	public void refreshData() {
