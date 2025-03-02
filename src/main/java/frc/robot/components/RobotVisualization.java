@@ -26,6 +26,7 @@ import java.util.List;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 
 /** A class for rendering poses for advantagescope visualization. */
 public class RobotVisualization implements LogLocal {
@@ -48,10 +49,12 @@ public class RobotVisualization implements LogLocal {
 		
 		if (RobotBase.isSimulation()) {
 			coralIntake.hasCoral
-				.and(() -> coralIntake.velocityRadPerSec() > 0.5)
+				.and(() -> coralIntake.velocityRadPerSec() > 30)
 				.onTrue(visualizeCoralOuttakeCmd());
 			
+			// in auto or test mode, clear on-field coral/algae
 			autonomous()
+				.or(test())
 				.onTrue(Commands.runOnce(() -> {
 					SimulatedArena.getInstance().clearGamePieces();
 					coralOuttakePositions.clear();
@@ -70,9 +73,13 @@ public class RobotVisualization implements LogLocal {
 				log("distFromWestSource", distFromWestSource);
 				return (distFromEastSource < 1.3 || distFromWestSource < 1.3)
 					       && drivetrain.getOverallSpeedMPS() < 0.1
-						   && Math.abs(coralIntake.velocityRadPerSec()) > 0.5;
+						   && Math.abs(coralIntake.velocityRadPerSec()) > 30;
 			})
-				.onTrue(Commands.waitSeconds(0.5).andThen(coralIntake.setHasCoralInSimCmd(true)));
+				.onTrue(
+					Commands.waitSeconds(0.5)
+						.andThen(coralIntake.setHasCoralInSimCmd(true))
+						.withName("visualize coral intake")
+				);
 		}
 	}
 	
@@ -83,7 +90,7 @@ public class RobotVisualization implements LogLocal {
 		log("stage1Position", Pose3d.kZero);
 		log("stage2Position", new Pose3d(0, 0, MathUtil.clamp(currentHeight - 0.4, 0.0, 0.65), Rotation3d.kZero));
 		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
-		robotCenterToPivot = new Transform3d(0.374, 0.173, 0.641 + currentHeight, new Rotation3d(0, -coralIntakePivot.angleRads(), 0));
+		robotCenterToPivot = new Transform3d(0.374, 0.173, 0.641 + currentHeight, new Rotation3d(0, coralIntakePivot.angleRads(), 0));
 		log("intakePivotPosition", Pose3d.kZero.plus(robotCenterToPivot));
 		
 		if (RobotBase.isSimulation()) {
@@ -118,8 +125,10 @@ public class RobotVisualization implements LogLocal {
 						Radians.of(coralIntakePivot.angleRads())
 					)
 				);
+				var pivotRot = new Rotation3d(0, coralIntakePivot.angleRads(), 0);
 				coralOuttakePositions.add(
-					new Pose3d(drivetrain.bestPose()).plus(new Transform3d(robotCenterToCoral, Rotation3d.kZero))
+					new Pose3d(drivetrain.bestPose())
+						.plus(new Transform3d(robotCenterToCoral, pivotRot))
 				);
 			})
        );

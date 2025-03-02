@@ -24,7 +24,7 @@ import static edu.wpi.first.units.Units.KilogramSquareMeters;
 @Logged
 public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 1; // no gear ratio - sadge
-	private static final MomentOfInertia MOI = KilogramSquareMeters.of(.004);
+	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.001);
 	
 	private static final int MOTOR_ID = -1000;
 	private static final int LASER_CAN_ID = 1;

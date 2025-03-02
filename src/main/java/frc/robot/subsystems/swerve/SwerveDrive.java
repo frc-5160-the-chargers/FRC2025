@@ -146,9 +146,9 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SysIdRoutine sysIdRoutine;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
-	private final TunableNum demoPoseX = new TunableNum("Drivetrain/demoPose/x", 0);
-	private final TunableNum demoPoseY = new TunableNum("Drivetrain/demoPose/y", 0);
-	private final TunableNum demoPoseHeadingDeg = new TunableNum("Drivetrain/demoPose/headingDeg", 0);
+	private final TunableNum demoPoseX = new TunableNum("swerveDrive/demoPose/x", 0);
+	private final TunableNum demoPoseY = new TunableNum("swerveDrive/demoPose/y", 0);
+	private final TunableNum demoPoseHeadingDeg = new TunableNum("swerveDrive/demoPose/headingDeg", 0);
 	
 	@Logged private boolean acceptVisionObservations = true;
 	@Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
@@ -573,9 +573,9 @@ public class SwerveDrive extends StandardSubsystem {
 			}
 		})
 	       .until(
-			   () -> xPoseController.atSetpoint() &&
+			   () -> log("atSetpoints", xPoseController.atSetpoint() &&
 			         yPoseController.atSetpoint() &&
-			         rotationController.atSetpoint()
+			         rotationController.atSetpoint())
 	       )
 	       .andThen(stopCmd())
 	       .withName("align(drivetrain)");

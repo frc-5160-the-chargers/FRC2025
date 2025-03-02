@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
@@ -198,7 +199,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		// anti-tipping
 		gyroWrapper.isTipping
-			.onTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+			.onTrue(
+				botCommands.moveTo(Setpoint.STOW_LOW)
+					.withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
+			);
 		
 		/* Manual override controller bindings */
 		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());

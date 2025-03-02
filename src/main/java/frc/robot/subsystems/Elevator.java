@@ -45,7 +45,7 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 public class Elevator extends StandardSubsystem {
 	private static final TunableNum KP = new TunableNum("elevator/kP", 3000);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 400);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 350);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
 	
 	// verified values

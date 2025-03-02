@@ -85,7 +85,7 @@ public class AutoCommands {
 			if (previousScoreStep.level == 1) {
 				previousTraj.done().onTrue(Commands.waitSeconds(1).andThen(intakeTraj.spawnCmd()));
 			} else {
-				previousTraj.atTranslation(previousTarget.getTranslation(), 0.4).onTrue(
+				previousTraj.atTranslation(previousTarget.getTranslation(), 0.2).onTrue(
 					drivetrain.alignCmd(previousTarget, true)
 						.andThen(botCommands.waitUntilReady(), intakeTraj.spawnCmd())
 						.withName("intake traj spawner")
@@ -109,7 +109,7 @@ public class AutoCommands {
 		if (previousScoreStep.level == 1) {
 			previousTraj.done().onTrue(Commands.waitSeconds(1).andThen(taxiCmd));
 		} else {
-			previousTraj.atTranslation(previousTarget.getTranslation(), 0.4)
+			previousTraj.atTranslation(previousTarget.getTranslation(), 0.2)
 				.onTrue(
 					drivetrain.alignCmd(previousTarget, true)
 						.andThen(botCommands.waitUntilReady(), taxiCmd)

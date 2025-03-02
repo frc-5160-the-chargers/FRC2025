@@ -24,17 +24,19 @@ import java.util.Set;
 import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
-// Currently, a positive angle means pointing up, and a negative one is pointing down
+// Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
 	private static final int MOTOR_ID = 5;
 	private static final Angle TOLERANCE = Degrees.of(2.0);
 	private static final double GEAR_RATIO = 16.0;
-	private static final MomentOfInertia MOI = KilogramSquareMeters.of(.005);
-	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 2.0);
-	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.02);
+	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.03);
+	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.7);
+	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.1);
 	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("coralIntakePivot/demoAngle(deg)", 0);
 	
 	@Logged private final Motor motor;
+	@Logged private Angle target = Setpoint.STOW_LOW.wristTarget();
+	@Logged public final Trigger atTarget = new Trigger(() -> Math.abs(angleRads() - target.in(Radians)) < TOLERANCE.in(Radians));
 
 	public CoralIntakePivot() {
 		if (RobotBase.isSimulation()) {
@@ -66,9 +68,9 @@ public class CoralIntakePivot extends StandardSubsystem {
 
 	public Command setAngleCmd(Angle target) {
 		return this.run(() -> {
+			this.target = target;
 			motor.moveToPosition(target.in(Radians));
-			log("targetAngle", target);
-		}).until(atAngle(target));
+		}).until(atTarget);
 	}
 	
 	public Command setPowerCmd(InputStream controllerInput) {
@@ -77,10 +79,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	public double angleRads() {
 		return motor.encoder().positionRad();
-	}
-	
-	public Trigger atAngle(Angle target) {
-		return new Trigger(() -> Math.abs(angleRads() - target.in(Radians)) < TOLERANCE.in(Radians));
 	}
 	
 	@Override
