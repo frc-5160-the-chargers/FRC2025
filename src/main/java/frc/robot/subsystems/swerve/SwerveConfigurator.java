@@ -139,17 +139,11 @@ public class SwerveConfigurator {
 		private static CANcoderConfiguration getConfig(SwerveCorner corner) {
 			var config = new CANcoderConfiguration();
 			var offset = switch (corner) {
-				case TOP_LEFT -> Radians.of(0).plus(Degrees.of(45));
-				case TOP_RIGHT -> Radians.of(-1.32).plus(Degrees.of(-45));
-				case BOTTOM_LEFT -> Radians.of(-0.63).plus(Degrees.of(-45));
-				case BOTTOM_RIGHT -> Radians.of(0.12).plus(Degrees.of(45));
+				case TOP_LEFT -> Radians.of(-0.595).plus(Degrees.of(45));
+				case TOP_RIGHT -> Radians.of(0.043).plus(Degrees.of(-45));
+				case BOTTOM_LEFT -> Radians.of(0.12).plus(Degrees.of(-45));
+				case BOTTOM_RIGHT -> Radians.of(-1.333).plus(Degrees.of(45));
 			};
-//			var offset = switch (corner) {
-//				case TOP_LEFT -> Radians.of(-0.63).plus(Degrees.of(-45));
-//				case TOP_RIGHT -> Radians.of(0).plus(Degrees.of(45));
-//				case BOTTOM_LEFT -> Radians.of(0.12).plus(Degrees.of(45));
-//				case BOTTOM_RIGHT -> Radians.of(-1.32).plus(Degrees.of(-45));
-//			};
 			config.MagnetSensor
 				.withMagnetOffset(offset)
 				.withSensorDirection(SensorDirectionValue.CounterClockwise_Positive);

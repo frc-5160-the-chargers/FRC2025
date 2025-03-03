@@ -15,7 +15,6 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
-import frc.robot.components.GyroWrapper;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import monologue.LogLocal;
@@ -26,13 +25,12 @@ import static monologue.Monologue.GlobalLog;
 
 @Logged
 public class SwerveTestBot extends TimedRobot implements LogLocal {
-	private final GyroWrapper gyroWrapper = new GyroWrapper();
 	private final SwerveDrive drivetrain = new SwerveDrive(
 		SwerveConfigurator.HARDWARE_SPECS,
 		SwerveConfigurator.CONTROLS_CONFIG,
 		SwerveConfigurator.MODULE_TYPE,
 		SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
-		gyroWrapper::yaw
+		Rotation2d::new
 	);
 	@NotLogged private final CommandXboxController driverController = new CommandXboxController(0);
 	
