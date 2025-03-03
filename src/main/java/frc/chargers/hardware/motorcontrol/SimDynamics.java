@@ -10,7 +10,6 @@ import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
-import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
@@ -19,44 +18,26 @@ import static edu.wpi.first.units.Units.*;
 
 /** Dynamics for simulated motors. */
 public record SimDynamics(DoubleSupplier position, DoubleSupplier velocity, DoubleConsumer acceptVolts) {
-	public static SimDynamics of(DCMotor motorType, double gearRatio, MomentOfInertia moi) {
-		return of(LinearSystemId.createDCMotorSystem(motorType, moi.in(KilogramSquareMeters), gearRatio));
+	private static double applyFriction(double volts, double kS) {
+		double output = volts - Math.signum(volts) * kS;
+		return Math.signum(output) == Math.signum(volts) ? output : 0;
 	}
 	
-	public static SimDynamics of(LinearSystem<N2, N1, N2> plant) {
-		// motor type is only used in current calcs, thus it is replaced with dummy values
+	public static SimDynamics of(DCMotor motorType, double gearRatio, MomentOfInertia moi) {
+		return of(LinearSystemId.createDCMotorSystem(motorType, moi.in(KilogramSquareMeters), gearRatio), 0);
+	}
+	
+	public static SimDynamics of(double kS, double kV, double kA) {
+		return SimDynamics.of(LinearSystemId.createDCMotorSystem(kV, kA), kS);
+	}
+	
+	private static SimDynamics of(LinearSystem<N2, N1, N2> plant, double kS) {
 		var sim = new DCMotorSim(plant, DCMotor.getNEO(1));
 		return new SimDynamics(
 			sim::getAngularPositionRad,
 			sim::getAngularVelocityRadPerSec,
 			volts -> {
-				sim.setInputVoltage(volts);
-				sim.update(0.02);
-			}
-		);
-	}
-	
-	public static SimDynamics of(
-		DCMotor motorType, double gearRatio, MomentOfInertia moi,
-		Distance pivotLength, boolean addGravity
-	) {
-		return of(
-			LinearSystemId.createSingleJointedArmSystem(motorType, moi.in(KilogramSquareMeters), gearRatio),
-			pivotLength, addGravity
-		);
-	}
-	
-	public static SimDynamics of(LinearSystem<N2, N1, N2> plant, Distance pivotLength, boolean addGravity) {
-		// gearing and motor type are only used in current calcs, thus they are replaced with dummy values
-		var sim = new SingleJointedArmSim(
-			plant, DCMotor.getNEO(1), 1.0, pivotLength.in(Meters),
-			Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, addGravity, 0
-		);
-		return new SimDynamics(
-			sim::getAngleRads,
-			sim::getVelocityRadPerSec,
-			volts -> {
-				sim.setInputVoltage(volts);
+				sim.setInputVoltage(applyFriction(volts, kS));
 				sim.update(0.02);
 			}
 		);

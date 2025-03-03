@@ -232,7 +232,12 @@ public class SwerveDrive extends StandardSubsystem {
 
 		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, Pose2d.kZero);
 		this.sysIdRoutine = new SysIdRoutine(
-			new SysIdRoutine.Config(Volts.of(0.5).per(Second), Volts.of(3), Seconds.of(10), state -> log("sysIdState", state.toString())),
+			new SysIdRoutine.Config(
+				Volts.per(Second).of(0.5),
+				Volts.of(3),
+				Seconds.of(10),
+				state -> log("sysIdState", state.toString())
+			),
 			new SysIdRoutine.Mechanism(
 				voltage -> {
 					for (var module: swerveModules) {
@@ -250,7 +255,7 @@ public class SwerveDrive extends StandardSubsystem {
 		
 		this.xPoseController.setTolerance(0.02);
 		this.yPoseController.setTolerance(0.02);
-		this.rotationController.setTolerance(0.1);
+		this.rotationController.setTolerance(0.05);
 		
 		int[] steerIds = new int[4];
 		int[] driveIds = new int[4];
@@ -629,7 +634,7 @@ public class SwerveDrive extends StandardSubsystem {
 			sysIdRoutine.quasistatic(Direction.kReverse),
 			sysIdRoutine.dynamic(Direction.kForward),
 			sysIdRoutine.dynamic(Direction.kReverse)
-		);
+		).withName("drivetrain sysid");
 	}
 	
 	/**

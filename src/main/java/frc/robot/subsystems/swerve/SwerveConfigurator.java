@@ -46,7 +46,7 @@ public class SwerveConfigurator {
 		new SwerveControlsConfig(
 			new PIDConstants(3, 0.001, 0.1), // azimuth pid
 			new PIDConstants(2.0, 0, 0), // velocity pid
-			new SimpleMotorFeedforward(0, 0.128), // velocity feedforward
+			new SimpleMotorFeedforward(0.015, 0.12676), // velocity feedforward
 			new PIDConstants(10.0, 0, 0), // path translation pid
 			new PIDConstants(10.0, 0, 0), // path rotation pid,
 			0.0 // kT
@@ -74,10 +74,10 @@ public class SwerveConfigurator {
 		
 		private static int getId(SwerveCorner corner) {
 			return switch (corner) {
-				case TOP_LEFT -> 4;
-				case TOP_RIGHT -> 6;
-				case BOTTOM_LEFT -> 2;
-				case BOTTOM_RIGHT -> 3;
+				case TOP_LEFT -> 6;
+				case TOP_RIGHT -> 3;
+				case BOTTOM_LEFT -> 4;
+				case BOTTOM_RIGHT -> 2;
 			};
 		}
 		
@@ -103,10 +103,10 @@ public class SwerveConfigurator {
 		
 		private static int getId(SwerveCorner corner) {
 			return switch (corner) {
-				case TOP_LEFT -> 5;
-				case TOP_RIGHT -> 7;
-				case BOTTOM_LEFT -> 1;
-				case BOTTOM_RIGHT -> 8;
+				case TOP_LEFT -> 12;
+				case TOP_RIGHT -> 11;
+				case BOTTOM_LEFT -> 9;
+				case BOTTOM_RIGHT -> 10;
 			};
 		}
 		
@@ -125,6 +125,8 @@ public class SwerveConfigurator {
 	}
 	
 	private static class RealSteerEncoder extends ChargerCANcoder {
+		// 2, 4, 3, 1
+		// Prev was: TR, BR, TL, BL
 		public static int getId(SwerveCorner corner) {
 			return switch (corner) {
 				case TOP_LEFT -> 3;
@@ -137,12 +139,17 @@ public class SwerveConfigurator {
 		private static CANcoderConfiguration getConfig(SwerveCorner corner) {
 			var config = new CANcoderConfiguration();
 			var offset = switch (corner) {
-				case TOP_LEFT -> Radians.of(-0.63).plus(Degrees.of(-45));
-				case TOP_RIGHT -> Radians.of(0).plus(Degrees.of(45));
-				case BOTTOM_LEFT -> Radians.of(0.12).plus(Degrees.of(45));
-				case BOTTOM_RIGHT -> Radians.of(-1.32).plus(Degrees.of(-45));
+				case TOP_LEFT -> Radians.of(0).plus(Degrees.of(45));
+				case TOP_RIGHT -> Radians.of(-1.32).plus(Degrees.of(-45));
+				case BOTTOM_LEFT -> Radians.of(-0.63).plus(Degrees.of(-45));
+				case BOTTOM_RIGHT -> Radians.of(0.12).plus(Degrees.of(45));
 			};
-			
+//			var offset = switch (corner) {
+//				case TOP_LEFT -> Radians.of(-0.63).plus(Degrees.of(-45));
+//				case TOP_RIGHT -> Radians.of(0).plus(Degrees.of(45));
+//				case BOTTOM_LEFT -> Radians.of(0.12).plus(Degrees.of(45));
+//				case BOTTOM_RIGHT -> Radians.of(-1.32).plus(Degrees.of(-45));
+//			};
 			config.MagnetSensor
 				.withMagnetOffset(offset)
 				.withSensorDirection(SensorDirectionValue.CounterClockwise_Positive);

@@ -37,8 +37,7 @@ public class RobotVisualization implements LogLocal {
 	@NotLogged private final Elevator elevator;
 	
 	private Transform3d robotCenterToPivot = Transform3d.kZero;
-	private final Transform3d pivotToCoralPosition = new Transform3d(0.3, 0, 0.1, Rotation3d.kZero);
-	
+	private final Transform3d pivotToCoralPosition = new Transform3d(0.25, 0, 0.1, Rotation3d.kZero);
 	@Logged private final List<Pose3d> coralOuttakePositions = new ArrayList<>();
 	
 	public RobotVisualization(SwerveDrive drivetrain, CoralIntake coralIntake, CoralIntakePivot coralIntakePivot, Elevator elevator) {
@@ -90,7 +89,7 @@ public class RobotVisualization implements LogLocal {
 		log("stage1Position", Pose3d.kZero);
 		log("stage2Position", new Pose3d(0, 0, MathUtil.clamp(currentHeight - 0.4, 0.0, 0.65), Rotation3d.kZero));
 		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
-		robotCenterToPivot = new Transform3d(0.374, 0.173, 0.641 + currentHeight, new Rotation3d(0, coralIntakePivot.angleRads(), 0));
+		robotCenterToPivot = new Transform3d(0.374, 0.173, 0.6985 + currentHeight, new Rotation3d(0, coralIntakePivot.angleRads(), 0));
 		log("intakePivotPosition", Pose3d.kZero.plus(robotCenterToPivot));
 		
 		if (RobotBase.isSimulation()) {

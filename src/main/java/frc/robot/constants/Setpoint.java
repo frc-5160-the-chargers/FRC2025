@@ -20,7 +20,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget) implements St
 		entry(1, new Setpoint(Meters.zero(), Degrees.zero())),
 		entry(2, new Setpoint(Meters.of(0.34), Degrees.of(30))),
 		entry(3, new Setpoint(Meters.of(0.74), Degrees.of(30))),
-		entry(4, new Setpoint(Meters.of(1.2), Degrees.of(15)))
+		entry(4, new Setpoint(Meters.of(1.18), Degrees.of(15))) // highest possible elevator setpoint
 	);
 	
 	public static final Setpoint STOW_LOW = new Setpoint(Meters.zero(), Degrees.of(-80));

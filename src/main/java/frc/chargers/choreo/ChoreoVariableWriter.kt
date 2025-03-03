@@ -1,5 +1,7 @@
 package frc.chargers.choreo
 
+import edu.wpi.first.math.geometry.Translation2d
+import edu.wpi.first.units.Units.Inches
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.TimedRobot
 import frc.robot.constants.OtherConstants
@@ -14,7 +16,7 @@ import kotlin.system.exitProcess
 class ChoreoVariableWriter : TimedRobot() {
     init {
         val targetPoses = TargetPoses(
-            OtherConstants.REEF_SCORE_OFFSET,
+            OtherConstants.REEF_SCORE_OFFSET + Translation2d(Inches.of(-1.5), Inches.zero()),
             OtherConstants.SOURCE_OFFSET,
             SwerveConfigurator.HARDWARE_SPECS
         )

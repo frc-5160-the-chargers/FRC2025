@@ -147,7 +147,7 @@ public class Elevator extends StandardSubsystem {
 		
 		sysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
-				null, null, null,
+				Volts.per(Second).of(0.2), Volts.of(1), Seconds.of(10),
 				state -> log("sysIdRoutineState", state.toString())
 			),
 			new SysIdRoutine.Mechanism(
@@ -218,7 +218,7 @@ public class Elevator extends StandardSubsystem {
 				profileState = trapezoidProfile.calculate(0.02, profileState, goalState);
 				var feedforward = feedforwardFn.apply(
 					RADIUS.times(profileState.position),
-					RADIUS.times(profileState.velocity).per(Second)
+					RADIUS.times(profileState.velocity).per(Second) // meters * radians / seconds = m/s
 				);
 				log("motionProfileState/positionRad", profileState.position);
 				log("feedforward", feedforward);
