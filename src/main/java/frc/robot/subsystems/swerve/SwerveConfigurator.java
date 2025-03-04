@@ -3,6 +3,7 @@ package frc.robot.subsystems.swerve;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
@@ -29,6 +30,7 @@ public class SwerveConfigurator {
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
 	public static final double ODOMETRY_FREQUENCY_HZ = 50;
+	private static final boolean USE_REMOTE_CANCODER = true; // temp fix to mech team's incorrect steering gear ratios
 	
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
 	public static final SwerveHardwareSpecs HARDWARE_SPECS =
@@ -97,8 +99,8 @@ public class SwerveConfigurator {
 	
 	private static class RealSteerMotor extends ChargerTalonFX {
 		public RealSteerMotor(SwerveCorner corner) {
-			super(getId(corner), true, getConfig());
-			super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+			super(getId(corner), true, getConfig(corner));
+			if (!USE_REMOTE_CANCODER) super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		private static int getId(SwerveCorner corner) {
@@ -110,7 +112,7 @@ public class SwerveConfigurator {
 			};
 		}
 		
-		private static TalonFXConfiguration getConfig() {
+		private static TalonFXConfiguration getConfig(SwerveCorner corner) {
 			var config = new TalonFXConfiguration();
 			config.CurrentLimits
 				.withStatorCurrentLimit(60)
@@ -120,6 +122,11 @@ public class SwerveConfigurator {
 			config.MotorOutput
 				.withInverted(InvertedValue.Clockwise_Positive)
 				.withNeutralMode(NeutralModeValue.Brake);
+			if (USE_REMOTE_CANCODER) {
+				config.Feedback
+					.withFeedbackRemoteSensorID(RealSteerEncoder.getId(corner))
+					.withFeedbackSensorSource(FeedbackSensorSourceValue.RemoteCANcoder);
+			}
 			return config;
 		}
 	}
@@ -127,6 +134,7 @@ public class SwerveConfigurator {
 	private static class RealSteerEncoder extends ChargerCANcoder {
 		public RealSteerEncoder(SwerveCorner corner) {
 			super(getId(corner), true, getConfig(corner));
+			if (USE_REMOTE_CANCODER) super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		public static int getId(SwerveCorner corner) {
