@@ -25,10 +25,10 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
-	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(90);
+	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(100);
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
-	public static final double ODOMETRY_FREQUENCY_HZ = 200;
+	public static final double ODOMETRY_FREQUENCY_HZ = 50;
 	
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
 	public static final SwerveHardwareSpecs HARDWARE_SPECS =
@@ -44,7 +44,7 @@ public class SwerveConfigurator {
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(3, 0.001, 0.1), // azimuth pid
+			new PIDConstants(7, 0.0, 0.3), // azimuth pid
 			new PIDConstants(2.0, 0, 0), // velocity pid
 			new SimpleMotorFeedforward(0.015, 0.12676), // velocity feedforward
 			new PIDConstants(10.0, 0, 0), // path translation pid
@@ -63,13 +63,13 @@ public class SwerveConfigurator {
 					.withSupplyCurrentLimitEnable(true)
 					.withStatorCurrentLimit(DRIVE_STATOR_CURRENT_LIMIT)
 					.withStatorCurrentLimitEnable(true)
-			)
+			) // sim drive motor config
 		);
 	
 	private static class RealDriveMotor extends ChargerTalonFX {
 		public RealDriveMotor(SwerveCorner corner) {
 			super(getId(corner), true, getConfig());
-			//super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+			super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		private static int getId(SwerveCorner corner) {
@@ -98,7 +98,7 @@ public class SwerveConfigurator {
 	private static class RealSteerMotor extends ChargerTalonFX {
 		public RealSteerMotor(SwerveCorner corner) {
 			super(getId(corner), true, getConfig());
-			//super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+			super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		private static int getId(SwerveCorner corner) {
@@ -125,33 +125,31 @@ public class SwerveConfigurator {
 	}
 	
 	private static class RealSteerEncoder extends ChargerCANcoder {
-		// 2, 4, 3, 1
-		// Prev was: TR, BR, TL, BL
+		public RealSteerEncoder(SwerveCorner corner) {
+			super(getId(corner), true, getConfig(corner));
+		}
+		
 		public static int getId(SwerveCorner corner) {
 			return switch (corner) {
-				case TOP_LEFT -> 3;
-				case TOP_RIGHT -> 2;
-				case BOTTOM_LEFT -> 1;
-				case BOTTOM_RIGHT -> 4;
+				case TOP_LEFT -> 2;
+				case TOP_RIGHT -> 4;
+				case BOTTOM_LEFT -> 3;
+				case BOTTOM_RIGHT -> 1;
 			};
 		}
 		
 		private static CANcoderConfiguration getConfig(SwerveCorner corner) {
 			var config = new CANcoderConfiguration();
 			var offset = switch (corner) {
-				case TOP_LEFT -> Radians.of(-0.595).plus(Degrees.of(45));
-				case TOP_RIGHT -> Radians.of(0.043).plus(Degrees.of(-45));
-				case BOTTOM_LEFT -> Radians.of(0.12).plus(Degrees.of(-45));
-				case BOTTOM_RIGHT -> Radians.of(-1.333).plus(Degrees.of(45));
+				case TOP_LEFT -> Radians.of(-0.044).plus(Degrees.of(-45));
+				case TOP_RIGHT -> Radians.of(-1.333).plus(Degrees.of(45));
+				case BOTTOM_LEFT -> Radians.of(-0.595).plus(Degrees.of(45));
+				case BOTTOM_RIGHT -> Radians.of(0.12).plus(Degrees.of(-45));
 			};
 			config.MagnetSensor
 				.withMagnetOffset(offset)
 				.withSensorDirection(SensorDirectionValue.CounterClockwise_Positive);
 			return config;
-		}
-		
-		public RealSteerEncoder(SwerveCorner corner) {
-			super(getId(corner), true, getConfig(corner));
 		}
 	}
 }

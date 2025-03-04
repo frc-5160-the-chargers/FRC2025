@@ -128,7 +128,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		mapAutoModes();
 		mapTestCommands();
 		
-		addPeriodic(drivetrain::updateOdometry, 0.02);
+		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
 		//vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);

@@ -1,5 +1,6 @@
 package frc.robot;
 
+import choreo.auto.AutoFactory;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
@@ -33,6 +34,7 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		Rotation2d::new
 	);
 	@NotLogged private final CommandXboxController driverController = new CommandXboxController(0);
+	private final AutoFactory autoFactory = drivetrain.createAutoFactory();
 	
 	public SwerveTestBot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -70,13 +72,25 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 	
+	@Override
+	public void autonomousInit() {
+		autoFactory.resetOdometry("SimplePath")
+			.andThen(autoFactory.trajectoryCmd("SimplePath"))
+			.schedule();
+	}
+	
 	private void mapTriggers() {
 		driverController.a()
 			.whileTrue(drivetrain.runDriveMotors());
 		driverController.b()
 			.whileTrue(drivetrain.runTurnMotors());
 		driverController.x()
-			.whileTrue(drivetrain.setSteerAngles(Rotation2d.kCW_90deg));
+			.whileTrue(drivetrain.setSteerAngles(new Rotation2d[]{
+				Rotation2d.fromDegrees(-45),
+				Rotation2d.fromDegrees(45),
+				Rotation2d.fromDegrees(45),
+				Rotation2d.fromDegrees(-45),
+			}));
 		driverController.y()
 			.whileTrue(drivetrain.setSteerAngles(Rotation2d.kZero));
 	}

@@ -114,7 +114,8 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum ModuleType {
 		MK4iL2(6.75, 150.0 / 7.0, Inches.of(2)),
 		MK4iL3(6.12, 150.0 / 7.0, Inches.of(2)),
-		SwerveX2L2P11(6.20, 12.1, Inches.of(2));
+		// 0.8x for BL and BR; TR is correct, TL is 10.17 for some reason?
+		SwerveX2L2P11(6.20, 12.1, Inches.of(2)); // Docs say its 12.1 - i think the hardware team messed up
 		
 		public final double driveGearRatio;
 		public final double steerGearRatio;
@@ -434,6 +435,14 @@ public class SwerveDrive extends StandardSubsystem {
 				mod.setSteerAngle(angle);
 			}
 		}).withName("SetSteerAngles");
+	}
+	
+	public Command setSteerAngles(Rotation2d[] angles) {
+		return this.run(() -> {
+			for (int i = 0; i < 4; i++) {
+				swerveModules[i].setSteerAngle(angles[i]);
+			}
+		});
 	}
 	
 	public void enableSingleTagEstimation(int targetTagId) {
