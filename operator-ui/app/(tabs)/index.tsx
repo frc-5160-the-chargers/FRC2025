@@ -1,50 +1,51 @@
-import {AppState, Button, StyleSheet, Text, View} from "react-native";
-import {useEffect, useState} from "react";
-import {useNtPublisher} from "@/app/nt4/useNtPublisher";
-import {NT4_Client} from "@/app/nt4/NT4";
-
-const IS_SIM = true
+import {StyleSheet, Text, View} from "react-native";
+import {useEffect} from "react";
+import * as ScreenOrientation from 'expo-screen-orientation'
+import {OrientationLock} from 'expo-screen-orientation'
+import {useLoadNtRequest} from "@/ext/NetworkTablesState";
+import {PathfindTargetSelector} from "@/components/PathfindTargetSelector";
+import {AllLevelsSelector} from "@/components/AllLevelsSelector";
 
 export default function Index() {
-    const [isLoading, setLoading] = useState(false)
-    const [client] = useState(
-        new NT4_Client(
-            IS_SIM ? "127.0.0.1" : "10.51.60.2",
-            "OperatorUI",
-            () => {},
-            () => {},
-            () => {},
-            () => setLoading(false),
-            () => setLoading(true)
-        )
-    )
-
-    const [, setRawValue] = useNtPublisher(client, "test/test2", "boolean", false)
-
+    const loadRequest = useLoadNtRequest()
     useEffect(() => {
-        client.connect().then(() => console.log("Client connected"))
-        const appStateId = AppState.addEventListener('change', client.disconnect);
-        return appStateId.remove;
-    }, []);
+        ScreenOrientation.lockAsync(OrientationLock.LANDSCAPE).then()
+    }, [])
+
+    let loadingMsg = ""
+    if (loadRequest.isSuccess) {
+        loadingMsg = "Success!"
+    } else if (loadRequest.isError) {
+        loadingMsg = "Error: " + loadRequest.error
+    } else {
+        loadingMsg = "Loading...(requests will fail atm)"
+    }
 
     console.log("I should be here....")
 
     return (
-        <View style={styles}>
-            <Text>{isLoading ? "Loading...." : "Loaded!"}</Text>
-            <Button
-                title="Broadcast test"
-                disabled={isLoading}
-                onPress={() => {
-                    setRawValue(true)
-                    console.log("press just happened! conn active: " + client.serverConnectionActive)
-                }}
-            />
-            <Text>Edit app/index.tsx to edit this screen.</Text>
+        <View style={styles.container}>
+            <Text style={{width: 100, marginLeft: 0}}>{loadingMsg}</Text>
+            <PathfindTargetSelector />
+            <AllLevelsSelector />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-
+    container: {
+        paddingHorizontal: 40,
+        paddingVertical: 20,
+        flexDirection: "row",
+        gap: 0
+    },
+    hexagonImage: {
+        width: 200,
+        height: 200,
+        marginLeft: 200,
+        marginTop: 40
+    },
+    Button: {
+        backgroundColor: "rgb(106,106,215)"
+    }
 })
