@@ -15,8 +15,9 @@ import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 public class ChargerCANcoder implements Encoder {
 	public final CANcoder baseApi;
-	protected final StatusSignal<Angle> positionSignal;
-	protected final StatusSignal<AngularVelocity> velocitySignal;
+	private boolean highFrequencyPosition = false;
+	private final StatusSignal<Angle> positionSignal;
+	private final StatusSignal<AngularVelocity> velocitySignal;
 	
 	public ChargerCANcoder(int id, boolean optimizeBusUtilization, @Nullable CANcoderConfiguration config) {
 		this.baseApi = new CANcoder(id);
@@ -28,8 +29,16 @@ public class ChargerCANcoder implements Encoder {
 		if (config != null) tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(config, 0.1));
 	}
 	
+	public ChargerCANcoder setPositionUpdateRate(double frequencyHz) {
+		positionSignal.setUpdateFrequency(frequencyHz);
+		StatusSignalRefresher.remove(positionSignal);
+		highFrequencyPosition = true;
+		return this;
+	}
+	
 	@Override
 	public double positionRad() {
+		if (highFrequencyPosition) positionSignal.refresh();
 		return rotationsToRadians(positionSignal.getValueAsDouble());
 	}
 	

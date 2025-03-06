@@ -114,8 +114,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum ModuleType {
 		MK4iL2(6.75, 150.0 / 7.0, Inches.of(2)),
 		MK4iL3(6.12, 150.0 / 7.0, Inches.of(2)),
-		// 0.8x for BL and BR; TR is correct, TL is 10.17 for some reason?
-		SwerveX2L2P11(6.20, 12.1, Inches.of(2)); // Docs say its 12.1 - i think the hardware team messed up
+		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2)); // Docs say its 12.1 - i think the hardware team messed up
 		
 		public final double driveGearRatio;
 		public final double steerGearRatio;
@@ -258,8 +257,6 @@ public class SwerveDrive extends StandardSubsystem {
 		this.yPoseController.setTolerance(0.02);
 		this.rotationController.setTolerance(0.05);
 		
-		int[] steerIds = new int[4];
-		int[] driveIds = new int[4];
 		for (int i = 0; i < 4; i++) {
 			Motor steerMotor;
 			Motor driveMotor;
@@ -290,9 +287,6 @@ public class SwerveDrive extends StandardSubsystem {
 					.withVelocityPID(controlsConfig.velocityPID)
 			);
 			
-			steerIds[i] = steerMotor.id();
-			driveIds[i] = driveMotor.id();
-			
 			this.swerveModules[i] = new SwerveModule(
 				driveMotor, steerMotor, absoluteEncoder,
 				moduleType.wheelRadius,
@@ -300,8 +294,6 @@ public class SwerveDrive extends StandardSubsystem {
 				controlsConfig.velocityFeedforward
 			);
 		}
-		log("steerIds", steerIds);
-		log("driveIds", driveIds);
 		if (RobotBase.isSimulation()) {
 			// assuming perfect gyro
 			this.gyroYawSupplier = () -> mapleSim.getSimulatedDriveTrainPose().getRotation();
@@ -572,8 +564,8 @@ public class SwerveDrive extends StandardSubsystem {
 		return this.run(() -> {
 			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			log("align/goal", target);
-			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 3;
-			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 3;
+			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 2;
+			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 2;
 			var rotationV = rotationController.calculate(
 				angleModulus(bestPose().getRotation().getRadians()),
 				angleModulus(target.getRotation().getRadians())

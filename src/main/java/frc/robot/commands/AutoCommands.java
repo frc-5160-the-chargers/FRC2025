@@ -5,8 +5,8 @@ import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.constants.TargetPoses;
 import frc.robot.constants.Setpoint;
+import frc.robot.constants.TargetPoses;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +85,7 @@ public class AutoCommands {
 			if (previousScoreStep.level == 1) {
 				previousTraj.done().onTrue(Commands.waitSeconds(1).andThen(intakeTraj.spawnCmd()));
 			} else {
-				previousTraj.atTranslation(previousTarget.getTranslation(), 0.2).onTrue(
+				previousTraj.atTranslation(previousTarget.getTranslation(), 0.3).onTrue(
 					drivetrain.alignCmd(previousTarget, true)
 						.andThen(botCommands.waitUntilReady(), intakeTraj.spawnCmd())
 						.withName("intake traj spawner")

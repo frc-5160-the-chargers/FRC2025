@@ -1,6 +1,7 @@
 package frc.robot;
 
 import choreo.auto.AutoChooser;
+import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
@@ -32,8 +33,8 @@ import frc.robot.components.GyroWrapper;
 import frc.robot.components.OperatorUi;
 import frc.robot.components.RobotVisualization;
 import frc.robot.components.vision.AprilTagVision;
-import frc.robot.constants.TargetPoses;
 import frc.robot.constants.Setpoint;
+import frc.robot.constants.TargetPoses;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
@@ -42,8 +43,10 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
+import org.littletonrobotics.urcl.URCL;
 
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static frc.chargers.utils.TriggerUtil.bind;
 import static frc.robot.constants.OtherConstants.*;
 import static monologue.Monologue.GlobalLog;
@@ -88,20 +91,28 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final OperatorUi operatorUi = new OperatorUi();
 	private final CommandXboxController manualOverrideController = new CommandXboxController(MANUAL_CONTROLLER_PORT);
 	
+	private final InputStream slowModeOutput =
+		InputStream.of(driverController::getL2Axis)
+			.deadband(0.1, 1)
+			.map(it -> 1 - it / 2);
 	private final InputStream forwardOutput =
 		InputStream.of(driverController::getLeftY)
-			.negate()
-			.deadband(0.1, 1);
+			.deadband(0.1, 1)
+			.times(slowModeOutput)
+			.negate();
 	private final InputStream strafeOutput =
 		InputStream.of(driverController::getLeftX)
-			.negate()
-			.deadband(0.1, 1);
+			.deadband(0.1, 1)
+			.times(slowModeOutput)
+			.negate();
 	private final InputStream rotationOutput =
 		InputStream.of(driverController::getRightX)
-			.negate()
-			.deadband(0.1, 1);
+			.deadband(0.1, 1)
+			.times(slowModeOutput)
+			.negate();
 	private final InputStream manualElevatorInput =
 		InputStream.of(manualOverrideController::getLeftY)
+			.deadband(0.1, 1)
 			.times(-0.7)
 			.signedPow(2);
 	private final InputStream manualPivotInput =
@@ -120,6 +131,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		GlobalLog.enableCommandLogging();
 		logMetadata();
 		DataLogManager.start();
+		URCL.start();
+		SignalLogger.start();
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		
@@ -205,17 +218,17 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			);
 		
 		/* Manual override controller bindings */
-		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());
-		
-		manualCtrlAllowed
-			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
-			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
-		manualCtrlAllowed
-			.and(manualOverrideController.leftBumper())
-			.whileTrue(coralIntake.intakeForeverCmd());
-		manualCtrlAllowed
-			.and(manualOverrideController.rightBumper())
-			.whileTrue(coralIntake.outtakeForeverCmd());
+//		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());
+//
+//		manualCtrlAllowed
+//			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
+//			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
+//		manualCtrlAllowed
+//			.and(manualOverrideController.leftBumper())
+//			.whileTrue(coralIntake.intakeForeverCmd());
+//		manualCtrlAllowed
+//			.and(manualOverrideController.rightBumper())
+//			.whileTrue(coralIntake.outtakeForeverCmd());
 	}
 	
 	private void mapDefaultCommands() {
@@ -254,6 +267,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapTestCommands() {
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
+		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));
 		testModeChooser.addCmd(
 			"Pathfind",
 			() -> drivetrain.pathfindCmd(targetPoses.reefBlue[5], true, setpointGen)

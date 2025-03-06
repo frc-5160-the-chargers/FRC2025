@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import au.grapplerobotics.LaserCan;
+import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.epilogue.Logged;
@@ -15,7 +16,6 @@ import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
-import frc.chargers.hardware.motorcontrol.SimMotor;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.LaserCanUtil;
 
@@ -26,15 +26,22 @@ public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 1; // no gear ratio - sadge
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.001);
 	
-	private static final int MOTOR_ID = -1000;
+	private static final int MOTOR_ID = 1;
 	private static final int LASER_CAN_ID = 1;
+	private static final DCMotor MOTOR_KIND = DCMotor.getNeoVortex(1);
 	
 	private static final double DISTANCE_TOLERANCE_MM = 50;
 	private static final double OUTTAKE_VOLTAGE = 12;
 	private static final double INTAKE_VOLTAGE = -12;
 	private static final double DELAY_SECS = 0.5;
+	private static final SparkBaseConfig MOTOR_CONFIG =
+		new SparkFlexConfig()
+			.smartCurrentLimit(60)
+			.idleMode(IdleMode.kBrake)
+			.voltageCompensation(12.0);
 	
-	private final Motor motor;
+	private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, MOTOR_CONFIG)
+		                            .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	private final LaserCan laserCan = new LaserCan(LASER_CAN_ID);
 	private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
 	private boolean hasCoralInSim = false;
@@ -47,17 +54,6 @@ public class CoralIntake extends StandardSubsystem {
 	);
 	
 	public CoralIntake() {
-		if (RobotBase.isSimulation()) {
-			motor = new SimMotor(SimDynamics.of(DCMotor.getNeoVortex(1), GEAR_RATIO, MOI), null);
-		} else {
-			var config = new SparkFlexConfig();
-			ChargerSpark.optimizeBusUtilizationOn(config);
-			config
-				.smartCurrentLimit(60)
-				.idleMode(IdleMode.kBrake)
-				.voltageCompensation(12.0);
-			motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, config);
-		}
 		motor.setControlsConfig(
 			ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO)
 		);

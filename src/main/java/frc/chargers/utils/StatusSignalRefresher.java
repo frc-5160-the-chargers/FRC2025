@@ -33,6 +33,7 @@ public class StatusSignalRefresher {
 	 * Alternatively, use startPeriodic(this) in your Robot class instead.
 	 */
 	public static void periodic() {
+		if (statusSignals.isEmpty()) return;
 		var latestStatus = BaseStatusSignal.refreshAll(statusSignalsAsArray);
 		GlobalLog.log("refreshStatus", latestStatus.toString());
 	}
@@ -40,6 +41,11 @@ public class StatusSignalRefresher {
 	/** Refreshes the specified status signals automatically, at a rate of 0.02 seconds. */
 	public static void addSignals(BaseStatusSignal... signals) {
 		statusSignals.addAll(List.of(signals));
+		statusSignalsAsArray = statusSignals.toArray(statusSignalsAsArray);
+	}
+	
+	public static void remove(BaseStatusSignal... signals) {
+		List.of(signals).forEach(statusSignals::remove);
 		statusSignalsAsArray = statusSignals.toArray(statusSignalsAsArray);
 	}
 }

@@ -12,14 +12,22 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.hal.HAL;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static java.lang.Math.PI;
 
@@ -28,9 +36,20 @@ import static java.lang.Math.PI;
  * To access more low-level capabilities of the base api, inherit from this class.
  */
 public class ChargerTalonFX implements Motor {
-	public final TalonFX baseApi;
-	protected boolean useTorqueCurrentControl = false;
-	protected final StatusSignal<?> positionSignal, velocitySignal, voltageSignal,
+	private static final Set<Integer> usedIds = new HashSet<>();
+	public static int getDummyId() {
+		int id = 0;
+		while (usedIds.contains(id)) {
+			id = (int) (Math.random() * 31);
+		}
+		return id;
+	}
+	
+	protected final TalonFX baseApi;
+	private double currentGearRatio = 1.0;
+	private boolean useTorqueCurrentControl = false;
+	private boolean highFrequencyPosition = false;
+	private final StatusSignal<?> positionSignal, velocitySignal, voltageSignal,
 		currentSignal, torqueCurrentSignal, supplyCurrentSignal, tempSignal;
 	
 	protected final VoltageOut setVoltageRequest = new VoltageOut(0);
@@ -42,7 +61,10 @@ public class ChargerTalonFX implements Motor {
 	
 	private final Encoder encoder = new Encoder() {
 		@Override
-		public double positionRad() { return rotationsToRadians(positionSignal.getValueAsDouble()); }
+		public double positionRad() {
+			if (highFrequencyPosition) positionSignal.refresh();
+			return rotationsToRadians(positionSignal.getValueAsDouble());
+		}
 		
 		@Override
 		public double velocityRadPerSec() {
@@ -57,6 +79,7 @@ public class ChargerTalonFX implements Motor {
 	
 	public ChargerTalonFX(int id, boolean optimizeBusUtilization, @Nullable TalonFXConfiguration config) {
 		this.baseApi = new TalonFX(id);
+		usedIds.add(id);
 		this.positionSignal = baseApi.getPosition();
 		this.velocitySignal = baseApi.getVelocity();
 		this.voltageSignal = baseApi.getMotorVoltage();
@@ -74,11 +97,30 @@ public class ChargerTalonFX implements Motor {
 		if (config != null) tryUntilOk(baseApi, () -> baseApi.getConfigurator().apply(config, 0.1));
 	}
 	
+	public ChargerTalonFX withSim(SimDynamics dynamics) {
+		if (!RobotBase.isSimulation()) return this;
+		var dataInjector = baseApi.getSimState();
+		HAL.registerSimPeriodicAfterCallback(() -> {
+			dynamics.acceptVolts().accept(MathUtil.clamp(dataInjector.getMotorVoltage(), -12, 12));
+			dataInjector.setSupplyVoltage(RobotController.getBatteryVoltage());
+			dataInjector.setRawRotorPosition(Radians.of(dynamics.position().getAsDouble() * currentGearRatio));
+			dataInjector.setRotorVelocity(RadiansPerSecond.of(dynamics.velocity().getAsDouble() * currentGearRatio));
+		});
+		return this;
+	}
+	
 	public ChargerTalonFX enablePhoenixPro(boolean useTorqueCurrentControl) {
 		setVoltageRequest.EnableFOC = true;
 		setAngleRequest.EnableFOC = true;
 		setVelocityRequest.EnableFOC = true;
 		this.useTorqueCurrentControl = useTorqueCurrentControl;
+		return this;
+	}
+	
+	public ChargerTalonFX setPositionUpdateRate(double frequencyHz) {
+		positionSignal.setUpdateFrequency(frequencyHz);
+		StatusSignalRefresher.remove(positionSignal);
+		highFrequencyPosition = true;
 		return this;
 	}
 	
@@ -145,6 +187,7 @@ public class ChargerTalonFX implements Motor {
 			} else {
 				motorConfig.Feedback.RotorToSensorRatio = newConfig.gearRatio();
 			}
+			currentGearRatio = newConfig.gearRatio();
 		}
 		if (newConfig.positionPID().kP != 0.0) {
 			motorConfig.Slot0.kP = newConfig.positionPID().kP * (2 * PI);

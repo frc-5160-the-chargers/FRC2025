@@ -45,7 +45,7 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		DataLogManager.start();
 		logMetadata();
 		
-		addPeriodic(drivetrain::updateOdometry, 0.02);
+		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		DriverStation.silenceJoystickConnectionWarning(true);
@@ -99,12 +99,15 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		drivetrain.setDefaultCommand(
 			drivetrain.driveCmd(
 				InputStream.of(driverController::getLeftY)
+					.deadband(0.1, 1)
 					.times(-0.5)
 					.log("driverController/xOutput"),
 				InputStream.of(driverController::getLeftX)
+					.deadband(0.1, 1)
 					.times(-0.5)
 					.log("driverController/yOutput"),
 				InputStream.of(driverController::getRightX)
+					.deadband(0.1, 1)
 					.times(-0.5)
 					.log("driverController/rotationOutput"),
 				false

@@ -5,11 +5,16 @@ import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkSim;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.hal.HAL;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,7 +34,7 @@ import static java.lang.Math.PI;
  * To access more low-level capabilities of the base api, inherit from this class.
  */
 public class ChargerSpark implements Motor {
-	public final SparkBase baseApi;
+	protected final SparkBase baseApi;
 	protected final RelativeEncoder baseEncoder;
 	protected final SparkClosedLoopController pidController;
 	protected SparkBaseConfig initialConfig;
@@ -55,15 +60,15 @@ public class ChargerSpark implements Motor {
 	 * @param configs The spark configs to-apply.
 	 */
 	public static void optimizeBusUtilizationOn(SparkBaseConfig... configs) {
-		for (var config: configs) {
-			config.signals
-				.analogPositionPeriodMs(65535)
-				.analogVelocityPeriodMs(65535)
-				.externalOrAltEncoderPosition(65535)
-				.externalOrAltEncoderVelocity(65535)
-				.analogVoltagePeriodMs(65535)
-				.iAccumulationPeriodMs(65535);
-		}
+//		for (var config: configs) {
+//			config.signals
+//				.analogPositionPeriodMs(0)
+//				.analogVelocityPeriodMs(0)
+//				.externalOrAltEncoderPosition(0)
+//				.externalOrAltEncoderVelocity(0)
+//				.analogVoltagePeriodMs(0)
+//				.iAccumulationPeriodMs(0);
+//		}
 	}
 	
 	public enum Model {
@@ -80,6 +85,17 @@ public class ChargerSpark implements Motor {
 		} else {
 			this.initialConfig = model == Model.SPARK_MAX ? new SparkMaxConfig() : new SparkFlexConfig();
 		}
+	}
+	
+	public ChargerSpark withSim(SimDynamics dynamics, DCMotor motorType) {
+		if (!RobotBase.isSimulation()) return this;
+		var sim = new SparkSim(baseApi, motorType);
+		HAL.registerSimPeriodicAfterCallback(() -> {
+			double batteryVoltage = RobotController.getBatteryVoltage();
+			dynamics.acceptVolts().accept(MathUtil.clamp(sim.getAppliedOutput() * batteryVoltage, -12, 12));
+			sim.iterate(radiansPerSecondToRotationsPerMinute(dynamics.velocity().getAsDouble()), batteryVoltage, 0.02);
+		});
+		return this;
 	}
 	
 	@Override
@@ -117,7 +133,7 @@ public class ChargerSpark implements Motor {
 	public void moveToPosition(double positionRads, double ffVolts) {
 		pidController.setReference(
 			radiansToRotations(positionRads),
-			SparkBase.ControlType.kVelocity,
+			SparkBase.ControlType.kPosition,
 			kSlot0
 		);
 	}
@@ -133,23 +149,22 @@ public class ChargerSpark implements Motor {
 	
 	@Override
 	public void setControlsConfig(ControlsConfig newConfig) {
-		var baseConfig = new SparkMaxConfig();
 		if (newConfig.positionPID().kP != 0.0) {
-			baseConfig.closedLoop
+			initialConfig.closedLoop
 				.pid(newConfig.positionPID().kP, newConfig.positionPID().kI, newConfig.positionPID().kD, kSlot0)
 				.positionWrappingEnabled(newConfig.continuousInput())
 				.positionWrappingInputRange(-PI, PI);
 		}
 		if (newConfig.velocityPID().kP != 0.0) {
-			baseConfig.closedLoop
+			initialConfig.closedLoop
 				.pid(newConfig.velocityPID().kP, newConfig.velocityPID().kI, newConfig.velocityPID().kD, kSlot1);
 		}
 		if (newConfig.gearRatio() != 1.0) {
-			baseConfig.encoder
+			initialConfig.encoder
 				.positionConversionFactor(1 / newConfig.gearRatio())
 				.velocityConversionFactor(1 / newConfig.gearRatio());
 		}
-		tryUntilOk(baseApi, () -> baseApi.configure(baseConfig, kNoResetSafeParameters, kPersistParameters));
+		tryUntilOk(baseApi, () -> baseApi.configure(initialConfig, kResetSafeParameters, kPersistParameters));
 	}
 	
 	@Override

@@ -23,8 +23,7 @@ import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnFly
 import java.util.ArrayList;
 import java.util.List;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 
@@ -37,7 +36,7 @@ public class RobotVisualization implements LogLocal {
 	@NotLogged private final Elevator elevator;
 	
 	private Transform3d robotCenterToPivot = Transform3d.kZero;
-	private final Transform3d pivotToCoralPosition = new Transform3d(0.25, 0, 0.1, Rotation3d.kZero);
+	private final Transform3d pivotToCoralPosition = new Transform3d(0.25, 0, 0.07, new Rotation3d(Degrees.zero(), Degrees.of(10), Degrees.zero()));
 	@Logged private final List<Pose3d> coralOuttakePositions = new ArrayList<>();
 	
 	public RobotVisualization(SwerveDrive drivetrain, CoralIntake coralIntake, CoralIntakePivot coralIntakePivot, Elevator elevator) {
@@ -56,6 +55,7 @@ public class RobotVisualization implements LogLocal {
 				.or(test())
 				.onTrue(Commands.runOnce(() -> {
 					SimulatedArena.getInstance().clearGamePieces();
+					SimulatedArena.getInstance().placeGamePiecesOnField(); // re-place game pieces on field
 					coralOuttakePositions.clear();
 				}));
 			
@@ -85,7 +85,7 @@ public class RobotVisualization implements LogLocal {
 	/** Renders the robot visualization. Must be called periodically. */
 	public void periodic() {
 		// logs relative positions for advantagescope visualization
-		double currentHeight = elevator.extensionHeight();
+		double currentHeight = elevator.heightMeters();
 		log("stage1Position", Pose3d.kZero);
 		log("stage2Position", new Pose3d(0, 0, MathUtil.clamp(currentHeight - 0.4, 0.0, 0.65), Rotation3d.kZero));
 		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
@@ -112,11 +112,11 @@ public class RobotVisualization implements LogLocal {
 		return Commands.waitSeconds(0.3).andThen(
 			coralIntake.setHasCoralInSimCmd(false),
 			Commands.runOnce(() -> {
-				var robotCenterToCoral = robotCenterToPivot.plus(pivotToCoralPosition).getTranslation();
+				var robotCenterToCoral = robotCenterToPivot.plus(pivotToCoralPosition);
 				SimulatedArena.getInstance().addGamePieceProjectile(
 					new ReefscapeCoralOnFly(
 						drivetrain.bestPose().getTranslation(),
-						robotCenterToCoral.toTranslation2d(),
+						robotCenterToCoral.getTranslation().toTranslation2d(),
 						drivetrain.getMeasuredSpeeds(),
 						drivetrain.bestPose().getRotation(),
 						robotCenterToCoral.getMeasureZ(),
@@ -124,11 +124,7 @@ public class RobotVisualization implements LogLocal {
 						Radians.of(coralIntakePivot.angleRads())
 					)
 				);
-				var pivotRot = new Rotation3d(0, coralIntakePivot.angleRads(), 0);
-				coralOuttakePositions.add(
-					new Pose3d(drivetrain.bestPose())
-						.plus(new Transform3d(robotCenterToCoral, pivotRot))
-				);
+				coralOuttakePositions.add(new Pose3d(drivetrain.bestPose()).plus(robotCenterToCoral));
 			})
        );
 	}

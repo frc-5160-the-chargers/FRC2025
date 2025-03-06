@@ -26,11 +26,11 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConfigurator {
 	private SwerveConfigurator(){}
 	
-	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(100);
+	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(80);
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
-	public static final double ODOMETRY_FREQUENCY_HZ = 50;
-	private static final boolean USE_REMOTE_CANCODER = true; // temp fix to mech team's incorrect steering gear ratios
+	public static final double ODOMETRY_FREQUENCY_HZ = 200;
+	private static final boolean USE_REMOTE_CANCODER = true;
 	
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
 	public static final SwerveHardwareSpecs HARDWARE_SPECS =
@@ -46,7 +46,7 @@ public class SwerveConfigurator {
 		);
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(7, 0.0, 0.3), // azimuth pid
+			new PIDConstants(3.5, 0.0, 0), // azimuth pid - don't add d to this, it makes things weird
 			new PIDConstants(2.0, 0, 0), // velocity pid
 			new SimpleMotorFeedforward(0.015, 0.12676), // velocity feedforward
 			new PIDConstants(10.0, 0, 0), // path translation pid
@@ -70,8 +70,8 @@ public class SwerveConfigurator {
 	
 	private static class RealDriveMotor extends ChargerTalonFX {
 		public RealDriveMotor(SwerveCorner corner) {
-			super(getId(corner), true, getConfig());
-			super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+			super(getId(corner), true, getConfig(corner));
+			super.setPositionUpdateRate(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		private static int getId(SwerveCorner corner) {
@@ -83,7 +83,7 @@ public class SwerveConfigurator {
 			};
 		}
 		
-		private static TalonFXConfiguration getConfig() {
+		private static TalonFXConfiguration getConfig(SwerveCorner corner) {
 			var config = new TalonFXConfiguration();
 			config.CurrentLimits
 				.withStatorCurrentLimit(DRIVE_STATOR_CURRENT_LIMIT)
@@ -93,6 +93,9 @@ public class SwerveConfigurator {
 			config.MotorOutput
 				.withNeutralMode(NeutralModeValue.Brake)
 				.withInverted(InvertedValue.CounterClockwise_Positive);
+			if (corner != SwerveCorner.BOTTOM_RIGHT) {
+				config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+			}
 			return config;
 		}
 	}
@@ -100,7 +103,7 @@ public class SwerveConfigurator {
 	private static class RealSteerMotor extends ChargerTalonFX {
 		public RealSteerMotor(SwerveCorner corner) {
 			super(getId(corner), true, getConfig(corner));
-			if (!USE_REMOTE_CANCODER) super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+			super.setPositionUpdateRate(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		private static int getId(SwerveCorner corner) {
@@ -134,7 +137,7 @@ public class SwerveConfigurator {
 	private static class RealSteerEncoder extends ChargerCANcoder {
 		public RealSteerEncoder(SwerveCorner corner) {
 			super(getId(corner), true, getConfig(corner));
-			if (USE_REMOTE_CANCODER) super.positionSignal.setUpdateFrequency(ODOMETRY_FREQUENCY_HZ);
+			if (USE_REMOTE_CANCODER) super.setPositionUpdateRate(ODOMETRY_FREQUENCY_HZ);
 		}
 		
 		public static int getId(SwerveCorner corner) {

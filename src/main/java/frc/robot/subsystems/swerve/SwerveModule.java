@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
-import frc.chargers.hardware.motorcontrol.SimMotor;
 import monologue.LogLocal;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
@@ -47,7 +46,7 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		private final TalonFXSimState talonSimApi;
 		
 		public DummyMotor(@Nullable TalonFXConfiguration config) {
-			super(SimMotor.getDummyId(), false, config);
+			super(ChargerTalonFX.getDummyId(), false, config);
 			talonSimApi = super.baseApi.getSimState();
 		}
 		
