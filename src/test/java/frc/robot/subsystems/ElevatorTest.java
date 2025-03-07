@@ -17,7 +17,7 @@ class ElevatorTest extends StandardUnitTest {
 			elevator.moveToHeightCmd(Meters.of(5.0))
 		);
 		fastForward(scheduler, Seconds.of(4));
-		assertEquals(5.0, elevator.extensionHeight(), 0.05);
+		assertEquals(5.0, elevator.heightMeters(), 0.05);
 		elevator.close();
 		scheduler.close();
 	}

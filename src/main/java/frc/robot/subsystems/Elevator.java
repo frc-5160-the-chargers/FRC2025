@@ -83,14 +83,6 @@ public class Elevator extends StandardSubsystem {
 			.inverted(false)
 			.follow(LEADER_MOTOR_ID, true);
 	
-	static {
-		ChargerSpark.optimizeBusUtilizationOn(LEADER_CONFIG, FOLLOWER_CONFIG);
-		// X P ID, Feedforward X X+0.1 0.5, X+0.2 1, y-0.1 0.1 Y
-		// Trapezoid profile - Desired Position
-		// error (wanted pos - desired pos) * kP
-		//
-	}
-	
 	// convert to angular constraints
 	private final TrapezoidProfile trapezoidProfile = new TrapezoidProfile(
 		new Constraints(
@@ -107,7 +99,8 @@ public class Elevator extends StandardSubsystem {
 	
 	@Logged public final Trigger movingUp;
 	@Logged public final Trigger atLowPosition;
-	@Logged public final Trigger atLimit;
+	@Logged public final Trigger atLowerLimit;
+	@Logged public final Trigger atUpperLimit;
 	
 	public Elevator() {
 		this(false);
@@ -133,14 +126,12 @@ public class Elevator extends StandardSubsystem {
 		
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		atLowPosition = new Trigger(() -> heightMeters() < COG_LOW_BOUNDARY.in(Meters));
-		atLimit = new Trigger(
-			() -> (heightMeters() < MIN_HEIGHT.in(Meters) && velocityMPS() < 0) ||
-					(heightMeters() > MAX_HEIGHT.in(Meters) && velocityMPS() > 0)
-		);
+		atLowerLimit = new Trigger(() -> heightMeters() < MIN_HEIGHT.in(Meters) && velocityMPS() < 0.1);
+		atUpperLimit = new Trigger(() -> heightMeters() > MAX_HEIGHT.in(Meters) && velocityMPS() > 0.1);
 		
 		sysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
-				Volts.per(Second).of(0.22), Volts.of(1.3), Seconds.of(10),
+				Volts.per(Second).of(0.22), Volts.of(1.1), Seconds.of(10),
 				state -> log("sysIdRoutineState", state.toString())
 			),
 			new SysIdRoutine.Mechanism(
@@ -210,12 +201,12 @@ public class Elevator extends StandardSubsystem {
 		}, Set.of(this));
 	}
 	
-	public Command moveToHeightCmd(Distance targetHeight) {
-		var radiansTarget = targetHeight.in(Meters) / RADIUS.in(Meters);
+	public Command moveToHeightCmd(Distance target) {
+		var radiansTarget = target.in(Meters) / RADIUS.in(Meters);
 		var goalState = new TrapezoidProfile.State(radiansTarget, 0.0);
 		return Commands.runOnce(() -> {
 			profileState = new TrapezoidProfile.State(leaderMotor.encoder().positionRad(), 0);
-			log("targetHeight", targetHeight);
+			log("targetMeters", target);
 		}).andThen(
 			// this.run() requires the elevator, while Commands.run/Commands.runOnce dont
 			this.run(() -> {
@@ -225,7 +216,7 @@ public class Elevator extends StandardSubsystem {
 				log("motionProfileState/positionRad", profileState.position);
 				log("feedforward", ffOutput);
 				leaderMotor.moveToPosition(profileState.position, ffOutput);
-			}).until(atHeight(targetHeight))
+			}).until(atHeight(target))
 		).finallyDo(this::requestStop);
 	}
 	
@@ -236,11 +227,11 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	public Command sysIdCmd() {
-		return sysIdRoutine.quasistatic(Direction.kForward).until(atLimit)
+		return sysIdRoutine.quasistatic(Direction.kForward).until(atUpperLimit)
 			       .andThen(
-						sysIdRoutine.quasistatic(Direction.kReverse).until(atLimit),
-						sysIdRoutine.dynamic(Direction.kForward).until(atLimit),
-						sysIdRoutine.dynamic(Direction.kReverse).until(atLimit)
+					   sysIdRoutine.quasistatic(Direction.kReverse).until(atLowerLimit),
+				       sysIdRoutine.dynamic(Direction.kForward).until(atUpperLimit),
+				       sysIdRoutine.dynamic(Direction.kReverse).until(atLowerLimit)
 			       ).withName("elevator sysid");
 	}
 	
@@ -260,7 +251,7 @@ public class Elevator extends StandardSubsystem {
 	public void periodic() {
 		log("follower/tempCelsius", followerMotor.getMotorTemperature());
 		log("follower/statorCurrent", followerMotor.getOutputCurrent());
-		if (atLimit.getAsBoolean()) requestStop();
+//		if (atLimit.getAsBoolean()) requestStop();
 	}
 	
 	@Override

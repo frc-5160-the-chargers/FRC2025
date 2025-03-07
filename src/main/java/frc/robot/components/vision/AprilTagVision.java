@@ -42,7 +42,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
 	private static final double LINEAR_STD_DEV_BASELINE = 0.08;
-	private static final double ANGULAR_STD_DEV_BASELINE = 15.0;
+	private static final double ANGULAR_STD_DEV_BASELINE = 50.0;
 	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
 		new PhotonCamConfig("ABC", 1.0, new Transform3d(

@@ -55,22 +55,6 @@ public class ChargerSpark implements Motor {
 		}
 	};
 	
-	/**
-	 * A utility method to disable common unused signals.
-	 * @param configs The spark configs to-apply.
-	 */
-	public static void optimizeBusUtilizationOn(SparkBaseConfig... configs) {
-//		for (var config: configs) {
-//			config.signals
-//				.analogPositionPeriodMs(0)
-//				.analogVelocityPeriodMs(0)
-//				.externalOrAltEncoderPosition(0)
-//				.externalOrAltEncoderVelocity(0)
-//				.analogVoltagePeriodMs(0)
-//				.iAccumulationPeriodMs(0);
-//		}
-	}
-	
 	public enum Model {
 		SPARK_MAX, SPARK_FLEX
 	}
