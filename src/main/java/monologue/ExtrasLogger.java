@@ -54,16 +54,21 @@ public class ExtrasLogger {
 		ExtrasLogger.enabled = true;
 		ExtrasLogger.pdh = pdh;
 		ExtrasLogger.logger = Monologue.config.backend.getNested("SystemStats");
-		robot.addPeriodic(() -> {
-			try {
-				ExtrasLogger.logSystem();
-				ExtrasLogger.logCan();
-				ExtrasLogger.logPdh();
-			} catch (Exception e) {
-				DriverStation.reportError("ExtrasLogger err: " + e, true);
-			}
-		}, 0.02);
-		new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
+		logger.log("LoggingActive", true);
+		try {
+			robot.addPeriodic(() -> {
+				try {
+					ExtrasLogger.logSystem();
+					ExtrasLogger.logCan();
+					ExtrasLogger.logPdh();
+				} catch (Exception e) {
+					DriverStation.reportError("ExtrasLogger err: " + e, true);
+				}
+			}, 0.02);
+			new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
+		} catch (Exception e) {logger.log("LoggingActive", false);
+			DriverStation.reportError("ExtrasLogger err(logger stopped): " + e, true);
+		}
 	}
 	
 	private static void logSystem() {

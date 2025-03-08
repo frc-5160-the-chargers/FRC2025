@@ -31,28 +31,33 @@ public class SwerveConfigurator {
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
 	public static final double ODOMETRY_FREQUENCY_HZ = 200;
 	private static final boolean USE_REMOTE_CANCODER = true;
-	
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
+	
 	public static final SwerveHardwareSpecs HARDWARE_SPECS =
 		new SwerveHardwareSpecs(
-			Inches.of(29.375), // trackwidth(width)
-			Inches.of(35.375), // wheelbase(height)
+			Inches.of(27), // trackwidth(width)
+			Inches.of(32.5), // wheelbase(height)
 			DCMotor.getKrakenX60(1), // drive motor type
-			DCMotor.getKrakenX60(1), // turn motor type
+			DCMotor.getKrakenX60(1), // steer motor type
 			MetersPerSecond.of(4.5), // max linear speed
 			DEFAULT_NEOPRENE_TREAD.cof, // coefficient of friction,
-			Pounds.of(81), // mass
-			Inches.of(2) // width of bumpers
+			Pounds.of(116), // mass
+			Inches.of(3.5) // width of bumpers
 		);
+	
+	private static final double DRIVE_KV =
+		1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio);
+	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
 			new PIDConstants(3.5, 0.0, 0), // azimuth pid - don't add d to this, it makes things weird
 			new PIDConstants(2.0, 0, 0), // velocity pid
-			new SimpleMotorFeedforward(0.015, 0.12676), // velocity feedforward
+			new SimpleMotorFeedforward(0.015, DRIVE_KV), // velocity feedforward
 			new PIDConstants(10.0, 0, 0), // path translation pid
 			new PIDConstants(10.0, 0, 0), // path rotation pid,
 			0.0 // kT
 		);
+	
 	public static final SwerveMotorConfig DEFAULT_MOTOR_CONFIG =
 		new SwerveMotorConfig(
 			RealDriveMotor::new,

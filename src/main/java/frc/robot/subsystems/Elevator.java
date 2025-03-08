@@ -17,8 +17,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -38,32 +36,35 @@ import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 4);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 0.2);
+	private static final TunableNum KP = new TunableNum("elevator/kP", 0.22);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 0.02);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
+	private static final TunableNum DEMO_VOLTAGE = new TunableNum("elevator/demoVoltage", 0);
 	
 	private static final double GEAR_RATIO = 5.0;
 	private static final Distance RADIUS = Inches.of(2 * 0.95);
 	private static final Mass CARRIAGE_MASS = Pounds.of(7);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNEO(2);
 	
-	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of(2);
-	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(18.0);
-	
 	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.5);
 	private static final Distance MAX_HEIGHT = Meters.of(1.24);
-	private static final Distance MIN_HEIGHT = Meters.of(0.02);
+	private static final Distance MIN_HEIGHT = Meters.of(0.03);
 	
+	// KV is in volts / (meters/sec)
+	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO * RADIUS.in(Meters));
+	// calculate kS by placing robot on its side then running the elevator at tiny voltages until it moves
+	// calculate kG by setting voltage until it moves, while upright. Subtract from kS
 	private static final ElevatorFeedforward FEEDFORWARD =
 		RobotBase.isSimulation()
-		    ? new ElevatorFeedforward(0, 0, 2.539)
-			: new ElevatorFeedforward(0.18, 0.633, 2.539);
+		    ? new ElevatorFeedforward(0, 0, KV)
+			: new ElevatorFeedforward(0.15, 0.48, KV); // confirmed data
 	
-	// KS: 0.18, KV: 2.539, KG: 0.634
+	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
+	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5);
 	
 	// Leader is the right motor
-	private static final int LEADER_MOTOR_ID = 29;
+	private static final int LEADER_MOTOR_ID = 27;
 	private static final int FOLLOWER_MOTOR_ID = 31;
 	
 	private static final int CURRENT_LIMIT = 80;
@@ -73,7 +74,7 @@ public class Elevator extends StandardSubsystem {
 		new SparkMaxConfig()
 			.smartCurrentLimit(CURRENT_LIMIT)
 			.secondaryCurrentLimit(SECONDARY_CURRENT_LIMIT)
-			.inverted(true)
+			.inverted(RobotBase.isReal())
 			.idleMode(IdleMode.kBrake);
 	private static final SparkBaseConfig FOLLOWER_CONFIG =
 		new SparkMaxConfig()
@@ -83,16 +84,13 @@ public class Elevator extends StandardSubsystem {
 			.inverted(false)
 			.follow(LEADER_MOTOR_ID, true);
 	
-	// convert to angular constraints
 	private final TrapezoidProfile trapezoidProfile = new TrapezoidProfile(
 		new Constraints(
 			MAX_LINEAR_VEL.in(MetersPerSecond) / RADIUS.in(Meters),
 			MAX_LINEAR_ACCEL.in(MetersPerSecondPerSecond) / RADIUS.in(Meters)
 		)
 	);
-	// Takes in a wanted height/velocity and returns a voltage
-	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
-	private final SysIdRoutine sysIdRoutine;
+	private TrapezoidProfile.State currentSetpoint = new TrapezoidProfile.State();
 	
 	@Logged private final Motor leaderMotor;
 	private final SparkMax followerMotor;
@@ -126,31 +124,15 @@ public class Elevator extends StandardSubsystem {
 		
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		atLowPosition = new Trigger(() -> heightMeters() < COG_LOW_BOUNDARY.in(Meters));
-		atLowerLimit = new Trigger(() -> heightMeters() < MIN_HEIGHT.in(Meters) && velocityMPS() < 0.1);
-		atUpperLimit = new Trigger(() -> heightMeters() > MAX_HEIGHT.in(Meters) && velocityMPS() > 0.1);
-		
-		sysIdRoutine = new SysIdRoutine(
-			new SysIdRoutine.Config(
-				Volts.per(Second).of(0.22), Volts.of(1.1), Seconds.of(10),
-				state -> log("sysIdRoutineState", state.toString())
-			),
-			new SysIdRoutine.Mechanism(
-				voltage -> {
-					// move slower when going down to prevent slamming into the hard stop
-					double volts = voltage.in(Volts);
-					volts = velocityMPS() >= 0 ? volts : volts / 2;
-					leaderMotor.setVoltage(volts);
-				},
-				null,
-				this,
-				"Elevator routine"
-			)
-		);
-		log("sysIdRoutineState", "none");
+		atLowerLimit = new Trigger(() -> heightMeters() < MIN_HEIGHT.in(Meters) && leaderMotor.outputVoltage() < 0);
+		atUpperLimit = new Trigger(() -> heightMeters() > MAX_HEIGHT.in(Meters) && leaderMotor.outputVoltage() > 0);
 		
 		setGearRatioAndPID();
-		KP.changed.or(KD.changed)
-			.onTrue(Commands.runOnce(this::setGearRatioAndPID).ignoringDisable(true));
+		KP.onChange(this::setGearRatioAndPID);
+		KD.onChange(this::setGearRatioAndPID);
+		
+		log("maxLinearVel", MAX_LINEAR_VEL);
+		log("maxLinearAccel", MAX_LINEAR_ACCEL);
 	}
 	
 	private void setGearRatioAndPID() {
@@ -188,8 +170,11 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	public Command setPowerCmd(InputStream controllerInput) {
-		return this.run(() -> leaderMotor.setVoltage(controllerInput.get() * 12 + FEEDFORWARD.getKg()))
-			       .withName("set power (elevator)");
+		return this.run(() -> {
+			// not technically mathematically accurate - doesn't really matter for manual control though
+			double volts = controllerInput.get() * 12 + FEEDFORWARD.getKg() + FEEDFORWARD.getKs();
+			leaderMotor.setVoltage(volts);
+		}).withName("set power (elevator)");
 	}
 	
 	public Command moveToDemoHeightCmd() {
@@ -202,20 +187,22 @@ public class Elevator extends StandardSubsystem {
 	}
 	
 	public Command moveToHeightCmd(Distance target) {
-		var radiansTarget = target.in(Meters) / RADIUS.in(Meters);
-		var goalState = new TrapezoidProfile.State(radiansTarget, 0.0);
+		var goalState = new TrapezoidProfile.State(target.in(Meters) / RADIUS.in(Meters), 0.0);
 		return Commands.runOnce(() -> {
-			profileState = new TrapezoidProfile.State(leaderMotor.encoder().positionRad(), 0);
-			log("targetMeters", target);
+			currentSetpoint = new TrapezoidProfile.State(leaderMotor.encoder().positionRad(), 0);
+			log("targetHeight", target.in(Meters));
 		}).andThen(
 			// this.run() requires the elevator, while Commands.run/Commands.runOnce dont
 			this.run(() -> {
-				double previousTarget = profileState.position;
-				profileState = trapezoidProfile.calculate(0.02, profileState, goalState);
-				double ffOutput = FEEDFORWARD.calculateWithVelocities(previousTarget, profileState.position);
-				log("motionProfileState/positionRad", profileState.position);
+				double previousVelTarget = currentSetpoint.velocity * RADIUS.in(Meters);
+				currentSetpoint = trapezoidProfile.calculate(0.02, currentSetpoint, goalState);
+				double ffOutput = FEEDFORWARD.calculateWithVelocities(
+					previousVelTarget, currentSetpoint.velocity * RADIUS.in(Meters)
+				);
+				log("motionProfileState/positionRad", currentSetpoint.position);
+				log("motionProfileState/velRadPerSec", currentSetpoint.velocity);
 				log("feedforward", ffOutput);
-				leaderMotor.moveToPosition(profileState.position, ffOutput);
+				leaderMotor.moveToPosition(currentSetpoint.position, ffOutput);
 			}).until(atHeight(target))
 		).finallyDo(this::requestStop);
 	}
@@ -223,16 +210,7 @@ public class Elevator extends StandardSubsystem {
 	@Override
 	protected void requestStop() {
 		log("targetHeight", Double.NaN);
-		leaderMotor.setVoltage(RobotBase.isSimulation() ? 0 : FEEDFORWARD.getKg());
-	}
-	
-	public Command sysIdCmd() {
-		return sysIdRoutine.quasistatic(Direction.kForward).until(atUpperLimit)
-			       .andThen(
-					   sysIdRoutine.quasistatic(Direction.kReverse).until(atLowerLimit),
-				       sysIdRoutine.dynamic(Direction.kForward).until(atUpperLimit),
-				       sysIdRoutine.dynamic(Direction.kReverse).until(atLowerLimit)
-			       ).withName("elevator sysid");
+		leaderMotor.setVoltage(FEEDFORWARD.getKs() + FEEDFORWARD.getKg());
 	}
 	
 	public Command currentZeroCmd() {
@@ -241,17 +219,21 @@ public class Elevator extends StandardSubsystem {
 			       .finallyDo((interrupted) -> {
 					   if (!interrupted) {
 						   leaderMotor.encoder().setPositionReading(Radians.zero());
-						   profileState = new TrapezoidProfile.State();
+						   currentSetpoint = new TrapezoidProfile.State();
 					   }
 			       })
 			       .withName("current zero command(Elevator)");
+	}
+	
+	public Command setDemoVoltageCmd() {
+		return this.run(() -> leaderMotor.setVoltage(DEMO_VOLTAGE.get()));
 	}
 	
 	@Override
 	public void periodic() {
 		log("follower/tempCelsius", followerMotor.getMotorTemperature());
 		log("follower/statorCurrent", followerMotor.getOutputCurrent());
-//		if (atLimit.getAsBoolean()) requestStop();
+		if (atUpperLimit.getAsBoolean() || atLowerLimit.getAsBoolean()) requestStop();
 	}
 	
 	@Override

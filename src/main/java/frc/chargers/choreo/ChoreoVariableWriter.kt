@@ -16,7 +16,7 @@ import kotlin.system.exitProcess
 class ChoreoVariableWriter : TimedRobot() {
     init {
         val targetPoses = TargetPoses(
-            OtherConstants.REEF_SCORE_OFFSET + Translation2d(Inches.of(-1.5), Inches.zero()),
+            OtherConstants.REEF_SCORE_OFFSET + Translation2d(Inches.of(-1.0), Inches.zero()),
             OtherConstants.SOURCE_OFFSET,
             SwerveConfigurator.HARDWARE_SPECS
         )

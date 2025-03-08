@@ -109,7 +109,7 @@ public class ChargerSpark implements Motor {
 		pidController.setReference(
 			radiansToRotations(velocityRadPerSec),
 			SparkBase.ControlType.kVelocity,
-			kSlot1
+			kSlot1, ffVolts
 		);
 	}
 	
@@ -118,7 +118,7 @@ public class ChargerSpark implements Motor {
 		pidController.setReference(
 			radiansToRotations(positionRads),
 			SparkBase.ControlType.kPosition,
-			kSlot0
+			kSlot0, ffVolts
 		);
 	}
 	
@@ -135,13 +135,13 @@ public class ChargerSpark implements Motor {
 	public void setControlsConfig(ControlsConfig newConfig) {
 		if (newConfig.positionPID().kP != 0.0) {
 			initialConfig.closedLoop
-				.pid(newConfig.positionPID().kP, newConfig.positionPID().kI, newConfig.positionPID().kD, kSlot0)
+				.pid(newConfig.positionPID().kP * (2 * PI), newConfig.positionPID().kI * (2 * PI), newConfig.positionPID().kD * (2 * PI), kSlot0)
 				.positionWrappingEnabled(newConfig.continuousInput())
 				.positionWrappingInputRange(-PI, PI);
 		}
 		if (newConfig.velocityPID().kP != 0.0) {
 			initialConfig.closedLoop
-				.pid(newConfig.velocityPID().kP, newConfig.velocityPID().kI, newConfig.velocityPID().kD, kSlot1);
+				.pid(newConfig.velocityPID().kP * (2 * PI), newConfig.velocityPID().kI * (2 * PI), newConfig.velocityPID().kD * (2 * PI), kSlot1);
 		}
 		if (newConfig.gearRatio() != 1.0) {
 			initialConfig.encoder

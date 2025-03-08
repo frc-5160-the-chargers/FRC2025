@@ -129,12 +129,19 @@ public class SwerveDrive extends StandardSubsystem {
 		AUTOMATIC, SELF_RUN
 	}
 	
+	// static members
 	private static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
 		new ChassisSpeeds(),
 		new SwerveModuleState[]{ new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState() },
 		DriveFeedforwards.zeros(4)
 	);
+	private static final TunableNum DEMO_POSE_X = new TunableNum("swerveDrive/demoPose/x", 0);
+	private static final TunableNum DEMO_POSE_Y = new TunableNum("swerveDrive/demoPose/y", 0);
+	private static final TunableNum DEMO_POSE_HEADING_DEG = new TunableNum("swerveDrive/demoPose/headingDeg", 0);
+	private static final TunableNum DEMO_DRIVE_VOLTS = new TunableNum("swerveDrive/demoDriveVolts", 3);
+	private static final TunableNum DEMO_STEER_VOLTS = new TunableNum("swerveDrive/demoSteerVolts", 3);
 
+	// instance members
 	public final SwerveHardwareSpecs hardwareSpecs;
 	public final SwerveDriveKinematics kinematics;
 	public final SwerveModule[] swerveModules = new SwerveModule[4];
@@ -145,10 +152,6 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveDriveSimulation mapleSim;
 	private final SysIdRoutine sysIdRoutine;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
-	
-	private final TunableNum demoPoseX = new TunableNum("swerveDrive/demoPose/x", 0);
-	private final TunableNum demoPoseY = new TunableNum("swerveDrive/demoPose/y", 0);
-	private final TunableNum demoPoseHeadingDeg = new TunableNum("swerveDrive/demoPose/headingDeg", 0);
 	
 	@Logged private boolean acceptVisionObservations = true;
 	@Logged private final SwerveModuleState[] measuredModuleStates = new SwerveModuleState[4];
@@ -253,8 +256,8 @@ public class SwerveDrive extends StandardSubsystem {
 		this.rotationController = controlsConfig.pathRotationPID.asController();
 		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
 		
-		this.xPoseController.setTolerance(0.02);
-		this.yPoseController.setTolerance(0.02);
+		this.xPoseController.setTolerance(0.01);
+		this.yPoseController.setTolerance(0.01);
 		this.rotationController.setTolerance(0.05);
 		
 		for (int i = 0; i < 4; i++) {
@@ -407,16 +410,18 @@ public class SwerveDrive extends StandardSubsystem {
 	
 	public Command runDriveMotors() {
 		return this.run(() -> {
+			double driveVolts = DEMO_DRIVE_VOLTS.get();
 			for (var mod: swerveModules) {
-				mod.setDriveVoltage(1.0);
+				mod.setDriveVoltage(driveVolts);
 			}
 		}).withName("RunDriveMotors");
 	}
 	
 	public Command runTurnMotors() {
 		return this.run(() -> {
+			double steerVolts = DEMO_STEER_VOLTS.get();
 			for (var mod: swerveModules) {
-				mod.setSteerVoltage(1.0);
+				mod.setSteerVoltage(steerVolts);
 			}
 		}).withName("RunTurnMotors");
 	}
@@ -489,8 +494,8 @@ public class SwerveDrive extends StandardSubsystem {
 	public void resetToDemoPose() {
 		resetPose(
 			new Pose2d(
-				demoPoseX.get(), demoPoseY.get(),
-				Rotation2d.fromDegrees(demoPoseHeadingDeg.get())
+				DEMO_POSE_X.get(), DEMO_POSE_Y.get(),
+				Rotation2d.fromDegrees(DEMO_POSE_HEADING_DEG.get())
 			)
 		);
 	}
@@ -607,7 +612,7 @@ public class SwerveDrive extends StandardSubsystem {
 			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			repulsor.setGoal(target);
 			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-			var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
+			var desiredSpeeds = toDesiredSpeeds(sample, 2);
 			SwerveModuleState[] desiredStates;
 			if (setpointGenerator != null) {
 				currentSetpointRef.set(

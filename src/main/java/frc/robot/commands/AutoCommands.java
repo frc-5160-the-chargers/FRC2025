@@ -37,8 +37,13 @@ public class AutoCommands {
 	 * @param position The scoring position. See PathfindingPoses.java for more details.
 	 * @param extendDelay Once the score trajectory starts,
 	 *                    wait this long before extending the elevator & wrist.
+	 * @param shouldAlign Whether to use PID to align to the reef during the scoring step.
 	 */
-	private record ScoringStep(int level, int position, double extendDelay) {}
+	private record ScoringStep(int level, int position, double extendDelay, boolean shouldAlign) {
+		public ScoringStep(int level, int position, double extendDelay) {
+			this(level, position, extendDelay, level != 1); // Align is unecessary for L1
+		}
+	}
 	
 	/**
 	 * An auto "step" that represents intaking from the human player station.
@@ -82,13 +87,16 @@ public class AutoCommands {
 			var intakeTraj = routine.trajectory("Reef" + previousScoreStep.position + "To" + sourceLoc);
 			var scoringTraj = routine.trajectory(sourceLoc + "ToReef" + scoringStep.position);
 			
-			if (previousScoreStep.level == 1) {
-				previousTraj.done().onTrue(Commands.waitSeconds(1).andThen(intakeTraj.spawnCmd()));
-			} else {
+			if (previousScoreStep.shouldAlign) {
 				previousTraj.atTranslation(previousTarget.getTranslation(), 0.3).onTrue(
 					drivetrain.alignCmd(previousTarget, true)
 						.andThen(botCommands.waitUntilReady(), intakeTraj.spawnCmd())
 						.withName("intake traj spawner")
+				);
+			} else {
+				previousTraj.done().onTrue(
+					Commands.waitUntil(coralIntake.hasCoral.negate())
+						.andThen(Commands.waitSeconds(0.5), intakeTraj.spawnCmd())
 				);
 			}
 			intakeTraj.active().onTrue(coralIntake.intakeCmd());
@@ -106,15 +114,15 @@ public class AutoCommands {
 			previousTarget = targetPoses.reefBlue[previousScoreStep.position];
 		}
 		var taxiCmd = taxiTrajectory == null ? Commands.none() : taxiTrajectory.spawnCmd();
-		if (previousScoreStep.level == 1) {
-			previousTraj.done().onTrue(Commands.waitSeconds(1).andThen(taxiCmd));
-		} else {
+		if (previousScoreStep.shouldAlign) {
 			previousTraj.atTranslation(previousTarget.getTranslation(), 0.2)
 				.onTrue(
 					drivetrain.alignCmd(previousTarget, true)
 						.andThen(botCommands.waitUntilReady(), taxiCmd)
 						.withName("taxi traj spawner")
 				);
+		} else {
+			previousTraj.done().onTrue(Commands.waitUntil(coralIntake.hasCoral.negate()).andThen(taxiCmd));
 		}
 		return routine.cmd();
 	}

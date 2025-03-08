@@ -6,8 +6,12 @@ import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.epilogue.logging.EpilogueBackend;
+import edu.wpi.first.epilogue.logging.FileBackend;
+import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -35,18 +39,19 @@ import frc.robot.components.RobotVisualization;
 import frc.robot.components.vision.AprilTagVision;
 import frc.robot.constants.Setpoint;
 import frc.robot.constants.TargetPoses;
+import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
+import monologue.ExtrasLogger;
 import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.urcl.URCL;
 
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 import static frc.chargers.utils.TriggerUtil.bind;
 import static frc.robot.constants.OtherConstants.*;
 import static monologue.Monologue.GlobalLog;
@@ -66,6 +71,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot();
 	private final Elevator elevator = new Elevator();
 	private final AprilTagVision vision = new AprilTagVision();
+	private final Climber climber = new Climber();
 	
 	/* Generic constants/utility classes */
 	private final RobotVisualization visualizer =
@@ -127,12 +133,17 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		LaserCanUtil.setup(true);
 		// logging setup(required)
 		Epilogue.bind(this);
+		Epilogue.getConfig().backend = EpilogueBackend.multi(
+			new FileBackend(DataLogManager.getLog()),
+			new NTEpilogueBackend(NetworkTableInstance.getDefault())
+		);
 		Monologue.setup(this, Epilogue.getConfig());
 		GlobalLog.enableCommandLogging();
 		logMetadata();
-		DataLogManager.start();
+		DataLogManager.logNetworkTables(false);
 		URCL.start();
 		SignalLogger.start();
+		ExtrasLogger.start(this, null);
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
 		
@@ -181,34 +192,40 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		/* Driver controller/Operator UI bindings */
 		for (int wantedLevel = 1; wantedLevel <= 4; wantedLevel++) {
-			if (USE_PATHFINDING) {
-				for (int wantedPathTarget = 0; wantedPathTarget < 12; wantedPathTarget++) {
-					driverController.cross()
-						.and(operatorUi.targetLevelIs(wantedLevel))
-						.and(operatorUi.pathfindTargetIs(wantedPathTarget))
-						.whileTrue(
-							botCommands.pathfindAndMoveTo(
-								Setpoint.score(wantedLevel),
-								targetPoses.reefBlue[wantedPathTarget]
-							)
-						);
-				}
-			} else {
+			for (int wantedPathTarget = 0; wantedPathTarget < 12; wantedPathTarget++) {
+				var moveAndPathfindCmd = botCommands.pathfindAndMoveTo(
+					Setpoint.score(wantedLevel),
+					targetPoses.reefBlue[wantedPathTarget]
+				);
+				var moveAndAimCmd = botCommands.aimAndMoveTo(
+					Setpoint.score(wantedLevel), targetPoses.reefBlue[wantedPathTarget],
+					forwardOutput, strafeOutput
+				);
 				driverController.cross()
 					.and(operatorUi.targetLevelIs(wantedLevel))
-					.whileTrue(botCommands.moveTo(Setpoint.score(wantedLevel)));
+					.and(operatorUi.pathfindTargetIs(wantedPathTarget))
+					.whileTrue(USE_PATHFINDING ? moveAndPathfindCmd : moveAndAimCmd);
 			}
 		}
 		
 		driverController.square()
-			.whileTrue(botCommands.sourceIntakeWithAim(targetPoses.eastSourceBlue, forwardOutput, strafeOutput));
+			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, forwardOutput, strafeOutput));
 		driverController.circle()
-			.whileTrue(botCommands.sourceIntakeWithAim(targetPoses.westSourceBlue, forwardOutput, strafeOutput));
+			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, forwardOutput, strafeOutput));
 		
-		driverController.R1()
-			.whileTrue(coralIntake.outtakeForeverCmd());
 		driverController.L1()
 			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+		driverController.R2()
+			.whileTrue(coralIntake.outtakeForeverCmd());
+		
+		driverController.povUp()
+			.whileTrue(drivetrain.driveCmd(() -> NUDGE_OUTPUT, () -> 0, () -> 0, false));
+		driverController.povDown()
+			.whileTrue(drivetrain.driveCmd(() -> -NUDGE_OUTPUT, () -> 0, () -> 0, false));
+		driverController.povLeft()
+			.whileTrue(drivetrain.driveCmd(() -> 0, () -> -NUDGE_OUTPUT, () -> 0, false));
+		driverController.povRight()
+			.whileTrue(drivetrain.driveCmd(() -> 0, () -> NUDGE_OUTPUT, () -> 0, false));
 		
 		// anti-tipping
 		gyroWrapper.isTipping
@@ -218,17 +235,49 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			);
 		
 		/* Manual override controller bindings */
-//		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());
-//
-//		manualCtrlAllowed
-//			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
-//			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
-//		manualCtrlAllowed
-//			.and(manualOverrideController.leftBumper())
-//			.whileTrue(coralIntake.intakeForeverCmd());
-//		manualCtrlAllowed
-//			.and(manualOverrideController.rightBumper())
-//			.whileTrue(coralIntake.outtakeForeverCmd());
+		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());
+
+		manualCtrlAllowed
+			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
+			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
+		
+		manualOverrideController.povUp()
+			.and(manualCtrlAllowed)
+			.whileTrue(coralIntake.outtakeForeverCmd());
+		manualOverrideController.povDown()
+			.and(manualCtrlAllowed)
+			.whileTrue(coralIntake.intakeForeverCmd());
+		
+		manualOverrideController.rightBumper()
+			.and(manualCtrlAllowed)
+			.whileTrue(
+				botCommands.moveTo(Setpoint.INTAKE)
+					.alongWith(coralIntake.intakeForeverCmd())
+					.withName("Manual source intake")
+			);
+		manualOverrideController.leftBumper()
+			.and(manualCtrlAllowed)
+			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+		
+		manualOverrideController.rightTrigger()
+			.and(manualCtrlAllowed)
+			.whileTrue(climber.climbUp());
+		manualOverrideController.leftTrigger()
+			.and(manualCtrlAllowed)
+			.whileTrue(climber.climbDown());
+		
+		manualOverrideController.a()
+			.and(manualCtrlAllowed)
+			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
+		manualOverrideController.b()
+			.and(manualCtrlAllowed)
+			.whileTrue(botCommands.moveTo(Setpoint.score(2)));
+		manualOverrideController.y()
+			.and(manualCtrlAllowed)
+			.whileTrue(botCommands.moveTo(Setpoint.score(3)));
+		manualOverrideController.x()
+			.and(manualCtrlAllowed)
+			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
 	}
 	
 	private void mapDefaultCommands() {
@@ -238,6 +287,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		elevator.setDefaultCommand(elevator.idleCmd());
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
 		coralIntakePivot.setDefaultCommand(coralIntakePivot.idleCmd());
+		climber.setDefaultCommand(climber.idleCmd());
 	}
 	
 	private void logMetadata() {
@@ -288,7 +338,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			"Wheel radius characterization",
 			() -> new WheelRadiusCharacterization(drivetrain, Direction.COUNTER_CLOCKWISE)
 		);
-		testModeChooser.addCmd("Elevator characterization", elevator::sysIdCmd);
 		testModeChooser.addCmd("Drive FF Characterization", drivetrain::sysIdCmd);
 		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
 		testModeChooser.addCmd("Align", () -> drivetrain.alignCmd(new Pose2d(5,7, Rotation2d.kZero), false));

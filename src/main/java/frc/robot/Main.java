@@ -9,6 +9,6 @@ import edu.wpi.first.wpilibj.RobotBase;
  */
 public class Main {
     public static void main(String[] args) {
-        RobotBase.startRobot(CompetitionRobot::new);
+        RobotBase.startRobot(RandomTesting::new);
     }
 }

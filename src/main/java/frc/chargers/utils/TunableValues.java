@@ -3,6 +3,7 @@ package frc.chargers.utils;
 import edu.wpi.first.networktables.BooleanEntry;
 import edu.wpi.first.networktables.DoubleEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.Setter;
 
@@ -21,14 +22,6 @@ public class TunableValues {
 		private double defaultValue;
 		private double previousValue;
 		
-		public final Trigger changed = new Trigger(() -> {
-			if (!tuningMode) return false;
-			var latest = get();
-			boolean hasChanged = latest != previousValue;
-			previousValue = latest;
-			return hasChanged;
-		});
-		
 		public TunableNum(String path, double defaultValue) {
 			this.entry = NetworkTableInstance
 				             .getDefault()
@@ -37,6 +30,16 @@ public class TunableValues {
 			entry.setDefault(defaultValue);
 			this.defaultValue = defaultValue;
 			this.previousValue = defaultValue;
+		}
+		
+		public void onChange(Runnable toRun) {
+			new Trigger(() -> {
+				if (!tuningMode) return false;
+				var latest = get();
+				boolean hasChanged = latest != previousValue;
+				previousValue = latest;
+				return hasChanged;
+			}).onTrue(Commands.runOnce(toRun).ignoringDisable(true));
 		}
 		
 		public void setDefault(double defaultValue) {
@@ -68,13 +71,15 @@ public class TunableValues {
 			this.defaultValue = defaultValue;
 		}
 		
-		public final Trigger changed = new Trigger(() -> {
-			if (!tuningMode) return false;
-			var latest = get();
-			boolean hasChanged = latest != previousValue;
-			previousValue = latest;
-			return hasChanged;
-		});
+		public void onChange(Runnable toRun) {
+			new Trigger(() -> {
+				if (!tuningMode) return false;
+				var latest = get();
+				boolean hasChanged = latest != previousValue;
+				previousValue = latest;
+				return hasChanged;
+			}).onTrue(Commands.runOnce(toRun).ignoringDisable(true));
+		}
 		
 		public void setDefault(boolean defaultValue) {
 			this.defaultValue = defaultValue;

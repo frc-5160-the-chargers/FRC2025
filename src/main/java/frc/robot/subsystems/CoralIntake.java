@@ -33,7 +33,7 @@ public class CoralIntake extends StandardSubsystem {
 	private static final double DISTANCE_TOLERANCE_MM = 50;
 	private static final double OUTTAKE_VOLTAGE = 12;
 	private static final double INTAKE_VOLTAGE = -12;
-	private static final double DELAY_SECS = 0.5;
+	private static final double OUTTAKE_DELAY_SECS = 0.8;
 	private static final SparkBaseConfig MOTOR_CONFIG =
 		new SparkFlexConfig()
 			.smartCurrentLimit(60)
@@ -45,6 +45,7 @@ public class CoralIntake extends StandardSubsystem {
 	private final LaserCan laserCan = new LaserCan(LASER_CAN_ID);
 	private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
 	private boolean hasCoralInSim = false;
+	
 	/** Whether outtakeCmd() and intakeCmd() should end when a gamepiece is detected. */
 	public boolean runContinuously = false;
 	/** A trigger that returns true when the intake detects coral. */
@@ -52,6 +53,8 @@ public class CoralIntake extends StandardSubsystem {
 		() -> (RobotBase.isSimulation() && hasCoralInSim) ||
 			      (laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < DISTANCE_TOLERANCE_MM)
 	);
+	/** A trigger that returns true when the intake is outtaking coral. */
+	public final Trigger isOuttaking = new Trigger(() -> motor.outputVoltage() > 1.0);
 	
 	public CoralIntake() {
 		motor.setControlsConfig(
@@ -79,14 +82,17 @@ public class CoralIntake extends StandardSubsystem {
 	public Command intakeCmd() {
 		return this.run(() -> motor.setVoltage(INTAKE_VOLTAGE))
 			       .until(hasCoral)
-			       .andThen(this.run(() -> motor.setVoltage(INTAKE_VOLTAGE)).withTimeout(DELAY_SECS))
+			       .andThen(super.stopCmd())
 			       .withName("coral intake");
 	}
 	
 	public Command outtakeCmd() {
 		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE))
 			       .until(hasCoral.negate().and(() -> !runContinuously))
-			       .andThen(this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(DELAY_SECS))
+			       .andThen(
+					   this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(OUTTAKE_DELAY_SECS),
+				       super.stopCmd()
+			       )
 			       .withName("coral outtake");
 	}
 	

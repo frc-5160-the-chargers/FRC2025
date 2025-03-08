@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
 import frc.robot.constants.FieldConstants;
+import frc.robot.constants.OtherConstants;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
@@ -75,7 +76,7 @@ public class RobotVisualization implements LogLocal {
 						   && Math.abs(coralIntake.velocityRadPerSec()) > 30;
 			})
 				.onTrue(
-					Commands.waitSeconds(0.5)
+					Commands.waitSeconds(1.0)
 						.andThen(coralIntake.setHasCoralInSimCmd(true))
 						.withName("visualize coral intake")
 				);
@@ -89,7 +90,10 @@ public class RobotVisualization implements LogLocal {
 		log("stage1Position", Pose3d.kZero);
 		log("stage2Position", new Pose3d(0, 0, MathUtil.clamp(currentHeight - 0.4, 0.0, 0.65), Rotation3d.kZero));
 		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
-		robotCenterToPivot = new Transform3d(0.374, 0.173, 0.6985 + currentHeight, new Rotation3d(0, coralIntakePivot.angleRads(), 0));
+		robotCenterToPivot = new Transform3d(
+			0.374, -OtherConstants.INTAKE_OFFSET_FROM_CENTER.in(Meters), 0.6985 + currentHeight,
+			new Rotation3d(0, coralIntakePivot.angleRads(), 0)
+		);
 		log("intakePivotPosition", Pose3d.kZero.plus(robotCenterToPivot));
 		
 		if (RobotBase.isSimulation()) {
@@ -109,8 +113,7 @@ public class RobotVisualization implements LogLocal {
 	}
 	
 	private Command visualizeCoralOuttakeCmd() {
-		return Commands.waitSeconds(0.3).andThen(
-			coralIntake.setHasCoralInSimCmd(false),
+		return coralIntake.setHasCoralInSimCmd(false).andThen(
 			Commands.runOnce(() -> {
 				var robotCenterToCoral = robotCenterToPivot.plus(pivotToCoralPosition);
 				SimulatedArena.getInstance().addGamePieceProjectile(
@@ -126,6 +129,6 @@ public class RobotVisualization implements LogLocal {
 				);
 				coralOuttakePositions.add(new Pose3d(drivetrain.bestPose()).plus(robotCenterToCoral));
 			})
-       );
+       ).withName("visualize coral outtake(sim only)");
 	}
 }

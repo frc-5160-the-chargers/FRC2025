@@ -41,7 +41,7 @@ public class RobotCommands {
 	 */
 	public Command waitUntilReady() {
 		return Commands.waitUntil(
-			coralIntake.hasCoral.negate()
+			coralIntake.isOuttaking.negate()
 				.and(elevator.atLowPosition)
 				.and(elevator.movingUp.negate())
 		).withName("wait until ready");
@@ -84,16 +84,22 @@ public class RobotCommands {
 		).withName("move to setpoint(and pathfind)");
 	}
 	
-	/** Runs the intake and moves the elevator and pivot to the intake position. */
-	public Command sourceIntakeWithAim(Pose2d sourcePoseBlue, InputStream forward, InputStream strafe) {
+	public Command aimAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose, InputStream forward, InputStream strafe) {
 		return Commands.parallel(
-			moveTo(Setpoint.INTAKE),
-			coralIntake.intakeCmd(),
+			moveTo(setpoint),
 			drivetrain.driveWithAimCmd(
 				forward, strafe,
-				AllianceUtil.flipIfRed(sourcePoseBlue.getRotation()).getMeasure(),
+				AllianceUtil.flipIfRed(blueAlliancePose.getRotation()).getMeasure(),
 				true
 			)
+		).withName("move to setpoint(and aim)");
+	}
+	
+	/** Runs the intake and moves the elevator and pivot to the intake position. */
+	public Command aimAndSourceIntake(Pose2d sourcePoseBlue, InputStream forward, InputStream strafe) {
+		return Commands.parallel(
+			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, forward, strafe),
+			coralIntake.intakeCmd()
 		).withName("source intake with aim");
 	}
 	
