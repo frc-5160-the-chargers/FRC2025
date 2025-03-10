@@ -3,7 +3,6 @@ package frc.robot.components;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 /**
@@ -35,7 +34,7 @@ public class OperatorUi {
 	 */
 	@Logged
 	public final Trigger isManualOverride =
-		new Trigger(() -> manualOverrideEnabled && DriverStation.isTeleop());
+		new Trigger(() -> manualOverrideEnabled);
 	
 	/**
 	 * A trigger that returns true when the operator ui requests the specified

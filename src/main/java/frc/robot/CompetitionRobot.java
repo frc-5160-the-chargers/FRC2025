@@ -123,8 +123,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.signedPow(2);
 	private final InputStream manualPivotInput =
 		InputStream.of(manualOverrideController::getRightY)
-			.times(-0.3)
-			.signedPow(1.3);
+			.times(-0.3);
 	
 	public CompetitionRobot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -277,6 +276,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		doubleClicked(manualOverrideController.start())
 			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
+		doubleClicked(manualOverrideController.back())
+			.onTrue(coralIntakePivot.resetAngleToZeroCmd());
 	}
 	
 	private void mapDefaultCommands() {
@@ -285,7 +286,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		);
 		elevator.setDefaultCommand(elevator.idleCmd());
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
-		coralIntakePivot.setDefaultCommand(coralIntakePivot.idleCmd());
+		coralIntakePivot.setDefaultCommand(coralIntakePivot.setPowerCmd(manualPivotInput));
 		climber.setDefaultCommand(climber.idleCmd());
 	}
 	

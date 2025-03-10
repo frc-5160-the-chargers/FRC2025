@@ -21,6 +21,7 @@ import frc.chargers.utils.LaserCanUtil;
 
 import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
+// Constant power when coral in
 @Logged
 public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 5;
@@ -31,13 +32,14 @@ public class CoralIntake extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeoVortex(1);
 	
 	private static final double DISTANCE_TOLERANCE_MM = 50;
-	private static final double OUTTAKE_VOLTAGE = 12;
-	private static final double INTAKE_VOLTAGE = -12;
+	private static final double OUTTAKE_VOLTAGE = 8;
+	private static final double INTAKE_VOLTAGE = -8;
 	private static final double OUTTAKE_DELAY_SECS = 0.8;
 	private static final SparkBaseConfig MOTOR_CONFIG =
 		new SparkFlexConfig()
 			.smartCurrentLimit(60)
 			.idleMode(IdleMode.kBrake)
+			.inverted(true)
 			.voltageCompensation(12.0);
 	
 	private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, MOTOR_CONFIG)
@@ -104,7 +106,8 @@ public class CoralIntake extends StandardSubsystem {
 	
 	@Override
 	protected void requestStop() {
-		motor.setVoltage(0);
+		// set a constant power so coral stays in
+		motor.setVoltage(0.5);
 	}
 	
 	@Override

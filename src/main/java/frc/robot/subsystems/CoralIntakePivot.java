@@ -32,7 +32,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
 	private static final Angle TOLERANCE = Degrees.of(2.0);
-	private static final double GEAR_RATIO = 256.0 / 3.0;
+	private static final double GEAR_RATIO = 256 / 3.0 * 1.03;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
 	
 	// In rad/sec and rad/sec^2
