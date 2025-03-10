@@ -19,7 +19,6 @@ import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
 import frc.chargers.utils.TunableValues.TunableNum;
-import frc.robot.constants.Setpoint;
 
 import java.util.Set;
 
@@ -28,6 +27,7 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
+	private static final Angle STARTING_ANGLE = Degrees.of(-80);
 	private static final Angle NAN_ANGLE = Degrees.of(Double.NaN);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
@@ -54,11 +54,11 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
 	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_MAX, MOTOR_CONFIG)
 		                                    .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
-	@Logged private Angle target = Setpoint.STOW_LOW.wristTarget();
+	@Logged private Angle target = NAN_ANGLE;
 	@Logged public final Trigger atTarget = new Trigger(() -> Math.abs(angleRads() - target.in(Radians)) < TOLERANCE.in(Radians));
 
 	public CoralIntakePivot() {
-		waitThenRun(2, () -> motor.encoder().setPositionReading(Setpoint.STOW_LOW.wristTarget()));
+		waitThenRun(2, () -> motor.encoder().setPositionReading(STARTING_ANGLE));
 		setGearRatioAndPID();
 		KP.onChange(this::setGearRatioAndPID);
 		KD.onChange(this::setGearRatioAndPID);
@@ -94,15 +94,19 @@ public class CoralIntakePivot extends StandardSubsystem {
 	       .withName("set angle (pivot)");
 	}
 	
-	
 	public Command setPowerCmd(InputStream controllerInput) {
 		return this.run(() -> motor.setVoltage(controllerInput.get() * 12))
 			       .withName("set power (pivot)");
 	}
 	
 	public Command resetAngleToStowCmd() {
-		return Commands.runOnce(() -> motor.encoder().setPositionReading(Setpoint.STOW_LOW.wristTarget()))
-			       .withName("reset angle to stow cmd");
+		return Commands.runOnce(() -> motor.encoder().setPositionReading(STARTING_ANGLE))
+			       .withName("reset angle to stow");
+	}
+	
+	public Command resetAngleToZeroCmd() {
+		return Commands.runOnce(() -> motor.encoder().setPositionReading(Degrees.zero()))
+			       .withName("reset angle to 0");
 	}
 	
 	public double angleRads() {

@@ -22,8 +22,7 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 
-import static monologue.Monologue.GlobalLog;
-
+/** Robot for testing swerve and running Swerve routines. */
 @Logged
 public class SwerveTestBot extends TimedRobot implements LogLocal {
 	private final SwerveDrive drivetrain = new SwerveDrive(
@@ -43,7 +42,6 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
 		DataLogManager.start();
-		logMetadata();
 		
 		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// enables tuning mode
@@ -85,12 +83,12 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		driverController.b()
 			.whileTrue(drivetrain.runTurnMotors());
 		driverController.x()
-			.whileTrue(drivetrain.setSteerAngles(new Rotation2d[]{
+			.whileTrue(drivetrain.setSteerAngles(
 				Rotation2d.fromDegrees(-45),
 				Rotation2d.fromDegrees(45),
 				Rotation2d.fromDegrees(45),
-				Rotation2d.fromDegrees(-45),
-			}));
+				Rotation2d.fromDegrees(-45)
+			));
 		driverController.y()
 			.whileTrue(drivetrain.setSteerAngles(Rotation2d.kZero));
 	}
@@ -113,13 +111,5 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 				false
 			)
 		);
-	}
-	
-	private void logMetadata() {
-		GlobalLog.logMetadata("GitDate", BuildConstants.GIT_DATE);
-		GlobalLog.logMetadata("BuildDate", BuildConstants.BUILD_DATE);
-		GlobalLog.logMetadata("GitBranch", BuildConstants.GIT_BRANCH);
-		GlobalLog.logMetadata("GitDirty", Integer.toString(BuildConstants.DIRTY));
-		GlobalLog.logMetadata("GitSHA", BuildConstants.GIT_SHA);
 	}
 }

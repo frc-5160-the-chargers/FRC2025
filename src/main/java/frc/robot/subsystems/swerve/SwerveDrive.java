@@ -13,6 +13,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -32,7 +33,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -53,6 +53,8 @@ import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,6 +62,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.math.MathUtil.angleModulus;
+import static edu.wpi.first.math.util.Units.metersToInches;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
@@ -150,7 +153,6 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveDrivePoseEstimator poseEstimator;
 	private final SingleTagPoseEstimator singleTagPoseEstimator;
 	private final SwerveDriveSimulation mapleSim;
-	private final SysIdRoutine sysIdRoutine;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
 	@Logged private boolean acceptVisionObservations = true;
@@ -173,6 +175,11 @@ public class SwerveDrive extends StandardSubsystem {
 	@Logged private final SwerveModule topRightModule;
 	@Logged private final SwerveModule bottomLeftModule;
 	@Logged private final SwerveModule bottomRightModule;
+	
+	/** A SysId routine for characterization translational velocity/accel. */
+	public final SysIdRoutine translationSysIdRoutine;
+	/** A SysId routine for characterization rotational velocity/accel. */
+	public final SysIdRoutine rotationSysIdRoutine;
 	
 	public SwerveDrive(
 		SwerveHardwareSpecs hardwareSpecs, 
@@ -234,7 +241,7 @@ public class SwerveDrive extends StandardSubsystem {
 				);
 
 		this.mapleSim = new SwerveDriveSimulation(driveSimConfig, Pose2d.kZero);
-		this.sysIdRoutine = new SysIdRoutine(
+		this.translationSysIdRoutine = new SysIdRoutine(
 			new SysIdRoutine.Config(
 				Volts.per(Second).of(0.5),
 				Volts.of(3),
@@ -245,6 +252,25 @@ public class SwerveDrive extends StandardSubsystem {
 				voltage -> {
 					for (var module: swerveModules) {
 						module.setDriveVoltage(voltage.in(Volts));
+						module.setSteerAngle(Rotation2d.kZero);
+					}
+				},
+				log -> {},
+				this
+			)
+		);
+		this.rotationSysIdRoutine = new SysIdRoutine(
+			new SysIdRoutine.Config(
+				Volts.per(Second).of(0.5),
+				Volts.of(3),
+				Seconds.of(10),
+				state -> log("sysIdState", state.toString())
+			),
+			new SysIdRoutine.Mechanism(
+				voltage -> {
+					for (var module: swerveModules) {
+						module.setDriveVoltage(voltage.in(Volts));
+						module.setSteerAngle(Rotation2d.kZero);
 					}
 				},
 				log -> {},
@@ -426,20 +452,22 @@ public class SwerveDrive extends StandardSubsystem {
 		}).withName("RunTurnMotors");
 	}
 	
-	public Command setSteerAngles(Rotation2d angle) {
-		return this.run(() -> {
-			for (var mod: swerveModules) {
-				mod.setSteerAngle(angle);
-			}
-		}).withName("SetSteerAngles");
-	}
-	
-	public Command setSteerAngles(Rotation2d[] angles) {
-		return this.run(() -> {
-			for (int i = 0; i < 4; i++) {
-				swerveModules[i].setSteerAngle(angles[i]);
-			}
-		});
+	public Command setSteerAngles(Rotation2d... angles) {
+		if (angles.length == 1) {
+			return this.run(() -> {
+				for (var mod: swerveModules) {
+					mod.setSteerAngle(angles[0]);
+				}
+			}).withName("SetSteerAngles");
+		} else if (angles.length == 4) {
+			return this.run(() -> {
+				for (int i = 0; i < 4; i++) {
+					swerveModules[i].setSteerAngle(angles[i]);
+				}
+			});
+		} else {
+			return Commands.print("Invalid amount of steer angles - command ignored.");
+		}
 	}
 	
 	public void enableSingleTagEstimation(int targetTagId) {
@@ -612,7 +640,7 @@ public class SwerveDrive extends StandardSubsystem {
 			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			repulsor.setGoal(target);
 			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-			var desiredSpeeds = toDesiredSpeeds(sample, 2);
+			var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
 			SwerveModuleState[] desiredStates;
 			if (setpointGenerator != null) {
 				currentSetpointRef.set(
@@ -632,15 +660,6 @@ public class SwerveDrive extends StandardSubsystem {
 	       .until(() -> repulsor.atGoal(0.02))
 	       .andThen(super.stopCmd())
 	       .withName("PathfindCmd");
-	}
-	
-	/** A command that is used to characterize velocity feedforward/velocity PID constants of the drivetrain. */
-	public Command sysIdCmd() {
-		return sysIdRoutine.quasistatic(Direction.kForward).andThen(
-			sysIdRoutine.quasistatic(Direction.kReverse),
-			sysIdRoutine.dynamic(Direction.kForward),
-			sysIdRoutine.dynamic(Direction.kReverse)
-		).withName("drivetrain sysid");
 	}
 	
 	/**
@@ -707,5 +726,99 @@ public class SwerveDrive extends StandardSubsystem {
 	@Override
 	public void close() {
 		for (var mod: swerveModules) { mod.close(); }
+	}
+	
+	
+	/** Measures the robot's wheel radius by spinning in a circle. */
+	public Command wheelRadiusCharacterization() {
+		var limiter = new SlewRateLimiter(0.05);
+		var state = new WheelRadiusCharacterizationState();
+		
+		return Commands.parallel(
+			// Drive control sequence
+			Commands.sequence(
+				// Reset acceleration limiter
+				Commands.runOnce(() -> limiter.reset(0.0)),
+				
+				// Turn in place, accelerating up to full speed
+				this.run(() -> {
+					double speed = limiter.calculate(0.25);
+					var desiredStates = toDesiredModuleStates(new ChassisSpeeds(0, 0, speed), false);
+					for (int i = 0; i < 4; i++) {
+						swerveModules[i].setDesiredState(desiredStates[i], true, 0);
+					}
+				})
+			),
+			// Measurement sequence
+			Commands.sequence(
+				// Wait for modules to fully orient before starting measurement
+				Commands.waitSeconds(1.0),
+				// Record starting measurement
+				Commands.runOnce(
+					() -> {
+						for (int i = 0; i < 4; i++) {
+							state.positions[i] = swerveModules[i].getRawDrivePositionRad();
+						}
+						state.lastAngle = gyroYawSupplier.get();
+						state.gyroDelta = 0.0;
+					}),
+				
+				// Update gyro delta
+				Commands.run(
+						() -> {
+							var rotation = gyroYawSupplier.get();
+							state.gyroDelta += Math.abs(rotation.minus(state.lastAngle).getRadians());
+							state.lastAngle = rotation;
+							
+							double[] positions = new double[4];
+							for (int i = 0; i < 4; i++) {
+								positions[i] = swerveModules[i].getRawDrivePositionRad();
+							}
+							double wheelDelta = 0.0;
+							for (int i = 0; i < 4; i++) {
+								wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
+							}
+							double wheelRadius =
+								(state.gyroDelta * hardwareSpecs.drivebaseRadius().in(Meters)) / wheelDelta;
+							
+							log("wheelRadiusCharacterization/delta", wheelDelta);
+							log("wheelRadiusCharacterization/found wheel radius(meters)", wheelRadius);
+						})
+					
+					// When cancelled, calculate and print results
+					.finallyDo(
+						() -> {
+							double[] positions = new double[4];
+							for (int i = 0; i < 4; i++) {
+								positions[i] = swerveModules[i].getRawDrivePositionRad();
+							}
+							double wheelDelta = 0.0;
+							for (int i = 0; i < 4; i++) {
+								wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
+							}
+							double wheelRadius =
+								(state.gyroDelta * hardwareSpecs.drivebaseRadius().in(Meters)) / wheelDelta;
+							
+							NumberFormat formatter = new DecimalFormat("#0.000000000000000000000000000");
+							System.out.println(
+								"********** Wheel Radius Characterization Results **********");
+							System.out.println(
+								"\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
+							System.out.println(
+								"\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
+							System.out.println(
+								"\tWheel Radius: "
+									+ formatter.format(wheelRadius)
+									+ " meters, "
+									+ formatter.format(metersToInches(wheelRadius))
+									+ " inches");
+						})));
+	}
+	
+	
+	private static class WheelRadiusCharacterizationState {
+		double[] positions = new double[4];
+		Rotation2d lastAngle = Rotation2d.kZero;
+		double gyroDelta = 0.0;
 	}
 }

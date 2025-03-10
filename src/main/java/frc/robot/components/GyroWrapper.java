@@ -14,7 +14,9 @@ public class GyroWrapper {
 	private final BaseStatusSignal
 		yaw = pigeon.getYaw(),
 		pitch = pigeon.getPitch(),
-		roll = pigeon.getRoll();
+		roll = pigeon.getRoll(),
+		pitchRate = pigeon.getAngularVelocityYWorld(),
+		rollRate = pigeon.getAngularVelocityXWorld();
 	
 	public final Trigger isTipping = new Trigger(
 		() -> Math.abs(pitch().getDegrees()) > 25 || Math.abs(roll().getDegrees()) > 25
@@ -22,7 +24,7 @@ public class GyroWrapper {
 	
 	public GyroWrapper() {
 		// automatically calls refresh() on signals
-		StatusSignalRefresher.addSignals(yaw, pitch, roll);
+		StatusSignalRefresher.addSignals(yaw, pitch, roll, pitchRate, rollRate);
 	}
 	
 	public Rotation2d yaw() {
@@ -35,5 +37,13 @@ public class GyroWrapper {
 	
 	public Rotation2d roll() {
 		return Rotation2d.fromDegrees(roll.getValueAsDouble());
+	}
+	
+	public double pitchRateDegPerSec() {
+		return pitchRate.getValueAsDouble();
+	}
+	
+	public double rollRateDegPerSec() {
+		return rollRate.getValueAsDouble();
 	}
 }

@@ -103,6 +103,10 @@ public class SwerveModule implements LogLocal, AutoCloseable {
 		}
 	}
 	
+	public double getRawDrivePositionRad() {
+		return driveMotor.encoder().positionRad();
+	}
+	
 	public void setSteerAngle(Rotation2d angle) {
 		steerMotor.moveToPosition(angle.getRadians());
 	}

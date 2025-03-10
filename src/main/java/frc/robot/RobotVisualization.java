@@ -1,4 +1,4 @@
-package frc.robot.components;
+package frc.robot;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
@@ -24,6 +24,7 @@ import org.ironmaple.simulation.seasonspecific.reefscape2025.ReefscapeCoralOnFly
 import java.util.ArrayList;
 import java.util.List;
 
+import static edu.wpi.first.math.util.Units.degreesToRadians;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
@@ -92,7 +93,7 @@ public class RobotVisualization implements LogLocal {
 		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
 		robotCenterToPivot = new Transform3d(
 			0.374, -OtherConstants.INTAKE_OFFSET_FROM_CENTER.in(Meters), 0.6985 + currentHeight,
-			new Rotation3d(0, coralIntakePivot.angleRads(), 0)
+			new Rotation3d(0, coralIntakePivot.angleRads() - degreesToRadians(10), 0)
 		);
 		log("intakePivotPosition", Pose3d.kZero.plus(robotCenterToPivot));
 		

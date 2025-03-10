@@ -7,11 +7,11 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.RobotBase;
+import lombok.Getter;
 import lombok.Setter;
 import monologue.LogLocal;
 import org.photonvision.PhotonCamera;
@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
@@ -43,29 +43,40 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double Z_ERROR_SCALAR = 100.0;
 	private static final double LINEAR_STD_DEV_BASELINE = 0.08;
 	private static final double ANGULAR_STD_DEV_BASELINE = 50.0;
-	private static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
+	
+	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
+	private static final AprilTagFieldLayout REEF_TAGS_ONLY_LAYOUT =
+		new AprilTagFieldLayout(
+			ALL_TAGS_LAYOUT.getTags()
+				.stream()
+				.filter(it -> (it.ID >= 17 && it.ID <= 22) || (it.ID >= 6 && it.ID <= 11))
+				.toList(),
+			ALL_TAGS_LAYOUT.getFieldLength(),
+			ALL_TAGS_LAYOUT.getFieldWidth()
+		);
+	private static final AprilTagFieldLayout FIELD_LAYOUT = REEF_TAGS_ONLY_LAYOUT;
 	
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
-		new PhotonCamConfig("ABC", 1.0, new Transform3d(
-			Inches.of(6),
-			Inches.of(12),
-			Inches.of(6),
-			new Rotation3d(
-				Degrees.zero(),
-				Degrees.of(-15),
-				Degrees.zero()
-			)
-		)).withSim(ARDUCAM_SIM_PROPERTIES),
-		new PhotonCamConfig("DEF", 1.0, new Transform3d(
-			Inches.of(16),
-			Inches.of(-12),
-			Inches.of(6),
-			new Rotation3d(
-				Degrees.zero(),
-				Degrees.of(-10),
-				Degrees.zero()
-			)
-		)).withSim(ARDUCAM_SIM_PROPERTIES)
+//		new PhotonCamConfig("ABC", 1.0, new Transform3d(
+//			Inches.of(6),
+//			Inches.of(12),
+//			Inches.of(6),
+//			new Rotation3d(
+//				Degrees.zero(),
+//				Degrees.of(-15),
+//				Degrees.zero()
+//			)
+//		)).withSim(ARDUCAM_SIM_PROPERTIES),
+//		new PhotonCamConfig("DEF", 1.0, new Transform3d(
+//			Inches.of(16),
+//			Inches.of(-12),
+//			Inches.of(6),
+//			new Rotation3d(
+//				Degrees.zero(),
+//				Degrees.of(-10),
+//				Degrees.zero()
+//			)
+//		)).withSim(ARDUCAM_SIM_PROPERTIES)
 	);
 	
 	static {
@@ -105,7 +116,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private final Alert connectionAlert = new Alert("", kError);
 	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
 	@Logged private final List<Pose3d> rejectedPoses = new ArrayList<>();
-	private final Set<Integer> fiducialIds = new HashSet<>();
+	@Getter private final Set<Integer> fiducialIds = new HashSet<>();
 	
 	/** Must be called periodically in the robotPeriodic method of the Robot class. */
 	public void periodic() {

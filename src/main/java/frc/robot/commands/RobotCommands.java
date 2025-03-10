@@ -13,6 +13,7 @@ import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
+import static edu.wpi.first.units.Units.Radians;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static monologue.Monologue.GlobalLog;
 
@@ -53,8 +54,10 @@ public class RobotCommands {
 	 */
 	public Command moveTo(Setpoint setpoint) {
 		return Commands.parallel(
-			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint)),
-			elevator.moveToHeightCmd(setpoint.elevatorHeight()),
+			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint.name())),
+			// wait until wrist is out enough before moving elevator
+			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.STOW_LOW.wristTarget().in(Radians))
+				.andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight())),
 			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
 		).withName("move to setpoint");
 	}
@@ -68,7 +71,7 @@ public class RobotCommands {
 			       .andThen(
 					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.01),
 					   coralIntake.outtakeCmd(),
-				       moveTo(Setpoint.STOW_MID)
+				       moveTo(scoringLevel == 0 ? Setpoint.STOW_LOW : Setpoint.STOW_MID)
 			       )
 			       .withName("score sequence(L" + scoringLevel + ")");
 	}
@@ -101,6 +104,11 @@ public class RobotCommands {
 			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, forward, strafe),
 			coralIntake.intakeCmd()
 		).withName("source intake with aim");
+	}
+	
+	public Command sourceIntake() {
+		return Commands.parallel(moveTo(Setpoint.INTAKE), coralIntake.intakeCmd())
+			       .withName("source intake(no aim)");
 	}
 	
 	/** Moves to a setpoint specified by tunable dashboard values. */

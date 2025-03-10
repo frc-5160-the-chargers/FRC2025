@@ -1,7 +1,9 @@
 package frc.robot.components;
 
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 /**
@@ -31,8 +33,9 @@ public class OperatorUi {
 	 * A trigger that returns true when the operator ui allows for the use
 	 * of the manual override controller.
 	 */
+	@Logged
 	public final Trigger isManualOverride =
-		new Trigger(() -> manualOverrideEnabled);
+		new Trigger(() -> manualOverrideEnabled && DriverStation.isTeleop());
 	
 	/**
 	 * A trigger that returns true when the operator ui requests the specified

@@ -12,8 +12,8 @@ public class TriggerUtil {
 	/** "Binds" an alert to a trigger/boolean supplier; pushing it to the dashboard when the condition returns true. */
 	public static void bind(Alert alert, BooleanSupplier condition) {
 		new Trigger(condition)
-			.onTrue(Commands.runOnce(() -> alert.set(true)))
-			.onFalse(Commands.runOnce(() -> alert.set(false)));
+			.onTrue(Commands.runOnce(() -> alert.set(true)).ignoringDisable(true))
+			.onFalse(Commands.runOnce(() -> alert.set(false)).ignoringDisable(true));
 	}
 	
 	/**

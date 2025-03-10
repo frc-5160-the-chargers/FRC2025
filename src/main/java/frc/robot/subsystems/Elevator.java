@@ -38,7 +38,7 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 public class Elevator extends StandardSubsystem {
 	private static final TunableNum KP = new TunableNum("elevator/kP", 0.22);
 	private static final TunableNum KD = new TunableNum("elevator/kD", 0.02);
-	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/testHeight", 0);
+	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/demoHeight", 0);
 	private static final TunableNum DEMO_VOLTAGE = new TunableNum("elevator/demoVoltage", 0);
 	
 	private static final double GEAR_RATIO = 5.0;
@@ -48,8 +48,8 @@ public class Elevator extends StandardSubsystem {
 	
 	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.5);
-	private static final Distance MAX_HEIGHT = Meters.of(1.24);
-	private static final Distance MIN_HEIGHT = Meters.of(0.03);
+	private static final Distance MAX_HEIGHT = Meters.of(1.27);
+	private static final Distance MIN_HEIGHT = Meters.of(0.005);
 	
 	// KV is in volts / (meters/sec)
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO * RADIUS.in(Meters));
@@ -58,7 +58,7 @@ public class Elevator extends StandardSubsystem {
 	private static final ElevatorFeedforward FEEDFORWARD =
 		RobotBase.isSimulation()
 		    ? new ElevatorFeedforward(0, 0, KV)
-			: new ElevatorFeedforward(0.15, 0.48, KV); // confirmed data
+			: new ElevatorFeedforward(0.15, 0.4, KV); // confirmed data
 	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5);

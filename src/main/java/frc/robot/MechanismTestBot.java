@@ -10,15 +10,19 @@ import frc.chargers.utils.InputStream;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
+import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import monologue.LogLocal;
 import monologue.Monologue;
 import org.littletonrobotics.urcl.URCL;
 
+import static frc.chargers.utils.TriggerUtil.doubleClicked;
+import static monologue.Monologue.GlobalLog;
+
 @SuppressWarnings("FieldCanBeLocal")
 @Logged
-public class RandomTesting extends TimedRobot implements LogLocal {
+public class MechanismTestBot extends TimedRobot implements LogLocal {
 	private final Elevator elevator = new Elevator();
 	private final CommandXboxController controller = new CommandXboxController(0);
 	private final InputStream elevatorInput =
@@ -32,7 +36,9 @@ public class RandomTesting extends TimedRobot implements LogLocal {
 			.signedPow(2)
 			.times(0.3);
 	
-	public RandomTesting() {
+	private final CoralIntake intake = new CoralIntake();
+	
+	public MechanismTestBot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
 		StatusSignalRefresher.startPeriodic(this);
 		// logging setup(required)
@@ -44,7 +50,7 @@ public class RandomTesting extends TimedRobot implements LogLocal {
 //			new FileBackend(DataLogManager.getLog()),
 //			new NTEpilogueBackend(NetworkTableInstance.getDefault())
 //		);
-//		GlobalLog.enableCommandLogging();
+		GlobalLog.enableCommandLogging();
 		TunableValues.setTuningMode(true);
 		LaserCanUtil.setup(true);
 		addPeriodic(CommandScheduler.getInstance()::run, 0.02);
@@ -55,6 +61,13 @@ public class RandomTesting extends TimedRobot implements LogLocal {
 		controller.y().whileTrue(pivot.setDemoAngleCmd());
 		controller.leftBumper()
 			.onTrue(pivot.resetAngleToStowCmd());
+		doubleClicked(controller.leftBumper())
+			.onTrue(pivot.resetAngleToZeroCmd());
+		
+		controller.povDown()
+			.whileTrue(intake.intakeCmd());
+		controller.povUp()
+			.whileTrue(intake.outtakeCmd());
 		// kS, kG * cos(theta), kV, kA
 		// voltage -> velocity, accel
 	}

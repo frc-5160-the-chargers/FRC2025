@@ -20,3 +20,8 @@ This is 5160's 2025 robot code.
 ### To-do
 - Get climber + climber pathfinding worked out
 - Github CLI(event deploy, run tests, etc)
+
+### Guide: Automatically regenerating trajectories
+- Open the terminal, then run ```cd C:\Users\Your_Name\AppData\Local\Choreo```.
+- Right click the Autos.chor file(in deploy/choreo), click "Copy path/reference", then "Absolute Path" 
+- Then, run ```.\choreo-cli.exe --chor [path you just copied] --all-trajectory -g``` in the terminal.

@@ -12,7 +12,9 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.chargers.hardware.encoders.ChargerCANcoder;
+import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
+import frc.chargers.hardware.motorcontrol.VoidMotor;
 import frc.chargers.utils.PIDConstants;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveControlsConfig;
@@ -28,7 +30,7 @@ public class SwerveConfigurator {
 	
 	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(80);
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
-	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(6.883);
+	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(5.883);
 	public static final double ODOMETRY_FREQUENCY_HZ = 200;
 	private static final boolean USE_REMOTE_CANCODER = true;
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
@@ -71,6 +73,14 @@ public class SwerveConfigurator {
 					.withStatorCurrentLimit(DRIVE_STATOR_CURRENT_LIMIT)
 					.withStatorCurrentLimitEnable(true)
 			) // sim drive motor config
+		);
+	
+	public static final SwerveMotorConfig DISABLED_MOTOR_CONFIG =
+		new SwerveMotorConfig(
+			corner -> new VoidMotor(),
+			corner -> new VoidMotor(),
+			corner -> new VoidEncoder(),
+			null, null
 		);
 	
 	private static class RealDriveMotor extends ChargerTalonFX {

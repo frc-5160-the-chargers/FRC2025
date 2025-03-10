@@ -17,7 +17,7 @@ public class OtherConstants {
 	public static final Translation2d REEF_SCORE_OFFSET =
 		new Translation2d(Inches.of(-12.5), INTAKE_OFFSET_FROM_CENTER);
 	public static final Translation2d SOURCE_OFFSET =
-		new Translation2d(Meters.of(-0.13), INTAKE_OFFSET_FROM_CENTER);
-	public static final int DRIVER_CONTROLLER_PORT = 0;
-	public static final int MANUAL_CONTROLLER_PORT = 1;
+		new Translation2d(Meters.of(-0.13), INTAKE_OFFSET_FROM_CENTER.plus(Inches.of(6)));
+	public static final int DRIVER_CONTROLLER_PORT = 1;
+	public static final int MANUAL_CONTROLLER_PORT = 0;
 }

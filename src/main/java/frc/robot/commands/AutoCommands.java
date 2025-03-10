@@ -95,8 +95,9 @@ public class AutoCommands {
 				);
 			} else {
 				previousTraj.done().onTrue(
-					Commands.waitUntil(coralIntake.hasCoral.negate())
-						.andThen(Commands.waitSeconds(0.5), intakeTraj.spawnCmd())
+					botCommands.waitUntilReady()
+						.andThen(Commands.waitUntil(coralIntake.hasCoral.negate()), intakeTraj.spawnCmd())
+						.withName("intake traj spawner")
 				);
 			}
 			intakeTraj.active().onTrue(coralIntake.intakeCmd());
@@ -160,7 +161,7 @@ public class AutoCommands {
 		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiLong"),
-			new ScoringStep(4, 7, 0),
+			new ScoringStep(4, 7, 0.5, false),
 			new CombinedStep(intakeStep, new ScoringStep(1, 10, 0.7)),
 			new CombinedStep(intakeStep, new ScoringStep(1, 11, 0.8))
 		);

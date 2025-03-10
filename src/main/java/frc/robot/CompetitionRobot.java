@@ -31,12 +31,10 @@ import frc.chargers.utils.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
-import frc.robot.commands.WheelRadiusCharacterization;
-import frc.robot.commands.WheelRadiusCharacterization.Direction;
 import frc.robot.components.GyroWrapper;
 import frc.robot.components.OperatorUi;
-import frc.robot.components.RobotVisualization;
 import frc.robot.components.vision.AprilTagVision;
+import frc.robot.constants.BuildConstants;
 import frc.robot.constants.Setpoint;
 import frc.robot.constants.TargetPoses;
 import frc.robot.subsystems.Climber;
@@ -51,8 +49,10 @@ import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.urcl.URCL;
 
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static frc.chargers.utils.TriggerUtil.bind;
+import static frc.chargers.utils.TriggerUtil.doubleClicked;
 import static frc.robot.constants.OtherConstants.*;
 import static monologue.Monologue.GlobalLog;
 
@@ -119,7 +119,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final InputStream manualElevatorInput =
 		InputStream.of(manualOverrideController::getLeftY)
 			.deadband(0.1, 1)
-			.times(-0.7)
+			.times(-0.5)
 			.signedPow(2);
 	private final InputStream manualPivotInput =
 		InputStream.of(manualOverrideController::getRightY)
@@ -155,7 +155,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
-		//vision.setSingleTagEstimateConsumer(drivetrain::addVisionData);
 		vision.setSimPoseSupplier(drivetrain::bestPose);
 		DriverStation.silenceJoystickConnectionWarning(true);
 		SmartDashboard.putData(
@@ -234,50 +233,50 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 					.withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
 			);
 		
-		/* Manual override controller bindings */
-		var manualCtrlAllowed = operatorUi.isManualOverride.and(teleop());
-
-		manualCtrlAllowed
+		operatorUi.isManualOverride
 			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
 			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
 		
 		manualOverrideController.povUp()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(coralIntake.outtakeForeverCmd());
 		manualOverrideController.povDown()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(coralIntake.intakeForeverCmd());
 		
 		manualOverrideController.rightBumper()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(
 				botCommands.moveTo(Setpoint.INTAKE)
 					.alongWith(coralIntake.intakeForeverCmd())
 					.withName("Manual source intake")
 			);
 		manualOverrideController.leftBumper()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
 		
 		manualOverrideController.rightTrigger()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(climber.climbUp());
 		manualOverrideController.leftTrigger()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(climber.climbDown());
 		
 		manualOverrideController.a()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
 		manualOverrideController.b()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(2)));
 		manualOverrideController.y()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(3)));
 		manualOverrideController.x()
-			.and(manualCtrlAllowed)
+			.and(operatorUi.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
+		
+		doubleClicked(manualOverrideController.start())
+			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
 	}
 	
 	private void mapDefaultCommands() {
@@ -336,9 +335,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd("Move to L3", () -> botCommands.moveTo(Setpoint.score(3)));
 		testModeChooser.addCmd(
 			"Wheel radius characterization",
-			() -> new WheelRadiusCharacterization(drivetrain, Direction.COUNTER_CLOCKWISE)
+			drivetrain::wheelRadiusCharacterization
 		);
-		testModeChooser.addCmd("Drive FF Characterization", drivetrain::sysIdCmd);
 		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
 		testModeChooser.addCmd("Align", () -> drivetrain.alignCmd(new Pose2d(5,7, Rotation2d.kZero), false));
 		

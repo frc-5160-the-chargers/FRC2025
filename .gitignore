@@ -198,4 +198,4 @@ networktables.json
 
 # kls
 kls_database.db
-/src/main/java/frc/robot/BuildConstants.java
+/src/main/java/frc/robot/constants/BuildConstants.java
