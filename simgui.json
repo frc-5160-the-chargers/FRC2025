@@ -22,6 +22,7 @@
       "/SmartDashboard/VisionSystemSim-main/Sim Field": "Field2d",
       "Robot/Dummy Field": "PIDController",
       "Robot/autoChooser": "String Chooser",
+      "Robot/climber/limitSwitch": "Digital Input",
       "Robot/drivetrain/rotationController": "PIDController",
       "Robot/drivetrain/xPoseController": "PIDController",
       "Robot/drivetrain/yPoseController": "PIDController",

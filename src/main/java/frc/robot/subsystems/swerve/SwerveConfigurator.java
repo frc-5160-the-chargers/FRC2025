@@ -52,7 +52,7 @@ public class SwerveConfigurator {
 	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(3.5, 0.0, 0), // azimuth pid - don't add d to this, it makes things weird
+			new PIDConstants(4.5, 0.0, 0.01), // azimuth pid - don't add d to this, it makes things weird
 			new PIDConstants(2.0, 0, 0), // velocity pid
 			new SimpleMotorFeedforward(0.015, DRIVE_KV), // velocity feedforward
 			new PIDConstants(10.0, 0, 0), // path translation pid
@@ -108,7 +108,7 @@ public class SwerveConfigurator {
 			config.MotorOutput
 				.withNeutralMode(NeutralModeValue.Brake)
 				.withInverted(InvertedValue.CounterClockwise_Positive);
-			if (corner != SwerveCorner.BOTTOM_RIGHT) {
+			if (corner == SwerveCorner.TOP_RIGHT || corner == SwerveCorner.BOTTOM_RIGHT) {
 				config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 			}
 			return config;

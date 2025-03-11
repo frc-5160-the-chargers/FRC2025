@@ -36,8 +36,8 @@ import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 public class Elevator extends StandardSubsystem {
-	private static final TunableNum KP = new TunableNum("elevator/kP", 0.22);
-	private static final TunableNum KD = new TunableNum("elevator/kD", 0.02);
+	private static final TunableNum KP = new TunableNum("elevator/kP", 0.2);
+	private static final TunableNum KD = new TunableNum("elevator/kD", 0.012);
 	private static final TunableNum DEMO_HEIGHT = new TunableNum("elevator/demoHeight", 0);
 	private static final TunableNum DEMO_VOLTAGE = new TunableNum("elevator/demoVoltage", 0);
 	
@@ -49,7 +49,7 @@ public class Elevator extends StandardSubsystem {
 	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.5);
 	private static final Distance MAX_HEIGHT = Meters.of(1.27);
-	private static final Distance MIN_HEIGHT = Meters.of(0.005);
+	private static final Distance MIN_HEIGHT = Meters.of(-0.01);
 	
 	// KV is in volts / (meters/sec)
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO * RADIUS.in(Meters));

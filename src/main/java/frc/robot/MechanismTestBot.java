@@ -59,8 +59,9 @@ public class MechanismTestBot extends TimedRobot implements LogLocal {
 		elevator.setDefaultCommand(elevator.setPowerCmd(elevatorInput));
 		pivot.setDefaultCommand(pivot.setPowerCmd(pivotInput));
 		controller.y().whileTrue(pivot.setDemoAngleCmd());
-		controller.leftBumper()
-			.onTrue(pivot.resetAngleToStowCmd());
+		controller.a().whileTrue(pivot.setDemoVoltageCmd());
+//		controller.leftBumper()
+//			.onTrue(pivot.resetAngleToStowCmd());
 		doubleClicked(controller.leftBumper())
 			.onTrue(pivot.resetAngleToZeroCmd());
 		

@@ -115,7 +115,8 @@ public class RobotCommands {
 	public Command moveToDemoSetpoint() {
 		return Commands.parallel(
 			coralIntakePivot.setDemoAngleCmd(),
-			elevator.moveToDemoHeightCmd()
+			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.STOW_LOW.wristTarget().in(Radians))
+		        .andThen(elevator.moveToDemoHeightCmd())
 		).withName("move to demo setpoint");
 	}
 }

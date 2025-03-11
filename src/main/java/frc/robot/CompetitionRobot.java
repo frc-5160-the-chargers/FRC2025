@@ -1,17 +1,12 @@
 package frc.robot;
 
 import choreo.auto.AutoChooser;
-import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
-import edu.wpi.first.epilogue.logging.EpilogueBackend;
-import edu.wpi.first.epilogue.logging.FileBackend;
-import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -113,17 +108,25 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.negate();
 	private final InputStream rotationOutput =
 		InputStream.of(driverController::getRightX)
-			.deadband(0.1, 1)
+			.deadband(0.25, 1)
 			.times(slowModeOutput)
 			.negate();
 	private final InputStream manualElevatorInput =
 		InputStream.of(manualOverrideController::getLeftY)
 			.deadband(0.1, 1)
-			.times(-0.5)
-			.signedPow(2);
+			.times(-0.5);
 	private final InputStream manualPivotInput =
 		InputStream.of(manualOverrideController::getRightY)
+			.deadband(0.1, 1)
 			.times(-0.3);
+	private final InputStream climbUpInput =
+		InputStream.of(manualOverrideController::getRightTriggerAxis)
+			.deadband(0.1, 1)
+			.times(0.5);
+	private final InputStream climbDownInput =
+		InputStream.of(manualOverrideController::getLeftTriggerAxis)
+			.deadband(0.1, 1)
+			.times(0.5);
 	
 	public CompetitionRobot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -132,16 +135,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		LaserCanUtil.setup(true);
 		// logging setup(required)
 		Epilogue.bind(this);
-		Epilogue.getConfig().backend = EpilogueBackend.multi(
-			new FileBackend(DataLogManager.getLog()),
-			new NTEpilogueBackend(NetworkTableInstance.getDefault())
-		);
 		Monologue.setup(this, Epilogue.getConfig());
+		DataLogManager.start();
 		GlobalLog.enableCommandLogging();
 		logMetadata();
-		DataLogManager.logNetworkTables(false);
 		URCL.start();
-		SignalLogger.start();
 		ExtrasLogger.start(this, null);
 		// enables tuning mode
 		TunableValues.setTuningMode(true);
@@ -224,6 +222,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.whileTrue(drivetrain.driveCmd(() -> 0, () -> -NUDGE_OUTPUT, () -> 0, false));
 		driverController.povRight()
 			.whileTrue(drivetrain.driveCmd(() -> 0, () -> NUDGE_OUTPUT, () -> 0, false));
+		doubleClicked(driverController.touchpad())
+			.onTrue(Commands.runOnce(() -> {
+				var currPose = drivetrain.bestPose();
+				drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), Rotation2d.kZero));
+			}).ignoringDisable(true));
 		
 		// anti-tipping
 		gyroWrapper.isTipping
@@ -231,10 +234,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 				botCommands.moveTo(Setpoint.STOW_LOW)
 					.withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
 			);
-		
-		operatorUi.isManualOverride
-			.whileTrue(elevator.setPowerCmd(manualElevatorInput))
-			.whileTrue(coralIntakePivot.setPowerCmd(manualPivotInput));
 		
 		manualOverrideController.povUp()
 			.and(operatorUi.isManualOverride)
@@ -254,12 +253,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.and(operatorUi.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
 		
-		manualOverrideController.rightTrigger()
-			.and(operatorUi.isManualOverride)
-			.whileTrue(climber.climbUp());
-		manualOverrideController.leftTrigger()
-			.and(operatorUi.isManualOverride)
-			.whileTrue(climber.climbDown());
+		manualOverrideController.rightTrigger().whileTrue(climber.setPowerCmd(climbUpInput));
+		manualOverrideController.leftTrigger().whileTrue(climber.setPowerCmd(climbDownInput));
 		
 		manualOverrideController.a()
 			.and(operatorUi.isManualOverride)
@@ -282,9 +277,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(forwardOutput, strafeOutput, rotationOutput, false)
+			drivetrain.driveCmd(forwardOutput, strafeOutput, rotationOutput, true)
 		);
-		elevator.setDefaultCommand(elevator.idleCmd());
+		elevator.setDefaultCommand(elevator.setPowerCmd(manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
 		coralIntakePivot.setDefaultCommand(coralIntakePivot.setPowerCmd(manualPivotInput));
 		climber.setDefaultCommand(climber.idleCmd());

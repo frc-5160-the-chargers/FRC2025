@@ -4,11 +4,13 @@ import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.MomentOfInertia;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -18,6 +20,7 @@ import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
+import frc.chargers.utils.TunableValues.TunableBool;
 import frc.chargers.utils.TunableValues.TunableNum;
 
 import java.util.Set;
@@ -27,7 +30,7 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
-	private static final Angle STARTING_ANGLE = Degrees.of(-80);
+	private static final Angle STARTING_ANGLE = Degrees.of(-50);
 	private static final Angle NAN_ANGLE = Degrees.of(Double.NaN);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
@@ -35,13 +38,19 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double GEAR_RATIO = 256 / 3.0 * 1.03;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
 	
+	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
+	private static final ArmFeedforward FEEDFORWARD = RobotBase.isSimulation()
+		? new ArmFeedforward(0, 0, KV)
+	    : new ArmFeedforward(0, 0.31, KV);
+	
 	// In rad/sec and rad/sec^2
-	private static final double MAX_VEL = MOTOR_KIND.freeSpeedRadPerSec / GEAR_RATIO;
+	private static final double MAX_VEL = (12 - FEEDFORWARD.getKs()) / KV;
 	private static final double MAX_ACCEL = 20;
 	
-	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 1.2);
+	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.9);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.02);
 	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("coralIntakePivot/demoAngle(deg)", 0);
+	private static final TunableNum DEMO_VOLTAGE = new TunableNum("coralIntakePivot/demoVoltage", 0);
 	
 	private static final SparkBaseConfig MOTOR_CONFIG =
 		new SparkMaxConfig()
@@ -80,12 +89,17 @@ public class CoralIntakePivot extends StandardSubsystem {
 	public Command setAngleCmd(Angle target) {
 		var goalState = new TrapezoidProfile.State(target.in(Radians), 0);
 		return Commands.runOnce(() -> {
-			profileState = new TrapezoidProfile.State(motor.encoder().positionRad(), 0);
+			profileState = new TrapezoidProfile.State(angleRads(), 0);
 			this.target = target;
 		})
 	       .andThen(
 			   this.run(() -> {
+				   double previousVel = profileState.velocity;
 				   profileState = motionProfile.calculate(0.02, profileState, goalState);
+				   double feedforward = FEEDFORWARD.calculateWithVelocities(
+					   angleRads(), previousVel, profileState.velocity
+				   );
+				   log("feedforward", feedforward);
 				   motor.moveToPosition(profileState.position, 0);
 			   })
 	       )
@@ -96,7 +110,12 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	public Command setPowerCmd(InputStream controllerInput) {
 		return this.run(() -> motor.setVoltage(controllerInput.get() * 12))
-			       .withName("set power (pivot)");
+			       .withName("set power(pivot)");
+	}
+	
+	public Command setDemoVoltageCmd() {
+		return this.run(() -> motor.setVoltage(DEMO_VOLTAGE.get()))
+			       .withName("set demo volts(pivot)");
 	}
 	
 	public Command resetAngleToStowCmd() {
