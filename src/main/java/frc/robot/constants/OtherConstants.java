@@ -12,13 +12,11 @@ public class OtherConstants {
 	
 	public static final boolean USE_PATHFINDING = true;
 	public static final double NUDGE_OUTPUT = 0.07;
-	private static final boolean IS_DANIEL_COMPUTER = false;
+	public static final boolean IS_DANIEL_COMPUTER = false;
 	// to the right
 	public static final Distance INTAKE_OFFSET_FROM_CENTER = Inches.of(1.1875);
 	public static final Translation2d REEF_SCORE_OFFSET =
 		new Translation2d(Inches.of(-12.5), INTAKE_OFFSET_FROM_CENTER);
 	public static final Translation2d SOURCE_OFFSET =
 		new Translation2d(Meters.of(-0.13), INTAKE_OFFSET_FROM_CENTER.plus(Inches.of(6)));
-	public static final int DRIVER_CONTROLLER_PORT = IS_DANIEL_COMPUTER ? 1 : 0;
-	public static final int MANUAL_CONTROLLER_PORT = IS_DANIEL_COMPUTER ? 0 : 1;
 }

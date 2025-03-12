@@ -17,16 +17,15 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.chargers.utils.InputStream;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
+import frc.robot.components.controllers.DriverController;
 import frc.robot.components.GyroWrapper;
+import frc.robot.components.controllers.ManualOperatorController;
 import frc.robot.components.OperatorUi;
 import frc.robot.components.vision.AprilTagVision;
 import frc.robot.constants.BuildConstants;
@@ -88,45 +87,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	@NotLogged private final AutoChooser testModeChooser = new AutoChooser();
 	
 	/* Controllers/Driver input */
-	private final CommandPS5Controller driverController = new CommandPS5Controller(DRIVER_CONTROLLER_PORT);
-	private final OperatorUi operatorUi = new OperatorUi();
-	private final CommandXboxController manualOverrideController = new CommandXboxController(MANUAL_CONTROLLER_PORT);
-	
-	private final InputStream slowModeOutput =
-		InputStream.of(driverController::getL2Axis)
-			.deadband(0.1, 1)
-			.map(it -> 1 - it / 2);
-	private final InputStream forwardOutput =
-		InputStream.of(driverController::getLeftY)
-			.deadband(0.1, 1)
-			.times(slowModeOutput)
-			.negate();
-	private final InputStream strafeOutput =
-		InputStream.of(driverController::getLeftX)
-			.deadband(0.1, 1)
-			.times(slowModeOutput)
-			.negate();
-	private final InputStream rotationOutput =
-		InputStream.of(driverController::getRightX)
-			.deadband(0.25, 1)
-			.times(slowModeOutput)
-			.negate();
-	private final InputStream manualElevatorInput =
-		InputStream.of(manualOverrideController::getLeftY)
-			.deadband(0.1, 1)
-			.times(-0.5);
-	private final InputStream manualPivotInput =
-		InputStream.of(manualOverrideController::getRightY)
-			.deadband(0.1, 1)
-			.times(-0.3);
-	private final InputStream climbUpInput =
-		InputStream.of(manualOverrideController::getRightTriggerAxis)
-			.deadband(0.1, 1)
-			.times(0.5);
-	private final InputStream climbDownInput =
-		InputStream.of(manualOverrideController::getLeftTriggerAxis)
-			.deadband(0.1, 1)
-			.times(0.5);
+	private final DriverController driver = new DriverController();
+	private final OperatorUi nodeSelector = new OperatorUi();
+	private final ManualOperatorController operator = new ManualOperatorController();
 	
 	public CompetitionRobot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -172,18 +135,18 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		CommandScheduler.getInstance().run();
 		visualizer.periodic();
 		vision.periodic();
-		operatorUi.periodic();
+		nodeSelector.periodic();
 		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
 	}
 	
 	private void mapTriggers() {
 		bind(
 			new Alert("Driver controller not connected", AlertType.kWarning),
-			() -> !driverController.isConnected()
+			() -> !driver.isConnected()
 		);
 		bind(
 			new Alert("Operator override not connected", AlertType.kWarning),
-			() -> !manualOverrideController.isConnected()
+			() -> !operator.isConnected()
 		);
 		
 		/* Driver controller/Operator UI bindings */
@@ -195,34 +158,32 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 				);
 				var moveAndAimCmd = botCommands.aimAndMoveTo(
 					Setpoint.score(wantedLevel), targetPoses.reefBlue[wantedPathTarget],
-					forwardOutput, strafeOutput
+					driver.forwardOutput, driver.strafeOutput
 				);
-				driverController.cross()
-					.and(operatorUi.targetLevelIs(wantedLevel))
-					.and(operatorUi.pathfindTargetIs(wantedPathTarget))
+				driver.cross()
+					.and(nodeSelector.targetLevelIs(wantedLevel))
+					.and(nodeSelector.pathfindTargetIs(wantedPathTarget))
 					.whileTrue(USE_PATHFINDING ? moveAndPathfindCmd : moveAndAimCmd);
 			}
 		}
 		
-		driverController.square()
-			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, forwardOutput, strafeOutput));
-		driverController.circle()
-			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, forwardOutput, strafeOutput));
+		driver.square()
+			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, driver.forwardOutput, driver.strafeOutput));
+		driver.circle()
+			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, driver.forwardOutput, driver.strafeOutput));
 		
-		driverController.L1()
-			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
-		driverController.R2()
-			.whileTrue(coralIntake.outtakeForeverCmd());
+		driver.L1().whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+		driver.R2().whileTrue(coralIntake.outtakeForeverCmd());
 		
-		driverController.povUp()
+		driver.povUp()
 			.whileTrue(drivetrain.driveCmd(() -> NUDGE_OUTPUT, () -> 0, () -> 0, false));
-		driverController.povDown()
+		driver.povDown()
 			.whileTrue(drivetrain.driveCmd(() -> -NUDGE_OUTPUT, () -> 0, () -> 0, false));
-		driverController.povLeft()
+		driver.povLeft()
 			.whileTrue(drivetrain.driveCmd(() -> 0, () -> -NUDGE_OUTPUT, () -> 0, false));
-		driverController.povRight()
+		driver.povRight()
 			.whileTrue(drivetrain.driveCmd(() -> 0, () -> NUDGE_OUTPUT, () -> 0, false));
-		doubleClicked(driverController.touchpad())
+		doubleClicked(driver.touchpad())
 			.onTrue(Commands.runOnce(() -> {
 				var currPose = drivetrain.bestPose();
 				drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), Rotation2d.kZero));
@@ -235,53 +196,53 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 					.withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
 			);
 		
-		manualOverrideController.povUp()
-			.and(operatorUi.isManualOverride)
+		operator.povUp()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(coralIntake.outtakeForeverCmd());
-		manualOverrideController.povDown()
-			.and(operatorUi.isManualOverride)
+		operator.povDown()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(coralIntake.intakeForeverCmd());
 		
-		manualOverrideController.rightBumper()
-			.and(operatorUi.isManualOverride)
+		operator.rightBumper()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(
 				botCommands.moveTo(Setpoint.INTAKE)
 					.alongWith(coralIntake.intakeForeverCmd())
 					.withName("Manual source intake")
 			);
-		manualOverrideController.leftBumper()
-			.and(operatorUi.isManualOverride)
+		operator.leftBumper()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
 		
-		manualOverrideController.rightTrigger().whileTrue(climber.setPowerCmd(climbUpInput));
-		manualOverrideController.leftTrigger().whileTrue(climber.setPowerCmd(climbDownInput));
+		operator.rightTrigger().whileTrue(climber.setPowerCmd(operator.climbUpInput));
+		operator.leftTrigger().whileTrue(climber.setPowerCmd(operator.climbDownInput));
 		
-		manualOverrideController.a()
-			.and(operatorUi.isManualOverride)
+		operator.a()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
-		manualOverrideController.b()
-			.and(operatorUi.isManualOverride)
+		operator.b()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(2)));
-		manualOverrideController.y()
-			.and(operatorUi.isManualOverride)
+		operator.y()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(3)));
-		manualOverrideController.x()
-			.and(operatorUi.isManualOverride)
+		operator.x()
+			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
 		
-		doubleClicked(manualOverrideController.start())
+		doubleClicked(operator.start())
 			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
-		doubleClicked(manualOverrideController.back())
+		doubleClicked(operator.back())
 			.onTrue(coralIntakePivot.resetAngleToZeroCmd());
 	}
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(forwardOutput, strafeOutput, rotationOutput, true)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
 		);
-		elevator.setDefaultCommand(elevator.setPowerCmd(manualElevatorInput));
+		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
-		coralIntakePivot.setDefaultCommand(coralIntakePivot.setPowerCmd(manualPivotInput));
+		coralIntakePivot.setDefaultCommand(coralIntakePivot.setPowerCmd(operator.manualPivotInput));
 		climber.setDefaultCommand(climber.idleCmd());
 	}
 	

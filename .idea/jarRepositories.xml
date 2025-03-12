@@ -96,5 +96,10 @@
       <option name="name" value="WPI8ef3423d-9532-4665-8339-206dae1d7168_0Release" />
       <option name="url" value="https://storage.googleapis.com/grapple-frc-maven" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="WPI84246d17-a797-4d1e-bd9f-c59cd8d2477c_0Release" />
+      <option name="name" value="WPI84246d17-a797-4d1e-bd9f-c59cd8d2477c_0Release" />
+      <option name="url" value="https://raw.githubusercontent.com/Mechanical-Advantage/URCL/2025.0.1" />
+    </remote-repository>
   </component>
 </project>
