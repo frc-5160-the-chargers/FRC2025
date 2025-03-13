@@ -29,26 +29,27 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
-	private static final Angle STARTING_ANGLE = Degrees.of(-53);
+	private static final Angle STARTING_ANGLE = Degrees.of(-39.5);
 	private static final Angle NAN_ANGLE = Degrees.of(Double.NaN);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
-	private static final Angle TOLERANCE = Degrees.of(2.0);
-	private static final double GEAR_RATIO = 256 / 3.0 * 1.03;
+	private static final Angle DEFAULT_TOLERANCE = Degrees.of(2.0);
+	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final ArmFeedforward FEEDFORWARD = RobotBase.isSimulation()
 		? new ArmFeedforward(0, 0, KV)
-	    : new ArmFeedforward(0, 0.31, KV);
+	    : new ArmFeedforward(0, -0.31, KV);
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FEEDFORWARD.getKs()) / KV;
 	private static final double MAX_ACCEL = 20;
 	
-	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.9);
-	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.02);
-	private static final TunableNum DEMO_ANGLE_DEG = new TunableNum("coralIntakePivot/demoAngle(deg)", 0);
+	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.8);
+	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
+	private static final TunableNum DEMO_TARGET_DEG = new TunableNum("coralIntakePivot/demoTarget(deg)", 0);
+	private static final TunableNum DEMO_START_POS_DEG = new TunableNum("coralIntakePivot/demoStartingPos(deg)", 0);
 	private static final TunableNum DEMO_VOLTAGE = new TunableNum("coralIntakePivot/demoVoltage", 0);
 	
 	private static final SparkBaseConfig MOTOR_CONFIG =
@@ -63,13 +64,17 @@ public class CoralIntakePivot extends StandardSubsystem {
 	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_MAX, MOTOR_CONFIG)
 		                                    .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	@Logged private Angle target = NAN_ANGLE;
-	@Logged public final Trigger atTarget = new Trigger(() -> Math.abs(angleRads() - target.in(Radians)) < TOLERANCE.in(Radians));
+	@Logged public final Trigger atTarget = atTarget(DEFAULT_TOLERANCE);
 
 	public CoralIntakePivot() {
 		waitThenRun(2, () -> motor.encoder().setPositionReading(STARTING_ANGLE));
 		setGearRatioAndPID();
 		KP.onChange(this::setGearRatioAndPID);
 		KD.onChange(this::setGearRatioAndPID);
+	}
+	
+	public Trigger atTarget(Angle tolerance) {
+		return new Trigger(() -> Math.abs(angleRads() - target.in(Radians)) < tolerance.in(Radians));
 	}
 	
 	private void setGearRatioAndPID() {
@@ -87,7 +92,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 	
 	public Command setDemoAngleCmd() {
-		return Commands.defer(() -> setAngleCmd(Degrees.of(DEMO_ANGLE_DEG.get())), Set.of(this));
+		return Commands.defer(() -> setAngleCmd(Degrees.of(DEMO_TARGET_DEG.get())), Set.of(this));
 	}
 
 	public Command setAngleCmd(Angle target) {
@@ -100,11 +105,12 @@ public class CoralIntakePivot extends StandardSubsystem {
 			   this.run(() -> {
 				   double previousVel = profileState.velocity;
 				   profileState = motionProfile.calculate(0.02, profileState, goalState);
+				   log("velIsNegative", previousVel < 0);
 				   double feedforward = FEEDFORWARD.calculateWithVelocities(
 					   angleRads(), previousVel, profileState.velocity
 				   );
 				   log("feedforward", feedforward);
-				   motor.moveToPosition(profileState.position, 0);
+				   motor.moveToPosition(profileState.position, feedforward);
 			   })
 	       )
 	       .until(atTarget)
@@ -122,14 +128,10 @@ public class CoralIntakePivot extends StandardSubsystem {
 			       .withName("set demo volts(pivot)");
 	}
 	
-	public Command resetAngleToStowCmd() {
-		return Commands.runOnce(() -> motor.encoder().setPositionReading(STARTING_ANGLE))
-			       .withName("reset angle to stow");
-	}
-	
-	public Command resetAngleToZeroCmd() {
-		return Commands.runOnce(() -> motor.encoder().setPositionReading(Degrees.zero()))
-			       .withName("reset angle to 0");
+	public Command resetEncoderToDemoAngleCmd() {
+		return Commands.runOnce(() -> motor.encoder().setPositionReading(Degrees.of(DEMO_START_POS_DEG.get())))
+			       .ignoringDisable(true)
+			       .withName("reset pivot to demo angle");
 	}
 	
 	public double angleRads() {
@@ -139,6 +141,5 @@ public class CoralIntakePivot extends StandardSubsystem {
 	@Override
 	public void requestStop() {
 		motor.setVoltage(gravityCompensationV());
-		this.target = NAN_ANGLE;
 	}
 }

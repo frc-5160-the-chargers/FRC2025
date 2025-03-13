@@ -35,7 +35,7 @@ public class ManualOperatorController extends CommandXboxController implements S
 	public final InputStream manualPivotInput =
 		InputStream.of(this::getRightY)
 			.deadband(0.1, 1)
-			.times(-0.3);
+			.times(0.3);
 	public final InputStream climbUpInput =
 		InputStream.of(this::getRightTriggerAxis)
 			.deadband(0.1, 1)

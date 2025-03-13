@@ -1,5 +1,6 @@
 package frc.chargers.hardware.motorcontrol;
 
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
@@ -36,23 +37,27 @@ import static java.lang.Math.PI;
  */
 public class ChargerSpark implements Motor {
 	protected final SparkBase baseApi;
-	protected final RelativeEncoder baseEncoder;
+	protected final RelativeEncoder relativeEncoder;
+	protected final AbsoluteEncoder absoluteEncoder;
 	protected final SparkClosedLoopController pidController;
 	protected SparkBaseConfig initialConfig;
+	protected boolean useAbsoluteEncoder = false;
 	protected final Encoder encoder = new Encoder() {
 		@Override
 		public double positionRad() {
-			return rotationsToRadians(baseEncoder.getPosition());
+			return rotationsToRadians(useAbsoluteEncoder ? absoluteEncoder.getPosition() : relativeEncoder.getPosition());
 		}
 		
 		@Override
 		public double velocityRadPerSec() {
-			return rotationsPerMinuteToRadiansPerSecond(baseEncoder.getVelocity());
+			return rotationsPerMinuteToRadiansPerSecond(
+				useAbsoluteEncoder ? absoluteEncoder.getVelocity() : relativeEncoder.getVelocity()
+			);
 		}
 		
 		@Override
 		public void setPositionReading(Angle angle) {
-			baseEncoder.setPosition(angle.in(Rotations));
+			relativeEncoder.setPosition(angle.in(Rotations));
 		}
 	};
 	
@@ -62,7 +67,8 @@ public class ChargerSpark implements Motor {
 	
 	public ChargerSpark(int id, Model model, @Nullable SparkBaseConfig config) {
 		this.baseApi = model == Model.SPARK_MAX ? new SparkMax(id, MotorType.kBrushless) : new SparkFlex(id, MotorType.kBrushless);
-		this.baseEncoder = baseApi.getEncoder();
+		this.relativeEncoder = baseApi.getEncoder();
+		this.absoluteEncoder = baseApi.getAbsoluteEncoder();
 		this.pidController = baseApi.getClosedLoopController();
 		if (config != null) {
 			this.initialConfig = config;
@@ -80,6 +86,12 @@ public class ChargerSpark implements Motor {
 			dynamics.acceptVolts().accept(MathUtil.clamp(sim.getAppliedOutput() * batteryVoltage, -12, 12));
 			sim.iterate(radiansPerSecondToRotationsPerMinute(dynamics.velocity().getAsDouble()), batteryVoltage, 0.02);
 		});
+		return this;
+	}
+	
+	public ChargerSpark enableAbsoluteEncoder() {
+		if (RobotBase.isSimulation()) return this;
+		this.useAbsoluteEncoder = true;
 		return this;
 	}
 	

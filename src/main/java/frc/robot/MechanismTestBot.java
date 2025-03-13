@@ -63,7 +63,7 @@ public class MechanismTestBot extends TimedRobot implements LogLocal {
 //		controller.leftBumper()
 //			.onTrue(pivot.resetAngleToStowCmd());
 		doubleClicked(controller.leftBumper())
-			.onTrue(pivot.resetAngleToZeroCmd());
+			.onTrue(pivot.resetEncoderToDemoAngleCmd());
 		
 		controller.povDown()
 			.whileTrue(intake.intakeCmd());

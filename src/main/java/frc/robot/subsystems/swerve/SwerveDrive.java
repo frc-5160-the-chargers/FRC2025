@@ -427,6 +427,7 @@ public class SwerveDrive extends StandardSubsystem {
 			double driveVolts = DEMO_DRIVE_VOLTS.get();
 			for (var mod: swerveModules) {
 				mod.setDriveVoltage(driveVolts);
+				mod.setSteerAngle(Rotation2d.kZero);
 			}
 		}).withName("RunDriveMotors");
 	}

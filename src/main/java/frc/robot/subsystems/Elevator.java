@@ -57,7 +57,7 @@ public class Elevator extends StandardSubsystem {
 	private static final ElevatorFeedforward FEEDFORWARD =
 		RobotBase.isSimulation()
 		    ? new ElevatorFeedforward(0, 0, KV)
-			: new ElevatorFeedforward(0.15, 0.4, KV); // confirmed data
+			: new ElevatorFeedforward(0.15, 0.37, KV); // confirmed data
 	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5);

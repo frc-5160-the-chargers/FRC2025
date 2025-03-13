@@ -13,6 +13,9 @@ import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
+import java.util.function.BooleanSupplier;
+
+import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Radians;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static frc.robot.constants.OtherConstants.SAFE_WRIST_ANGLE;
@@ -54,12 +57,15 @@ public class RobotCommands {
 	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
 	 */
 	public Command moveTo(Setpoint setpoint) {
+		BooleanSupplier elevatorMoveCond =
+			setpoint.isParallel()
+				? () -> coralIntakePivot.angleRads() >= SAFE_WRIST_ANGLE.in(Radians)
+				: coralIntakePivot.atTarget(Degrees.of(10));
 		return Commands.parallel(
 			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint.name())),
+			coralIntakePivot.setAngleCmd(setpoint.wristTarget()),
 			// wait until wrist is out enough before moving elevator
-			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= SAFE_WRIST_ANGLE.in(Radians))
-				.andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight())),
-			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
+			Commands.waitUntil(elevatorMoveCond).andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight()))
 		).withName("move to setpoint");
 	}
 	

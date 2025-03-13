@@ -11,6 +11,7 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.MomentOfInertia;
+import edu.wpi.first.wpilibj.RobotBase;
 import frc.chargers.hardware.encoders.ChargerCANcoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
@@ -47,16 +48,16 @@ public class SwerveConfigurator {
 			Inches.of(3.5) // width of bumpers
 		);
 	
-	private static final double DRIVE_KV =
-		1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio);
-	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(4.5, 0.0, 0.01), // azimuth pid - don't add d to this, it makes things weird
+			new PIDConstants(13, 0.0, 0.02), // azimuth pid - don't add d to this, it makes things weird
 			new PIDConstants(2.0, 0, 0), // velocity pid
-			new SimpleMotorFeedforward(0.015, DRIVE_KV), // velocity feedforward
-			new PIDConstants(10.0, 0, 0), // path translation pid
-			new PIDConstants(10.0, 0, 0), // path rotation pid,
+			new SimpleMotorFeedforward( // velocity feedforward
+				RobotBase.isSimulation() ? 0.015 : 0.17,
+				1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio)
+			),
+			new PIDConstants(0.1, 0, 0), // path translation pid
+			new PIDConstants(0.1, 0, 0), // path rotation pid,
 			0.0 // kT
 		);
 	

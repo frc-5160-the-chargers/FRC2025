@@ -136,10 +136,12 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	public void robotPeriodic() {
 		// Tracer.trace(...) runs the method while recording loop times
 		Tracer.trace("cmd scheduler", CommandScheduler.getInstance()::run);
-		Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
 		Tracer.trace("mech visualizer", visualizer::periodic);
 		Tracer.trace("vision", vision::periodic);
 		Tracer.trace("node selector", nodeSelector::periodic);
+		if (RobotBase.isSimulation()) {
+			Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
+		}
 	}
 	
 	private void mapTriggers() {
@@ -237,8 +239,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		doubleClicked(operator.start())
 			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
-		doubleClicked(operator.back())
-			.onTrue(coralIntakePivot.resetAngleToZeroCmd());
+		operator.back()
+			.whileTrue(drivetrain.runDriveMotors());
 	}
 	
 	private void mapDefaultCommands() {
@@ -278,8 +280,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private void mapTestCommands() {
 		testModeChooser.addCmd("Simple Path", autoCommands::simplePath);
 		testModeChooser.addCmd("Simple Path w/ rotate", autoCommands::simplePathWithRotate);
-		
-		
 		
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));
