@@ -16,6 +16,7 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
+import frc.chargers.utils.Tracer;
 import org.jetbrains.annotations.Nullable;
 
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot0;
@@ -124,11 +125,13 @@ public class ChargerSpark implements Motor {
 	
 	@Override
 	public void setCoastMode(boolean enabled) {
+		Tracer.startTrace("set coast mode(spark)");
 		baseApi.configure(
 			initialConfig.idleMode(enabled ? SparkBaseConfig.IdleMode.kCoast : SparkBaseConfig.IdleMode.kBrake),
 			kNoResetSafeParameters,
 			kPersistParameters
 		);
+		Tracer.endTrace();
 	}
 	
 	@Override

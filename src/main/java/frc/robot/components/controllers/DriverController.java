@@ -2,7 +2,7 @@ package frc.robot.components.controllers;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
-import frc.chargers.utils.InputStream;
+import frc.chargers.utils.data.InputStream;
 
 import static frc.robot.constants.OtherConstants.IS_DANIEL_COMPUTER;
 

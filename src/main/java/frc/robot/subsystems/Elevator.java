@@ -21,9 +21,9 @@ import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
-import frc.chargers.utils.InputStream;
-import frc.chargers.utils.PIDConstants;
-import frc.chargers.utils.TunableValues.TunableNum;
+import frc.chargers.utils.data.InputStream;
+import frc.chargers.utils.data.PIDConstants;
+import frc.chargers.utils.data.TunableValues.TunableNum;
 
 import java.util.Set;
 
@@ -31,7 +31,6 @@ import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
@@ -112,15 +111,6 @@ public class Elevator extends StandardSubsystem {
 		
 		followerMotor = new SparkMax(FOLLOWER_MOTOR_ID, kBrushless);
 		tryUntilOk(followerMotor, () -> followerMotor.configure(FOLLOWER_CONFIG, kResetSafeParameters, kPersistParameters));
-		disabled()
-			.onTrue(Commands.runOnce(() -> {
-				leaderMotor.setCoastMode(true);
-				followerMotor.configure(FOLLOWER_CONFIG.idleMode(IdleMode.kCoast), kResetSafeParameters, kPersistParameters);
-			}))
-			.onFalse(Commands.runOnce(() -> {
-				leaderMotor.setCoastMode(false);
-				followerMotor.configure(FOLLOWER_CONFIG.idleMode(IdleMode.kBrake), kResetSafeParameters, kPersistParameters);
-			}));
 		
 		movingUp = new Trigger(() -> leaderMotor.encoder().velocityRadPerSec() > 0.1);
 		atLowPosition = new Trigger(() -> heightMeters() < COG_LOW_BOUNDARY.in(Meters));

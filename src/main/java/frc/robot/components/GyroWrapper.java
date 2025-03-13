@@ -6,7 +6,7 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.chargers.utils.StatusSignalRefresher;
+import frc.chargers.utils.data.StatusSignalRefresher;
 
 @Logged
 public class GyroWrapper {

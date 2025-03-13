@@ -13,16 +13,14 @@ import static java.util.Map.entry;
 public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) {
 	private static final Map<Integer, Setpoint> LEVEL_TO_SETPOINT_MAP = Map.ofEntries(
 		entry(1, new Setpoint(Meters.zero(), Degrees.zero(), "L1")),
-		entry(2, new Setpoint(Meters.of(0.08), Degrees.of(10), "L2")),
-		entry(3, new Setpoint(Meters.of(0.48), Degrees.of(10), "L3")),
+		entry(2, new Setpoint(Meters.of(0.13), Degrees.of(10), "L2")),
+		entry(3, new Setpoint(Meters.of(0.53), Degrees.of(10), "L3")),
 		entry(4, new Setpoint(Meters.of(1.27), Degrees.of(20), "L4")) // highest possible elevator setpoint
 	);
 	
 	public static final Setpoint STOW_LOW = new Setpoint(Meters.zero(), Degrees.of(-30), "stow low");
-	public static final Setpoint STOW_MID = new Setpoint(Meters.of(0.14), Degrees.of(-30), "stow mid");
-	public static final Setpoint INTAKE = new Setpoint(Meters.of(0.14), Degrees.of(-35), "intake");
-	public static final Setpoint ALGAE_PREP = new Setpoint(Meters.of(1), Degrees.of(-10), "algae prep");
-	public static final Setpoint ALGAE_PUSH = new Setpoint(Meters.of(1), Degrees.of(-20), "algae push");
+	public static final Setpoint STOW_MID = new Setpoint(Meters.of(0.2), Degrees.of(-30), "stow mid");
+	public static final Setpoint INTAKE = new Setpoint(Meters.of(0.2), Degrees.of(-35), "intake");
 	
 	public static final Setpoint ALGAE_PREP_L2 = new Setpoint(Meters.of(0.5), Degrees.of(15), "algae prep L2");
 	public static final Setpoint ALGAE_PREP_L3 = new Setpoint(Meters.of(0.88), Degrees.of(15), "algae prep L3");

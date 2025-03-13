@@ -15,7 +15,7 @@ import frc.chargers.hardware.encoders.ChargerCANcoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.VoidMotor;
-import frc.chargers.utils.PIDConstants;
+import frc.chargers.utils.data.PIDConstants;
 import frc.robot.subsystems.swerve.SwerveDrive.ModuleType;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveControlsConfig;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveCorner;

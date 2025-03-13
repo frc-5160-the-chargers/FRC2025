@@ -1,4 +1,4 @@
-package frc.chargers.utils;
+package frc.chargers.utils.data;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;

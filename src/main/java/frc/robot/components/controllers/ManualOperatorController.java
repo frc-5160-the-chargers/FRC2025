@@ -6,7 +6,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.chargers.utils.InputStream;
+import frc.chargers.utils.data.InputStream;
 
 import static frc.robot.constants.OtherConstants.IS_DANIEL_COMPUTER;
 

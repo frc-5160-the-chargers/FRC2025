@@ -16,7 +16,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
-import frc.chargers.utils.TunableValues.TunableNum;
+import frc.chargers.utils.data.TunableValues.TunableNum;
 import lombok.Getter;
 
 import java.util.HashMap;
@@ -28,7 +28,7 @@ import static monologue.Monologue.GlobalLog;
 /**
  * An implementation of 6328's trig-based pose estimation algorithm.
  * This algorithm provides a significant decrease in estimation uncertainty,
- * at the cost of a slight increase in innacuracy(as well as focusing only on 1 tag at a time).
+ * at the cost of a slight increase in inaccuracy(as well as focusing only on 1 tag at a time).
  * TODO: This is not working yet...
  */
 public class SingleTagPoseEstimator {

@@ -11,9 +11,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.chargers.utils.InputStream;
-import frc.chargers.utils.StatusSignalRefresher;
-import frc.chargers.utils.TunableValues;
+import frc.chargers.utils.Tracer;
+import frc.chargers.utils.data.InputStream;
+import frc.chargers.utils.data.StatusSignalRefresher;
+import frc.chargers.utils.data.TunableValues;
 import frc.robot.components.controllers.DriverController;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
@@ -60,7 +61,7 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 	public void robotPeriodic() {
 		// All of this code is required
 		var startTime = System.nanoTime();
-		CommandScheduler.getInstance().run();
+		Tracer.trace("CmdScheduler", CommandScheduler.getInstance()::run);
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().simulationPeriodic();
 			log("simulatedCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));

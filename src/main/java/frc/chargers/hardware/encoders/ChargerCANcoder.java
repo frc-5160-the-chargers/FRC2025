@@ -7,7 +7,7 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
-import frc.chargers.utils.StatusSignalRefresher;
+import frc.chargers.utils.data.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;

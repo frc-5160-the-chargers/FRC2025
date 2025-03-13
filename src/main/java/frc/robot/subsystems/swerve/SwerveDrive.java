@@ -37,10 +37,11 @@ import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.utils.AllianceUtil;
-import frc.chargers.utils.InputStream;
-import frc.chargers.utils.PIDConstants;
+import frc.chargers.utils.Tracer;
+import frc.chargers.utils.data.InputStream;
+import frc.chargers.utils.data.PIDConstants;
 import frc.chargers.utils.RepulsorFieldPlanner;
-import frc.chargers.utils.TunableValues.TunableNum;
+import frc.chargers.utils.data.TunableValues.TunableNum;
 import frc.robot.components.vision.GlobalPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimator;
@@ -65,7 +66,6 @@ import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.math.util.Units.metersToInches;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.DriverStation.Alliance;
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.disabled;
 
 /**
  * A drivetrain with 4 drive motors and 4 steer motors.
@@ -151,7 +151,7 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveControlsConfig controlsConfig;
 	private final ModuleType moduleType;
 	private final SwerveDrivePoseEstimator poseEstimator;
-	private final SingleTagPoseEstimator singleTagPoseEstimator;
+	private final SingleTagPoseEstimator singleTagPoseEstimator; // isn't working yet -- don't use
 	private final SwerveDriveSimulation mapleSim;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
@@ -334,18 +334,6 @@ public class SwerveDrive extends StandardSubsystem {
 		this.topRightModule = this.swerveModules[1];
 		this.bottomLeftModule = this.swerveModules[2];
 		this.bottomRightModule = this.swerveModules[3];
-		
-		disabled()
-			.onTrue(Commands.runOnce(() -> {
-				for (var module: swerveModules) {
-					module.setCoast(true);
-				}
-			}).ignoringDisable(true))
-			.onFalse(Commands.runOnce(() -> {
-				for (var module: swerveModules) {
-					module.setCoast(false);
-				}
-			}).ignoringDisable(true));
 	}
 
 	private boolean isRedAlliance() {
@@ -637,6 +625,7 @@ public class SwerveDrive extends StandardSubsystem {
 		double maxVelocityMps = hardwareSpecs.maxVelocity.in(MetersPerSecond);
 		
 		return this.run(() -> {
+			Tracer.startTrace("repulsor pathfinding");
 			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			repulsor.setGoal(target);
 			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
@@ -656,6 +645,7 @@ public class SwerveDrive extends StandardSubsystem {
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 			}
+			Tracer.endTrace();
 		})
 	       .until(() -> repulsor.atGoal(0.02))
 	       .andThen(super.stopCmd())
@@ -701,7 +691,6 @@ public class SwerveDrive extends StandardSubsystem {
 		Rotation2d latestHeading = gyroYawSupplier.get();
 		refreshData();
 		poseEstimator.update(latestHeading, measuredModulePositions);
-		singleTagPoseEstimator.update(latestHeading, measuredModulePositions);
 		// If robot is rotating too fast, ignore vision observations.
 		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;
@@ -729,7 +718,6 @@ public class SwerveDrive extends StandardSubsystem {
 	public void close() {
 		for (var mod: swerveModules) { mod.close(); }
 	}
-	
 	
 	/** Measures the robot's wheel radius by spinning in a circle. */
 	public Command wheelRadiusCharacterization() {

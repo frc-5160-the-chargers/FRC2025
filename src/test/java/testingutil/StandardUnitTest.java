@@ -5,7 +5,7 @@ import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.chargers.utils.StatusSignalRefresher;
+import frc.chargers.utils.data.StatusSignalRefresher;
 import org.ironmaple.simulation.SimulatedArena;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;

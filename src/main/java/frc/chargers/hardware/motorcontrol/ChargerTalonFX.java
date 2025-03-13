@@ -18,7 +18,8 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
-import frc.chargers.utils.StatusSignalRefresher;
+import frc.chargers.utils.Tracer;
+import frc.chargers.utils.data.StatusSignalRefresher;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
@@ -174,7 +175,9 @@ public class ChargerTalonFX implements Motor {
 	
 	@Override
 	public void setCoastMode(boolean enabled) {
+		Tracer.startTrace("set coast mode(talon fx)");
 		baseApi.setNeutralMode(enabled ? NeutralModeValue.Coast : NeutralModeValue.Brake);
+		Tracer.endTrace();
 	}
 	
 	@Override

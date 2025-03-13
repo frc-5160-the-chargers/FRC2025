@@ -9,8 +9,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
-import frc.chargers.utils.InputStream;
-import frc.chargers.utils.TunableValues.TunableNum;
+import frc.chargers.utils.data.InputStream;
+import frc.chargers.utils.data.TunableValues.TunableNum;
 
 import static edu.wpi.first.math.util.Units.degreesToRadians;
 import static edu.wpi.first.units.Units.*;

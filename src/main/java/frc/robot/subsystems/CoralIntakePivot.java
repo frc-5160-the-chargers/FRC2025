@@ -18,9 +18,9 @@ import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
-import frc.chargers.utils.InputStream;
-import frc.chargers.utils.PIDConstants;
-import frc.chargers.utils.TunableValues.TunableNum;
+import frc.chargers.utils.data.InputStream;
+import frc.chargers.utils.data.PIDConstants;
+import frc.chargers.utils.data.TunableValues.TunableNum;
 
 import java.util.Set;
 
@@ -29,7 +29,7 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
-	private static final Angle STARTING_ANGLE = Degrees.of(-50);
+	private static final Angle STARTING_ANGLE = Degrees.of(-53);
 	private static final Angle NAN_ANGLE = Degrees.of(Double.NaN);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;

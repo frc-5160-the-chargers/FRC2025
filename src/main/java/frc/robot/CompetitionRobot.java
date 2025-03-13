@@ -18,8 +18,9 @@ import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.utils.LaserCanUtil;
-import frc.chargers.utils.StatusSignalRefresher;
-import frc.chargers.utils.TunableValues;
+import frc.chargers.utils.Tracer;
+import frc.chargers.utils.data.StatusSignalRefresher;
+import frc.chargers.utils.data.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
@@ -50,6 +51,10 @@ import static frc.chargers.utils.TriggerUtil.doubleClicked;
 import static frc.robot.constants.OtherConstants.*;
 import static monologue.Monologue.GlobalLog;
 
+/*
+Reminder: There is a rio 2 only GC config on lines 39-44 of build.gradle.
+Comment it out if we are running a rio 1.
+ */
 @Logged
 public class CompetitionRobot extends TimedRobot implements LogLocal {
 	/* Subsystems/Components */
@@ -70,9 +75,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	/* Generic constants/utility classes */
 	private final RobotVisualization visualizer =
 		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
-	private final SwerveSetpointGenerator setpointGen = drivetrain.createSetpointGenerator(
-		SwerveConfigurator.BODY_MOI, SwerveConfigurator.DRIVE_CURRENT_LIMIT
-	);
+	private final SwerveSetpointGenerator setpointGen =
+		drivetrain.createSetpointGenerator(SwerveConfigurator.BODY_MOI, SwerveConfigurator.DRIVE_CURRENT_LIMIT);
 	private final TargetPoses targetPoses =
 		new TargetPoses(REEF_SCORE_OFFSET, SOURCE_OFFSET, SwerveConfigurator.HARDWARE_SPECS);
 	
@@ -130,13 +134,12 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	@Override
 	public void robotPeriodic() {
-		// All of this code is required
-		var startTime = System.nanoTime();
-		CommandScheduler.getInstance().run();
-		visualizer.periodic();
-		vision.periodic();
-		nodeSelector.periodic();
-		log("loopRuntime", (System.nanoTime() - startTime) / 1e6);
+		// Tracer.trace(...) runs the method while recording loop times
+		Tracer.trace("cmd scheduler", CommandScheduler.getInstance()::run);
+		Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
+		Tracer.trace("mech visualizer", visualizer::periodic);
+		Tracer.trace("vision", vision::periodic);
+		Tracer.trace("node selector", nodeSelector::periodic);
 	}
 	
 	private void mapTriggers() {
@@ -275,6 +278,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private void mapTestCommands() {
 		testModeChooser.addCmd("Simple Path", autoCommands::simplePath);
 		testModeChooser.addCmd("Simple Path w/ rotate", autoCommands::simplePathWithRotate);
+		
+		
 		
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));

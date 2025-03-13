@@ -2,7 +2,7 @@ package frc.chargers.hardware.motorcontrol;
 
 import edu.wpi.first.epilogue.Logged;
 import frc.chargers.hardware.encoders.Encoder;
-import frc.chargers.utils.PIDConstants;
+import frc.chargers.utils.data.PIDConstants;
 import lombok.With;
 
 /**

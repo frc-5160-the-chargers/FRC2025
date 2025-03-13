@@ -1,7 +1,8 @@
-package frc.chargers.utils;
+package frc.chargers.utils.data;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import edu.wpi.first.wpilibj.TimedRobot;
+import frc.chargers.utils.Tracer;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,9 +34,11 @@ public class StatusSignalRefresher {
 	 * Alternatively, use startPeriodic(this) in your Robot class instead.
 	 */
 	public static void periodic() {
+		Tracer.startTrace("CAN signal refresh");
 		if (statusSignals.isEmpty()) return;
 		var latestStatus = BaseStatusSignal.refreshAll(statusSignalsAsArray);
 		GlobalLog.log("refreshStatus", latestStatus.toString());
+		Tracer.endTrace();
 	}
 	
 	/** Refreshes the specified status signals automatically, at a rate of 0.02 seconds. */

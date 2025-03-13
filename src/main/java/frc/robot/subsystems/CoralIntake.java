@@ -16,7 +16,7 @@ import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
-import frc.chargers.utils.InputStream;
+import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.LaserCanUtil;
 
 import static edu.wpi.first.units.Units.KilogramSquareMeters;

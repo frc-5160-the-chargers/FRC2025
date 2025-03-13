@@ -1,4 +1,4 @@
-package frc.chargers.utils;
+package frc.chargers.utils.data;
 
 import edu.wpi.first.math.controller.PIDController;
 import lombok.AllArgsConstructor;

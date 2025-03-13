@@ -98,7 +98,6 @@ public class RobotVisualization implements LogLocal {
 		log("intakePivotPosition", Pose3d.kZero.plus(robotCenterToPivot));
 		
 		if (RobotBase.isSimulation()) {
-			SimulatedArena.getInstance().simulationPeriodic();
 			log("fieldCoralPositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Coral"));
 			log("fieldAlgaePositions", SimulatedArena.getInstance().getGamePiecesArrayByType("Algae"));
 		}
