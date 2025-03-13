@@ -5,7 +5,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.utils.AllianceUtil;
-import frc.chargers.utils.InputStream;
+import frc.robot.components.controllers.DriverController;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 import static edu.wpi.first.units.Units.Radians;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
+import static frc.robot.constants.OtherConstants.SAFE_WRIST_ANGLE;
 import static monologue.Monologue.GlobalLog;
 
 /**
@@ -56,7 +57,7 @@ public class RobotCommands {
 		return Commands.parallel(
 			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint.name())),
 			// wait until wrist is out enough before moving elevator
-			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.STOW_LOW.wristTarget().in(Radians))
+			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= SAFE_WRIST_ANGLE.in(Radians))
 				.andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight())),
 			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
 		).withName("move to setpoint");
@@ -87,21 +88,27 @@ public class RobotCommands {
 		).withName("move to setpoint(and pathfind)");
 	}
 	
-	public Command aimAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose, InputStream forward, InputStream strafe) {
+	public Command aimAndMoveTo(
+		Setpoint setpoint,
+		Pose2d blueAlliancePose,
+		DriverController controller,
+		double maxRotationSpeed
+	) {
 		return Commands.parallel(
 			moveTo(setpoint),
 			drivetrain.driveWithAimCmd(
-				forward, strafe,
+				controller.forwardOutput, controller.strafeOutput,
 				AllianceUtil.flipIfRed(blueAlliancePose.getRotation()).getMeasure(),
+				maxRotationSpeed,
 				true
 			)
 		).withName("move to setpoint(and aim)");
 	}
 	
 	/** Runs the intake and moves the elevator and pivot to the intake position. */
-	public Command aimAndSourceIntake(Pose2d sourcePoseBlue, InputStream forward, InputStream strafe) {
+	public Command aimAndSourceIntake(Pose2d sourcePoseBlue, DriverController controller) {
 		return Commands.parallel(
-			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, forward, strafe),
+			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, controller, 0.2),
 			coralIntake.intakeCmd()
 		).withName("source intake with aim");
 	}

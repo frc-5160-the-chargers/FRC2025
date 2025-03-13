@@ -669,6 +669,7 @@ public class SwerveDrive extends StandardSubsystem {
 		InputStream forwardOutput,
 		InputStream strafeOutput,
 		Angle targetHeading,
+		double maxRotationSpeed,
 		boolean fieldRelative
 	) {
 		return driveCmd(
@@ -678,6 +679,7 @@ public class SwerveDrive extends StandardSubsystem {
 				double output =
 					rotationController.calculate(currentHeading, targetHeading.in(Radians))
 						/ hardwareSpecs.maxVelocity.in(MetersPerSecond);
+				output = Math.max(output, maxRotationSpeed);
 				log("targetHeading", targetHeading);
 				log("aimingSpeed", output);
 				return output;

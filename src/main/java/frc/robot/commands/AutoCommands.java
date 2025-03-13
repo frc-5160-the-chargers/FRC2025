@@ -184,11 +184,14 @@ public class AutoCommands {
 		return genericAuto(routine, null, new ScoringStep(4, 7, 0.6));
 	}
 	
-	public Command pathTest() {
-		return autoFactory.resetOdometry("SimplePath").andThen(
-			Commands.runOnce(() -> System.out.println("SKDJFLJKLJSLKDJFKLSJDKFJKSDLFKLSDJFKLSDJ")),
-			autoFactory.trajectoryCmd("SimplePath")
-		).withName("pathTest");
+	public Command simplePath() {
+		return autoFactory.resetOdometry("SimplePath")
+			       .andThen(autoFactory.trajectoryCmd("SimplePath"));
+	}
+	
+	public Command simplePathWithRotate() {
+		return autoFactory.resetOdometry("SimplePathWithRotate")
+			       .andThen(autoFactory.trajectoryCmd("SimplePathWithRotate"));
 	}
 	
 	public Command resetOdometryTest() {

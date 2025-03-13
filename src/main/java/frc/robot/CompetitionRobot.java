@@ -157,8 +157,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 					targetPoses.reefBlue[wantedPathTarget]
 				);
 				var moveAndAimCmd = botCommands.aimAndMoveTo(
-					Setpoint.score(wantedLevel), targetPoses.reefBlue[wantedPathTarget],
-					driver.forwardOutput, driver.strafeOutput
+					Setpoint.score(wantedLevel),
+					targetPoses.reefBlue[wantedPathTarget],
+					driver,
+					1.0
 				);
 				driver.cross()
 					.and(nodeSelector.targetLevelIs(wantedLevel))
@@ -168,9 +170,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		}
 		
 		driver.square()
-			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, driver.forwardOutput, driver.strafeOutput));
+			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, driver));
 		driver.circle()
-			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, driver.forwardOutput, driver.strafeOutput));
+			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, driver));
 		
 		driver.L1().whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
 		driver.R2().whileTrue(coralIntake.outtakeForeverCmd());
@@ -262,7 +264,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		autoChooser.addCmd("L4 L4 L1 Right", autoCommands::l4L4L1South);
 		autoChooser.addCmd("One Piece L4", autoCommands::onePieceL4);
 		autoChooser.addCmd("(TEST ONLY) figure eight", autoCommands::figureEight);
-		autoChooser.addCmd("(TEST ONLY) simple path", autoCommands::pathTest);
 		autoChooser.addCmd("(TEST ONLY) multi piece", autoCommands::multiPieceTest);
 		
 		SmartDashboard.putData("AutoChooser", autoChooser);
@@ -272,6 +273,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	}
 	
 	private void mapTestCommands() {
+		testModeChooser.addCmd("Simple Path", autoCommands::simplePath);
+		testModeChooser.addCmd("Simple Path w/ rotate", autoCommands::simplePathWithRotate);
+		
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));
 		testModeChooser.addCmd(

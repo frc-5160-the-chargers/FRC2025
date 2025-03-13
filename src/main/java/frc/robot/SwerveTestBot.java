@@ -3,7 +3,6 @@ package frc.robot;
 import choreo.auto.AutoFactory;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -12,10 +11,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.StatusSignalRefresher;
 import frc.chargers.utils.TunableValues;
+import frc.robot.components.controllers.DriverController;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import monologue.LogLocal;
@@ -32,7 +31,7 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 		SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
 		Rotation2d::new
 	);
-	@NotLogged private final CommandXboxController driverController = new CommandXboxController(0);
+	private final DriverController driver = new DriverController();
 	private final AutoFactory autoFactory = drivetrain.createAutoFactory();
 	
 	public SwerveTestBot() {
@@ -78,33 +77,33 @@ public class SwerveTestBot extends TimedRobot implements LogLocal {
 	}
 	
 	private void mapTriggers() {
-		driverController.a()
+		driver.triangle()
 			.whileTrue(drivetrain.runDriveMotors());
-		driverController.b()
+		driver.square()
 			.whileTrue(drivetrain.runTurnMotors());
-		driverController.x()
+		driver.circle()
 			.whileTrue(drivetrain.setSteerAngles(
 				Rotation2d.fromDegrees(-45),
 				Rotation2d.fromDegrees(45),
 				Rotation2d.fromDegrees(45),
 				Rotation2d.fromDegrees(-45)
 			));
-		driverController.y()
+		driver.cross()
 			.whileTrue(drivetrain.setSteerAngles(Rotation2d.kZero));
 	}
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
 			drivetrain.driveCmd(
-				InputStream.of(driverController::getLeftY)
+				InputStream.of(driver::getLeftY)
 					.deadband(0.1, 1)
 					.times(-0.5)
 					.log("driverController/xOutput"),
-				InputStream.of(driverController::getLeftX)
+				InputStream.of(driver::getLeftX)
 					.deadband(0.1, 1)
 					.times(-0.5)
 					.log("driverController/yOutput"),
-				InputStream.of(driverController::getRightX)
+				InputStream.of(driver::getRightX)
 					.deadband(0.1, 1)
 					.times(-0.5)
 					.log("driverController/rotationOutput"),

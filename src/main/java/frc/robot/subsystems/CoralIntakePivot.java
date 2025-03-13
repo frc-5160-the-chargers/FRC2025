@@ -20,7 +20,6 @@ import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.utils.InputStream;
 import frc.chargers.utils.PIDConstants;
-import frc.chargers.utils.TunableValues.TunableBool;
 import frc.chargers.utils.TunableValues.TunableNum;
 
 import java.util.Set;
@@ -82,6 +81,11 @@ public class CoralIntakePivot extends StandardSubsystem {
 		);
 	}
 	
+	@Logged
+	public double gravityCompensationV() {
+		return FEEDFORWARD.getKg() * Math.cos(angleRads());
+	}
+	
 	public Command setDemoAngleCmd() {
 		return Commands.defer(() -> setAngleCmd(Degrees.of(DEMO_ANGLE_DEG.get())), Set.of(this));
 	}
@@ -109,7 +113,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 	
 	public Command setPowerCmd(InputStream controllerInput) {
-		return this.run(() -> motor.setVoltage(controllerInput.get() * 12))
+		return this.run(() -> motor.setVoltage(controllerInput.get() * 12 + gravityCompensationV()))
 			       .withName("set power(pivot)");
 	}
 	
@@ -134,7 +138,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	@Override
 	public void requestStop() {
-		motor.setVoltage(0);
+		motor.setVoltage(gravityCompensationV());
 		this.target = NAN_ANGLE;
 	}
 }
