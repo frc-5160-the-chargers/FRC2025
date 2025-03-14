@@ -92,7 +92,7 @@ public class RobotVisualization implements LogLocal {
 		log("stage2Position", new Pose3d(0, 0, MathUtil.clamp(currentHeight - 0.4, 0.0, 0.65), Rotation3d.kZero));
 		log("stage3Position", new Pose3d(0, 0, currentHeight, Rotation3d.kZero));
 		robotCenterToPivot = new Transform3d(
-			0.374, -OtherConstants.INTAKE_OFFSET_FROM_CENTER.in(Meters), 0.6985 + currentHeight,
+			0.374, -OtherConstants.INTAKE_OFFSET_FROM_CENTER.in(Meters), 0.706 + currentHeight,
 			new Rotation3d(0, coralIntakePivot.angleRads() - degreesToRadians(10), 0)
 		);
 		log("intakePivotPosition", Pose3d.kZero.plus(robotCenterToPivot));

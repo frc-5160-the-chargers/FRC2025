@@ -239,13 +239,13 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		doubleClicked(operator.start())
 			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
-		operator.back()
-			.whileTrue(drivetrain.runDriveMotors());
+		doubleClicked(operator.back())
+			.onTrue(coralIntakePivot.resetEncoderToDemoAngleCmd());
 	}
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false)
 		);
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());

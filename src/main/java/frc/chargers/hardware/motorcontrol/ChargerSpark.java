@@ -1,6 +1,5 @@
 package frc.chargers.hardware.motorcontrol;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
@@ -14,6 +13,8 @@ import edu.wpi.first.hal.HAL;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
@@ -37,22 +38,16 @@ import static java.lang.Math.PI;
  */
 public class ChargerSpark implements Motor {
 	protected final SparkBase baseApi;
-	protected final RelativeEncoder relativeEncoder;
-	protected final AbsoluteEncoder absoluteEncoder;
+	protected RelativeEncoder relativeEncoder;
 	protected final SparkClosedLoopController pidController;
 	protected SparkBaseConfig initialConfig;
-	protected boolean useAbsoluteEncoder = false;
 	protected final Encoder encoder = new Encoder() {
 		@Override
-		public double positionRad() {
-			return rotationsToRadians(useAbsoluteEncoder ? absoluteEncoder.getPosition() : relativeEncoder.getPosition());
-		}
+		public double positionRad() { return rotationsToRadians(relativeEncoder.getPosition()); }
 		
 		@Override
 		public double velocityRadPerSec() {
-			return rotationsPerMinuteToRadiansPerSecond(
-				useAbsoluteEncoder ? absoluteEncoder.getVelocity() : relativeEncoder.getVelocity()
-			);
+			return rotationsPerMinuteToRadiansPerSecond(relativeEncoder.getVelocity());
 		}
 		
 		@Override
@@ -68,7 +63,6 @@ public class ChargerSpark implements Motor {
 	public ChargerSpark(int id, Model model, @Nullable SparkBaseConfig config) {
 		this.baseApi = model == Model.SPARK_MAX ? new SparkMax(id, MotorType.kBrushless) : new SparkFlex(id, MotorType.kBrushless);
 		this.relativeEncoder = baseApi.getEncoder();
-		this.absoluteEncoder = baseApi.getAbsoluteEncoder();
 		this.pidController = baseApi.getClosedLoopController();
 		if (config != null) {
 			this.initialConfig = config;
@@ -89,9 +83,14 @@ public class ChargerSpark implements Motor {
 		return this;
 	}
 	
-	public ChargerSpark enableAbsoluteEncoder() {
-		if (RobotBase.isSimulation()) return this;
-		this.useAbsoluteEncoder = true;
+	public ChargerSpark enableAlternateEncoder() {
+		if (baseApi instanceof SparkMax m) {
+			relativeEncoder = m.getAlternateEncoder();
+		} else if (baseApi instanceof SparkFlex m) {
+			relativeEncoder = m.getExternalEncoder();
+		} else {
+			new Alert("Invalid spark max type -- code issue lmao", AlertType.kError).set(true);
+		}
 		return this;
 	}
 	

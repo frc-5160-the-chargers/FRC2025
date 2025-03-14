@@ -29,7 +29,7 @@ import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
-	private static final Angle STARTING_ANGLE = Degrees.of(-39.5);
+	private static final Angle STARTING_ANGLE = Degrees.of(-53);
 	private static final Angle NAN_ANGLE = Degrees.of(Double.NaN);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;

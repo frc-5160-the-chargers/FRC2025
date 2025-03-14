@@ -12,7 +12,7 @@ public class OtherConstants {
 	
 	public static final boolean USE_PATHFINDING = true;
 	public static final double NUDGE_OUTPUT = 0.07;
-	public static final boolean IS_DANIEL_COMPUTER = false;
+	public static final boolean IS_DANIEL_COMPUTER = true;
 	// to the right
 	public static final Distance INTAKE_OFFSET_FROM_CENTER = Inches.of(1.1875);
 	public static final Translation2d REEF_SCORE_OFFSET =
