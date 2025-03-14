@@ -586,8 +586,8 @@ public class SwerveDrive extends StandardSubsystem {
 		return this.run(() -> {
 			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			log("align/goal", target);
-			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 2;
-			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 2;
+			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 5;
+			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 5;
 			var rotationV = rotationController.calculate(
 				angleModulus(bestPose().getRotation().getRadians()),
 				angleModulus(target.getRotation().getRadians())

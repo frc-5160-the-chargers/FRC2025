@@ -39,12 +39,10 @@ public class ManualOperatorController extends CommandXboxController implements S
 	public final InputStream climbUpInput =
 		InputStream.of(this::getRightTriggerAxis)
 			.deadband(0.1, 1)
-			.times(1.3)
-			.signedPow(2)
+			.times(0.6)
 			.negate();
 	public final InputStream climbDownInput =
 		InputStream.of(this::getLeftTriggerAxis)
 			.deadband(0.1, 1)
-			.times(1.3)
-			.signedPow(2);
+			.times(0.6);
 }

@@ -13,12 +13,8 @@ import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
-import java.util.function.BooleanSupplier;
-
-import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
-import static frc.robot.constants.OtherConstants.SAFE_WRIST_ANGLE;
 import static monologue.Monologue.GlobalLog;
 
 /**
@@ -57,16 +53,32 @@ public class RobotCommands {
 	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
 	 */
 	public Command moveTo(Setpoint setpoint) {
-		BooleanSupplier elevatorMoveCond =
-			setpoint.isParallel()
-				? () -> coralIntakePivot.angleRads() >= SAFE_WRIST_ANGLE.in(Radians)
-				: coralIntakePivot.atTarget(Degrees.of(10));
 		return Commands.parallel(
-			Commands.runOnce(() -> GlobalLog.log("currentSetpoint", setpoint.name())),
+			Commands.runOnce(() -> GlobalLog.log("setpoint", setpoint.name())),
 			coralIntakePivot.setAngleCmd(setpoint.wristTarget()),
-			// wait until wrist is out enough before moving elevator
-			Commands.waitUntil(elevatorMoveCond).andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight()))
+			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Degrees))
+				.andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight()))
 		).withName("move to setpoint");
+	}
+	
+	/** Moves the elevator and pivot to a stow position. */
+	public Command stow() {
+		return moveTo(Setpoint.STOW_TEST); // seeing if a simple movement is enough
+//		BooleanSupplier elevatorLow = () -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters);
+//		BooleanSupplier wristAtThreshold = () -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_THRESHOLD_1.in(Radians);
+//		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
+//			       .andThen(
+//					   // Negative wrist angle = up
+//					   coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
+//						   .until(() -> wristAtThreshold.getAsBoolean() || elevatorLow.getAsBoolean()),
+//				       Commands.parallel(
+//						   elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
+//						   coralIntakePivot.idleCmd()
+//							   .until(elevatorLow)
+//						       .andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
+//				       )
+//			       )
+//			       .withName("stow");
 	}
 	
 	/**
@@ -76,9 +88,10 @@ public class RobotCommands {
 	public Command scoreSequence(int scoringLevel) {
 		return moveTo(Setpoint.score(scoringLevel))
 			       .andThen(
-					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.01),
+					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.05),
+					   Commands.waitSeconds(0.3),
 					   coralIntake.outtakeCmd(),
-				       moveTo(scoringLevel == 0 ? Setpoint.STOW_LOW : Setpoint.STOW_MID)
+				       stow()
 			       )
 			       .withName("score sequence(L" + scoringLevel + ")");
 	}
@@ -128,7 +141,7 @@ public class RobotCommands {
 	public Command moveToDemoSetpoint() {
 		return Commands.parallel(
 			coralIntakePivot.setDemoAngleCmd(),
-			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.STOW_LOW.wristTarget().in(Radians))
+			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Radians))
 		        .andThen(elevator.moveToDemoHeightCmd())
 		).withName("move to demo setpoint");
 	}

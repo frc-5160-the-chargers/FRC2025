@@ -50,8 +50,8 @@ public class SwerveConfigurator {
 	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(13, 0.0, 0.02), // azimuth pid - don't add d to this, it makes things weird
-			new PIDConstants(2.0, 0, 0), // velocity pid
+			new PIDConstants(4.5, 0.0, 0), // azimuth pid - don't add d to this, it makes things weird
+			new PIDConstants(0.7, 0, 0), // velocity pid
 			new SimpleMotorFeedforward( // velocity feedforward
 				RobotBase.isSimulation() ? 0.015 : 0.17,
 				1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio)

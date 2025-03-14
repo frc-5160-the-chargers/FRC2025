@@ -67,8 +67,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		gyroWrapper::yaw
 	);
 	private final CoralIntake coralIntake = new CoralIntake();
-	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot();
 	private final Elevator elevator = new Elevator();
+	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(elevator::velocityMPS);
 	private final AprilTagVision vision = new AprilTagVision();
 	private final Climber climber = new Climber();
 	
@@ -179,7 +179,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		driver.circle()
 			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, driver));
 		
-		driver.L1().whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+		driver.L1().whileTrue(botCommands.stow());
 		driver.R2().whileTrue(coralIntake.outtakeForeverCmd());
 		
 		driver.povUp()
@@ -198,10 +198,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		// anti-tipping
 		gyroWrapper.isTipping
-			.onTrue(
-				botCommands.moveTo(Setpoint.STOW_LOW)
-					.withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
-			);
+			.onTrue(botCommands.stow().withInterruptBehavior(InterruptionBehavior.kCancelIncoming));
 		
 		operator.povUp()
 			.and(nodeSelector.isManualOverride)
@@ -219,7 +216,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			);
 		operator.leftBumper()
 			.and(nodeSelector.isManualOverride)
-			.whileTrue(botCommands.moveTo(Setpoint.STOW_LOW));
+			.whileTrue(botCommands.stow());
 		
 		operator.rightTrigger().whileTrue(climber.setPowerCmd(operator.climbUpInput));
 		operator.leftTrigger().whileTrue(climber.setPowerCmd(operator.climbDownInput));
@@ -245,7 +242,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
 		);
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
@@ -295,7 +292,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		if (RobotBase.isSimulation()) {
 			testModeChooser.addCmd(
 				"Stow and simulate coral",
-				() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.moveTo(Setpoint.STOW_LOW))
+				() -> coralIntake.setHasCoralInSimCmd(true).andThen(botCommands.stow())
 			);
 		}
 		testModeChooser.addCmd("Move to L3", () -> botCommands.moveTo(Setpoint.score(3)));

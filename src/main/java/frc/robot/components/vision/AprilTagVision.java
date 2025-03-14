@@ -7,6 +7,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
@@ -29,7 +30,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
@@ -73,7 +74,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 //			Inches.of(6),
 //			new Rotation3d(
 //				Degrees.zero(),
-//				Degrees.of(-10),
+//				Degrees.of(-15),
 //				Degrees.zero()
 //			)
 //		)).withSim(ARDUCAM_SIM_PROPERTIES)

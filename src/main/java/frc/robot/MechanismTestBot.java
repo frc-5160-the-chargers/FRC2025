@@ -30,7 +30,7 @@ public class MechanismTestBot extends TimedRobot implements LogLocal {
 			.deadband(0.1, 1)
 			.times(0.4);
 	
-	private final CoralIntakePivot pivot = new CoralIntakePivot();
+	private final CoralIntakePivot pivot = new CoralIntakePivot(elevator::velocityMPS);
 	private final InputStream pivotInput =
 		InputStream.of(controller::getRightY)
 			.signedPow(2)

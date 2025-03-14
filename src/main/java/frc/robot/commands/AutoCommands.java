@@ -5,7 +5,6 @@ import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.constants.Setpoint;
 import frc.robot.constants.TargetPoses;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.swerve.SwerveDrive;
@@ -41,7 +40,7 @@ public class AutoCommands {
 	 */
 	private record ScoringStep(int level, int position, double extendDelay, boolean shouldAlign) {
 		public ScoringStep(int level, int position, double extendDelay) {
-			this(level, position, extendDelay, level != 1); // Align is unecessary for L1
+			this(level, position, extendDelay, true); // Align is unecessary for L1
 		}
 	}
 	
@@ -100,8 +99,7 @@ public class AutoCommands {
 						.withName("intake traj spawner")
 				);
 			}
-			intakeTraj.active().onTrue(coralIntake.intakeCmd());
-			intakeTraj.atTime(intakeStep.extendDelay).onTrue(botCommands.moveTo(Setpoint.INTAKE));
+			intakeTraj.atTime(intakeStep.extendDelay).onTrue(botCommands.sourceIntake());
 			intakeTraj.done().onTrue(
 				Commands.waitUntil(coralIntake.hasCoral).andThen(scoringTraj.spawnCmd())
 					.withName("scoring traj spawner")

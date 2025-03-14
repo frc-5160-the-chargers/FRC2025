@@ -19,7 +19,6 @@ public class StatusSignalRefresher {
 	private StatusSignalRefresher() {}
 	
 	private static final Set<BaseStatusSignal> statusSignals = new HashSet<>();
-	private static BaseStatusSignal[] statusSignalsAsArray = new BaseStatusSignal[0];
 	
 	/**
 	 * An alternative to calling StatusSignalRefresher.periodic() within the robotPeriodic
@@ -35,20 +34,20 @@ public class StatusSignalRefresher {
 	 */
 	public static void periodic() {
 		Tracer.startTrace("CAN signal refresh");
-		if (statusSignals.isEmpty()) return;
-		var latestStatus = BaseStatusSignal.refreshAll(statusSignalsAsArray);
+		var latestStatus = BaseStatusSignal.refreshAll(statusSignals.toArray(new BaseStatusSignal[0]));
 		GlobalLog.log("refreshStatus", latestStatus.toString());
 		Tracer.endTrace();
 	}
 	
 	/** Refreshes the specified status signals automatically, at a rate of 0.02 seconds. */
 	public static void addSignals(BaseStatusSignal... signals) {
+		for (var signal: signals) {
+			if (signal != null) statusSignals.add(signal);
+		}
 		statusSignals.addAll(List.of(signals));
-		statusSignalsAsArray = statusSignals.toArray(statusSignalsAsArray);
 	}
 	
 	public static void remove(BaseStatusSignal... signals) {
 		List.of(signals).forEach(statusSignals::remove);
-		statusSignalsAsArray = statusSignals.toArray(statusSignalsAsArray);
 	}
 }
