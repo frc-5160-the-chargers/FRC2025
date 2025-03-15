@@ -24,18 +24,15 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 		return LEVEL_TO_SETPOINT_MAP.get(level);
 	}
 	
-	public static final Setpoint STOW_TEST = new Setpoint(Meters.zero(), Degrees.of(-40), "stow");
 	public static final Setpoint INTAKE = new Setpoint(Meters.zero(), Degrees.of(-30), "intake");
 	public static final Setpoint ALGAE_PREP_L2 = new Setpoint(Meters.of(0.5), Degrees.of(15), "algae prep L2");
 	public static final Setpoint ALGAE_PREP_L3 = new Setpoint(Meters.of(0.88), Degrees.of(15), "algae prep L3");
 	public static final Setpoint ALGAE_POP_L2 = new Setpoint(Meters.of(0.45), Degrees.of(15), "algae pop L2");
 	public static final Setpoint ALGAE_POP_L3 = new Setpoint(Meters.of(0.83), Degrees.of(15),"algae pop L3");
+	public static final Setpoint STOW_STEP_1 = new Setpoint(Meters.zero(), Degrees.of(-28), "stow");
 	
 	public static class Stow {
-		public static final Angle WRIST_TARGET_1 = Degrees.of(-18);
-		// for part 1 of the stow process, we don't care about precision; thus, we make it so that
-		// the first pivot angle command stops when the wrist is above this threshold, regardless of precision.
-		public static final Angle WRIST_THRESHOLD_1 = WRIST_TARGET_1.plus(Degrees.of(3));
+		public static final Angle WRIST_TARGET_1 = Degrees.of(-20);
 		public static final Distance ELEVATOR_HEIGHT = Meters.zero();
 		public static final Distance ELEVATOR_THRESHOLD = Meters.of(0.3);
 		public static final Angle WRIST_TARGET_2 = Degrees.of(-40);

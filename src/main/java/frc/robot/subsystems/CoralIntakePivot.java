@@ -35,7 +35,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final Angle TOLERANCE = Degrees.of(1.2);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
-	private static final Angle ZERO_OFFSET = Radians.of(-0.951);
+	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(-1.210);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final ArmFeedforward FEEDFORWARD = RobotBase.isSimulation()
@@ -122,7 +122,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 					   angleRads(), previousVel, profileState.velocity
 				   );
 				   log("feedforward", feedforward);
-				   motor.moveToPosition(applyOffset(profileState.position), feedforward);
+				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforward);
 			   })
 	       )
 	       .until(atTarget)
@@ -142,11 +142,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	@Logged
 	public double angleRads() {
-		return applyOffset(motor.encoder().positionRad());
-	}
-	
-	private double applyOffset(double radians) {
-		return RobotBase.isSimulation() ? radians : radians - ZERO_OFFSET.in(Radians);
+		return motor.encoder().positionRad() - ZERO_OFFSET.in(Radians);
 	}
 	
 	@Override

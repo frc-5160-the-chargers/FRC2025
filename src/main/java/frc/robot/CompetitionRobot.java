@@ -165,7 +165,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 					Setpoint.score(wantedLevel),
 					targetPoses.reefBlue[wantedPathTarget],
 					driver,
-					1.0
+					0.15
 				);
 				driver.cross()
 					.and(nodeSelector.targetLevelIs(wantedLevel))
@@ -298,6 +298,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			"Wheel radius characterization",
 			drivetrain::wheelRadiusCharacterization
 		);
+		testModeChooser.addCmd("aimAndSourceIntake", () -> botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, driver));
 		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
 		testModeChooser.addCmd("Align", () -> drivetrain.alignCmd(new Pose2d(5,7, Rotation2d.kZero), false));
 		

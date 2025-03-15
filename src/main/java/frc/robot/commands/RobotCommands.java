@@ -4,6 +4,7 @@ import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
 import frc.robot.components.controllers.DriverController;
 import frc.robot.constants.Setpoint;
@@ -65,21 +66,29 @@ public class RobotCommands {
 	
 	/** Moves the elevator and pivot to a stow position. */
 	public Command stow() {
-		BooleanSupplier elevatorLow = () -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters);
-		BooleanSupplier wristAtThreshold = () -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_THRESHOLD_1.in(Radians);
-		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
-			       .andThen(
-					   // Negative wrist angle = up
-					   coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
-						   .until(() -> wristAtThreshold.getAsBoolean() || elevatorLow.getAsBoolean()),
-				       Commands.parallel(
-						   elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
-						   coralIntakePivot.idleCmd()
-							   .until(elevatorLow)
-						       .andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
-				       )
-			       )
-			       .withName("stow");
+//		var elevatorLow = new Trigger(() -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters));
+//		var wristAtThreshold = new Trigger(() -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_THRESHOLD_1.in(Radians));
+//		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
+//			       .andThen(
+//					   // Negative wrist angle = up
+//					   coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
+//						   .until(() -> wristAtThreshold.getAsBoolean() || elevatorLow.getAsBoolean()),
+//				       Commands.parallel(
+//						   elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
+//						   coralIntakePivot.idleCmd()
+//							   .until(elevatorLow)
+//						       .andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
+//				       )
+//			       )
+//			       .withName("stow");
+		return Commands.parallel(
+			Commands.runOnce(() -> GlobalLog.log("setpoint", "stow")),
+			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Degrees))
+				.andThen(elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT)),
+			coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
+				.until(() -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters))
+				.andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
+		).withName("stow");
 	}
 	
 	/**
@@ -128,7 +137,7 @@ public class RobotCommands {
 	/** Runs the intake and moves the elevator and pivot to the intake position. */
 	public Command aimAndSourceIntake(Pose2d sourcePoseBlue, DriverController controller) {
 		return Commands.parallel(
-			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, controller, 0.2),
+			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, controller, 0.3),
 			coralIntake.intakeCmd()
 		).withName("source intake with aim");
 	}
