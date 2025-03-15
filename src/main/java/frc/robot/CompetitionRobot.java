@@ -236,8 +236,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		doubleClicked(operator.start())
 			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
-		doubleClicked(operator.back())
-			.onTrue(coralIntakePivot.resetEncoderToDemoAngleCmd());
 	}
 	
 	private void mapDefaultCommands() {

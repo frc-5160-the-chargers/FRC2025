@@ -50,7 +50,7 @@ public class SwerveConfigurator {
 	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(4.5, 0.0, 0), // azimuth pid - don't add d to this, it makes things weird
+			new PIDConstants(4.5, 0, 0), // azimuth pid - don't add d to this, it makes things weird
 			new PIDConstants(0.7, 0, 0), // velocity pid
 			new SimpleMotorFeedforward( // velocity feedforward
 				RobotBase.isSimulation() ? 0.015 : 0.17,
@@ -94,7 +94,7 @@ public class SwerveConfigurator {
 			return switch (corner) {
 				case TOP_LEFT -> 6;
 				case TOP_RIGHT -> 3;
-				case BOTTOM_LEFT -> 4;
+				case BOTTOM_LEFT -> 8;
 				case BOTTOM_RIGHT -> 2;
 			};
 		}

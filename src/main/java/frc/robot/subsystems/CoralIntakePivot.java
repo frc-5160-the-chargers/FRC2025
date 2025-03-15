@@ -26,17 +26,16 @@ import java.util.Set;
 import java.util.function.DoubleSupplier;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
 	private static final double ELEVATOR_SPEED_LIMIT = 0.2;
-	private static final Angle STARTING_ANGLE = Degrees.of(-54.5);
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
 	private static final Angle TOLERANCE = Degrees.of(1.2);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
+	private static final Angle ZERO_OFFSET = Radians.of(-0.951);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final ArmFeedforward FEEDFORWARD = RobotBase.isSimulation()
@@ -50,7 +49,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.8);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
 	private static final TunableNum DEMO_TARGET_DEG = new TunableNum("coralIntakePivot/demoTarget(deg)", 0);
-	private static final TunableNum DEMO_START_POS_DEG = new TunableNum("coralIntakePivot/demoStartingPos(deg)", 0);
 	private static final TunableNum DEMO_VOLTAGE = new TunableNum("coralIntakePivot/demoVoltage", 0);
 	
 	private static final SparkBaseConfig MOTOR_CONFIG =
@@ -59,6 +57,10 @@ public class CoralIntakePivot extends StandardSubsystem {
 			.idleMode(IdleMode.kBrake)
 			.inverted(true)
 			.voltageCompensation(12);
+	
+	static {
+		MOTOR_CONFIG.absoluteEncoder.zeroCentered(true);
+	}
 	
 	private final DoubleSupplier elevatorSpeed;
 	private final TrapezoidProfile motionProfile = new TrapezoidProfile(new Constraints(MAX_VEL, MAX_ACCEL));
@@ -72,7 +74,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 
 	public CoralIntakePivot(DoubleSupplier elevatorSpeed) {
 		this.elevatorSpeed = elevatorSpeed;
-		waitThenRun(2, () -> motor.encoder().setPositionReading(STARTING_ANGLE));
+//		waitThenRun(2, () -> motor.encoder().setPositionReading(STARTING_ANGLE));
 		setGearRatioAndPID();
 		KP.onChange(this::setGearRatioAndPID);
 		KD.onChange(this::setGearRatioAndPID);
@@ -97,11 +99,12 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 
 	public Command setAngleCmd(Angle target) {
-		var goalState = new TrapezoidProfile.State(target.in(Radians), 0);
+		var actualTarget = target.plus(ZERO_OFFSET);
+		var goalState = new TrapezoidProfile.State(actualTarget.in(Radians), 0);
 		return Commands.runOnce(() -> {
 			profileState = new TrapezoidProfile.State(angleRads(), 0);
 			this.elevatorWasFast = false;
-			this.target = target;
+			this.target = actualTarget;
 		})
 	       .andThen(
 			   this.run(() -> {
@@ -136,12 +139,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 	public Command setDemoVoltageCmd() {
 		return this.run(() -> motor.setVoltage(DEMO_VOLTAGE.get()))
 			       .withName("set demo volts(pivot)");
-	}
-	
-	public Command resetEncoderToDemoAngleCmd() {
-		return Commands.runOnce(() -> motor.encoder().setPositionReading(Degrees.of(DEMO_START_POS_DEG.get())))
-			       .ignoringDisable(true)
-			       .withName("reset pivot to demo angle");
 	}
 	
 	public double angleRads() {

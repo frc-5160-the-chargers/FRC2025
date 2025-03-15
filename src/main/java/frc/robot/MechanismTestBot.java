@@ -17,7 +17,6 @@ import monologue.LogLocal;
 import monologue.Monologue;
 import org.littletonrobotics.urcl.URCL;
 
-import static frc.chargers.utils.TriggerUtil.doubleClicked;
 import static monologue.Monologue.GlobalLog;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -60,10 +59,6 @@ public class MechanismTestBot extends TimedRobot implements LogLocal {
 		pivot.setDefaultCommand(pivot.setPowerCmd(pivotInput));
 		controller.y().whileTrue(pivot.setDemoAngleCmd());
 		controller.a().whileTrue(pivot.setDemoVoltageCmd());
-//		controller.leftBumper()
-//			.onTrue(pivot.resetAngleToStowCmd());
-		doubleClicked(controller.leftBumper())
-			.onTrue(pivot.resetEncoderToDemoAngleCmd());
 		
 		controller.povDown()
 			.whileTrue(intake.intakeCmd());
