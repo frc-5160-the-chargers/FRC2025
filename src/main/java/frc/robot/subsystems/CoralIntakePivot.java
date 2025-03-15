@@ -99,12 +99,11 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 
 	public Command setAngleCmd(Angle target) {
-		var actualTarget = target.plus(ZERO_OFFSET);
-		var goalState = new TrapezoidProfile.State(actualTarget.in(Radians), 0);
+		var goalState = new TrapezoidProfile.State(target.in(Radians), 0);
 		return Commands.runOnce(() -> {
 			profileState = new TrapezoidProfile.State(angleRads(), 0);
 			this.elevatorWasFast = false;
-			this.target = actualTarget;
+			this.target = target;
 		})
 	       .andThen(
 			   this.run(() -> {
@@ -123,7 +122,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 					   angleRads(), previousVel, profileState.velocity
 				   );
 				   log("feedforward", feedforward);
-				   motor.moveToPosition(profileState.position, feedforward);
+				   motor.moveToPosition(applyOffset(profileState.position), feedforward);
 			   })
 	       )
 	       .until(atTarget)
@@ -141,8 +140,13 @@ public class CoralIntakePivot extends StandardSubsystem {
 			       .withName("set demo volts(pivot)");
 	}
 	
+	@Logged
 	public double angleRads() {
-		return motor.encoder().positionRad();
+		return applyOffset(motor.encoder().positionRad());
+	}
+	
+	private double applyOffset(double radians) {
+		return RobotBase.isSimulation() ? radians : radians - ZERO_OFFSET.in(Radians);
 	}
 	
 	@Override
