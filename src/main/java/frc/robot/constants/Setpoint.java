@@ -32,7 +32,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 	public static final Setpoint ALGAE_POP_L3 = new Setpoint(Meters.of(0.83), Degrees.of(15),"algae pop L3");
 	
 	public static class Stow {
-		public static final Angle WRIST_TARGET_1 = Degrees.of(-25);
+		public static final Angle WRIST_TARGET_1 = Degrees.of(-18);
 		// for part 1 of the stow process, we don't care about precision; thus, we make it so that
 		// the first pivot angle command stops when the wrist is above this threshold, regardless of precision.
 		public static final Angle WRIST_THRESHOLD_1 = WRIST_TARGET_1.plus(Degrees.of(3));

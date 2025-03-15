@@ -158,8 +158,8 @@ public class AutoCommands {
 		var routine = autoFactory.newRoutine("L4L1L1South");
 		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
-			routine, routine.trajectory("Reef10TaxiLong"),
-			new ScoringStep(4, 7, 0.5, false),
+			routine, null,
+			new ScoringStep(4, 9, 0.5, false),
 			new CombinedStep(intakeStep, new ScoringStep(1, 10, 0.7)),
 			new CombinedStep(intakeStep, new ScoringStep(1, 11, 0.8))
 		);

@@ -13,6 +13,8 @@ import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
+import java.util.function.BooleanSupplier;
+
 import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static monologue.Monologue.GlobalLog;
@@ -63,22 +65,21 @@ public class RobotCommands {
 	
 	/** Moves the elevator and pivot to a stow position. */
 	public Command stow() {
-		return moveTo(Setpoint.STOW_TEST); // seeing if a simple movement is enough
-//		BooleanSupplier elevatorLow = () -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters);
-//		BooleanSupplier wristAtThreshold = () -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_THRESHOLD_1.in(Radians);
-//		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
-//			       .andThen(
-//					   // Negative wrist angle = up
-//					   coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
-//						   .until(() -> wristAtThreshold.getAsBoolean() || elevatorLow.getAsBoolean()),
-//				       Commands.parallel(
-//						   elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
-//						   coralIntakePivot.idleCmd()
-//							   .until(elevatorLow)
-//						       .andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
-//				       )
-//			       )
-//			       .withName("stow");
+		BooleanSupplier elevatorLow = () -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters);
+		BooleanSupplier wristAtThreshold = () -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_THRESHOLD_1.in(Radians);
+		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
+			       .andThen(
+					   // Negative wrist angle = up
+					   coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
+						   .until(() -> wristAtThreshold.getAsBoolean() || elevatorLow.getAsBoolean()),
+				       Commands.parallel(
+						   elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
+						   coralIntakePivot.idleCmd()
+							   .until(elevatorLow)
+						       .andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
+				       )
+			       )
+			       .withName("stow");
 	}
 	
 	/**

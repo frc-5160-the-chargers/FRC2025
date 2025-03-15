@@ -29,7 +29,7 @@ import static edu.wpi.first.units.Units.*;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
-	private static final double ELEVATOR_SPEED_LIMIT = 0.2;
+	private static final double ELEVATOR_SPEED_LIMIT = 0.4;
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
 	private static final Angle TOLERANCE = Degrees.of(1.2);
@@ -101,7 +101,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	public Command setAngleCmd(Angle target) {
 		var goalState = new TrapezoidProfile.State(target.in(Radians), 0);
 		return Commands.runOnce(() -> {
-			profileState = new TrapezoidProfile.State(angleRads(), 0);
+			profileState = new TrapezoidProfile.State(angleRads(), motor.encoder().velocityRadPerSec());
 			this.elevatorWasFast = false;
 			this.target = target;
 		})
