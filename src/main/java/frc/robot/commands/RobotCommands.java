@@ -4,7 +4,6 @@ import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.AllianceUtil;
 import frc.robot.components.controllers.DriverController;
 import frc.robot.constants.Setpoint;
@@ -13,8 +12,6 @@ import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
-
-import java.util.function.BooleanSupplier;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.distanceBetween;
@@ -98,9 +95,12 @@ public class RobotCommands {
 	public Command scoreSequence(int scoringLevel) {
 		return moveTo(Setpoint.score(scoringLevel))
 			       .andThen(
-					   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.05),
-					   Commands.waitSeconds(0.3),
-					   coralIntake.outtakeCmd(),
+					   Commands.deadline(
+						   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.15)
+							   .withTimeout(3)
+					           .andThen(Commands.waitSeconds(0.5), coralIntake.outtakeCmd()),
+						   coralIntakePivot.idleCmd() // keeps it steady by counteracting gravity
+					   ),
 				       stow()
 			       )
 			       .withName("score sequence(L" + scoringLevel + ")");
@@ -143,7 +143,8 @@ public class RobotCommands {
 	}
 	
 	public Command sourceIntake() {
-		return Commands.parallel(moveTo(Setpoint.INTAKE), coralIntake.intakeCmd())
+		return Commands.waitUntil(() -> elevator.heightMeters() < Setpoint.Limits.INTAKE_MIN_HEIGHT.in(Meters))
+			       .andThen(Commands.parallel(moveTo(Setpoint.INTAKE), coralIntake.intakeCmd()))
 			       .withName("source intake(no aim)");
 	}
 	

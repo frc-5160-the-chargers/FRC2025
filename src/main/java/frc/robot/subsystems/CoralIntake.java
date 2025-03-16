@@ -32,9 +32,9 @@ public class CoralIntake extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeoVortex(1);
 	
 	private static final double DISTANCE_TOLERANCE_MM = 50;
-	private static final double OUTTAKE_VOLTAGE = 4;
-	private static final double INTAKE_VOLTAGE = -6;
-	private static final double OUTTAKE_DELAY_SECS = 0.8;
+	private static final double OUTTAKE_VOLTAGE = 2;
+	private static final double INTAKE_VOLTAGE = -4;
+	private static final double OUTTAKE_DELAY_SECS = 1.5;
 	private static final SparkBaseConfig MOTOR_CONFIG =
 		new SparkFlexConfig()
 			.smartCurrentLimit(60)
@@ -87,12 +87,10 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	public Command outtakeCmd() {
-		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE))
-			       .until(hasCoral.negate().and(() -> !runContinuously))
-			       .andThen(
-					   this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(OUTTAKE_DELAY_SECS),
-				       super.stopCmd()
-			       )
+		return this.run(() -> {
+			motor.setVoltage(OUTTAKE_VOLTAGE);
+				System.out.println("buigpuhuiphupihhu;hn;h");
+			}).withTimeout(1.5)
 			       .withName("coral outtake");
 	}
 	

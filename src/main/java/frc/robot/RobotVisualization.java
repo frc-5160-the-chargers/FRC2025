@@ -49,7 +49,7 @@ public class RobotVisualization implements LogLocal {
 		
 		if (RobotBase.isSimulation()) {
 			coralIntake.hasCoral
-				.and(() -> coralIntake.velocityRadPerSec() > 30)
+				.and(() -> coralIntake.velocityRadPerSec() > 10)
 				.onTrue(visualizeCoralOuttakeCmd());
 			
 			// in auto or test mode, clear on-field coral/algae

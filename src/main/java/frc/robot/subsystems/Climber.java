@@ -2,13 +2,14 @@ package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.hardware.motorcontrol.ChargerSpark;
 import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
@@ -22,14 +23,13 @@ import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
 import static edu.wpi.first.math.util.Units.degreesToRadians;
 import static edu.wpi.first.units.Units.*;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
-import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // Convention: + is forward, - is backward
 public class Climber extends StandardSubsystem {
-	private static final TunableNum KG_VOLTS = new TunableNum("climber/kG", 0);
+	private static final TunableNum KG_VOLTS = new TunableNum("climber/kGVolts", 0);
 	private static final TunableNum KG_START_LIMIT_DEG = new TunableNum("climber/kGStartLimitDeg", 90);
+	private static final TunableNum STARTING_POS_DEG = new TunableNum("climber/startingPosDeg", -80);
 	
-	private static final Angle START_ANGLE = Degrees.of(-80);
 	private static final double GEAR_RATIO = 75.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(.003);
 	private static final int LEADER_ID = 14;
@@ -37,6 +37,7 @@ public class Climber extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getFalcon500(1);
 	private static final SparkBaseConfig CONFIG =
 		new SparkMaxConfig()
+			.idleMode(IdleMode.kBrake)
 			.inverted(true);
 	
 	@Logged private final Motor motor = new ChargerSpark(LEADER_ID, Model.SPARK_MAX, CONFIG)
@@ -47,7 +48,7 @@ public class Climber extends StandardSubsystem {
 	@Logged private boolean shouldApplyKg = false;
 	
 	public Climber() {
-		waitThenRun(2, () -> motor.encoder().setPositionReading(START_ANGLE));
+		resetStartingAngle().schedule();
 		motor.setControlsConfig(Motor.ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO));
 		tryUntilOk(follower, () -> follower.configure(CONFIG.follow(LEADER_ID, true), kResetSafeParameters, kPersistParameters));
 	}
@@ -70,6 +71,12 @@ public class Climber extends StandardSubsystem {
 		double angleRads = motor.encoder().positionRad();
 		shouldApplyKg = angleRads > degreesToRadians(KG_START_LIMIT_DEG.get());
 		return shouldApplyKg ? KG_VOLTS.get() * Math.cos(angleRads) : 0;
+	}
+	
+	public Command resetStartingAngle() {
+		return Commands.runOnce(() -> motor.encoder().setPositionReading(Degrees.of(STARTING_POS_DEG.get())))
+			       .ignoringDisable(true)
+			       .withName("reset climber angle(debug)");
 	}
 	
 	@Override

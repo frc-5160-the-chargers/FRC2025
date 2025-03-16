@@ -1,11 +1,14 @@
 package frc.chargers.hardware.motorcontrol;
 
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkSim;
+import com.revrobotics.spark.config.ClosedLoopConfig;
+import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
@@ -15,11 +18,14 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.Tracer;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Optional;
 
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot0;
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot1;
@@ -41,9 +47,11 @@ public class ChargerSpark implements Motor {
 	protected RelativeEncoder relativeEncoder;
 	protected final SparkClosedLoopController pidController;
 	protected SparkBaseConfig initialConfig;
-	protected final Encoder encoder = new Encoder() {
+	protected Encoder encoder = new Encoder() {
 		@Override
-		public double positionRad() { return rotationsToRadians(relativeEncoder.getPosition()); }
+		public double positionRad() {
+			return rotationsToRadians(relativeEncoder.getPosition());
+		}
 		
 		@Override
 		public double velocityRadPerSec() {
@@ -70,6 +78,29 @@ public class ChargerSpark implements Motor {
 		} else {
 			this.initialConfig = model == Model.SPARK_MAX ? new SparkMaxConfig() : new SparkFlexConfig();
 		}
+	}
+	
+	public ChargerSpark withAbsoluteEncoder() {
+		var absoluteEncoder = baseApi.getAbsoluteEncoder();
+		initialConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder);
+		tryUntilOk(baseApi, () -> baseApi.configure(initialConfig, kResetSafeParameters, kPersistParameters));
+		encoder = new Encoder() {
+			@Override
+			public double positionRad() {
+				return rotationsToRadians(absoluteEncoder.getPosition());
+			}
+			
+			@Override
+			public double velocityRadPerSec() {
+				return rotationsToRadians(absoluteEncoder.getVelocity());
+			}
+			
+			@Override
+			public void setPositionReading(Angle angle) {
+				DriverStation.reportError("Position reading cannot be set for absolute encoder.", false);
+			}
+		};
+		return this;
 	}
 	
 	public ChargerSpark withSim(SimDynamics dynamics, DCMotor motorType) {

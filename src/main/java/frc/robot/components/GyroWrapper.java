@@ -7,6 +7,7 @@ import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.data.StatusSignalRefresher;
+import frc.robot.subsystems.swerve.SwerveConfigurator;
 
 @Logged
 public class GyroWrapper {
@@ -23,11 +24,13 @@ public class GyroWrapper {
 	);
 	
 	public GyroWrapper() {
+		yaw.setUpdateFrequency(SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// automatically calls refresh() on signals
-		StatusSignalRefresher.addSignals(yaw, pitch, roll, pitchRate, rollRate);
+		StatusSignalRefresher.addSignals(pitch, roll, pitchRate, rollRate);
 	}
 	
 	public Rotation2d yaw() {
+		BaseStatusSignal.refreshAll(yaw);
 		return Rotation2d.fromDegrees(yaw.getValueAsDouble());
 	}
 	

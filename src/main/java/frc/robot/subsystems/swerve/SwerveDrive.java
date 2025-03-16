@@ -517,6 +517,7 @@ public class SwerveDrive extends StandardSubsystem {
 		);
 	}
 	
+	@Logged
 	public double getOverallSpeedMPS() {
 		return Math.hypot(
 			robotRelativeSpeeds.vxMetersPerSecond, robotRelativeSpeeds.vyMetersPerSecond
@@ -526,14 +527,9 @@ public class SwerveDrive extends StandardSubsystem {
 	@Logged
 	public ChassisSpeeds getMeasuredSpeeds() {
 		return ChassisSpeeds.fromRobotRelativeSpeeds(
-			getMeasuredSpeedsRobotRelative(),
+			robotRelativeSpeeds,
 			offsetWithAlliance(poseEstimate().getRotation())
 		);
-	}
-
-	@Logged
-	public ChassisSpeeds getMeasuredSpeedsRobotRelative() {
-		return kinematics.toChassisSpeeds(measuredModuleStates);
 	}
 
 	/**

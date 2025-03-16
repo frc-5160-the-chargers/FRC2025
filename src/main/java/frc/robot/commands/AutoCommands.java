@@ -40,7 +40,7 @@ public class AutoCommands {
 	 */
 	private record ScoringStep(int level, int position, double extendDelay, boolean shouldAlign) {
 		public ScoringStep(int level, int position, double extendDelay) {
-			this(level, position, extendDelay, true); // Align is unecessary for L1
+			this(level, position, extendDelay, false); // Align is unecessary for L1
 		}
 	}
 	
@@ -179,7 +179,12 @@ public class AutoCommands {
 	
 	public Command onePieceL4() {
 		var routine = autoFactory.newRoutine("OnePieceL4");
-		return genericAuto(routine, null, new ScoringStep(4, 7, 0.6));
+		return genericAuto(routine, null, new ScoringStep(4, 9, 0.6, false));
+	}
+	
+	public Command onePieceL1() {
+		var routine = autoFactory.newRoutine("OnePieceL1");
+		return genericAuto(routine, null, new ScoringStep(1, 9, 0.3, false));
 	}
 	
 	public Command simplePath() {
@@ -225,5 +230,10 @@ public class AutoCommands {
 		);
 
 		return routine.cmd();
+	}
+	
+	public Command taxi() {
+		return drivetrain.driveCmd(() -> 0.3, () -> 0, () -> 0, false)
+			       .withTimeout(5);
 	}
 }

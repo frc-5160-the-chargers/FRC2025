@@ -25,6 +25,7 @@ import frc.chargers.utils.data.TunableValues.TunableNum;
 import java.util.Set;
 import java.util.function.DoubleSupplier;
 
+import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.units.Units.*;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
@@ -32,21 +33,22 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double ELEVATOR_SPEED_LIMIT = 0.4;
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
-	private static final Angle TOLERANCE = Degrees.of(1.2);
+	private static final Angle TOLERANCE = Degrees.of(0.5);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
-	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(-1.210);
+	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.739);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final ArmFeedforward FEEDFORWARD = RobotBase.isSimulation()
 		? new ArmFeedforward(0, 0, KV)
-	    : new ArmFeedforward(0, -0.31, KV);
+	    : new ArmFeedforward(0, -0.35, KV);
+	// KG needs to be larger when coral inside - otherwise auto fails!!!!!!!
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FEEDFORWARD.getKs()) / KV;
 	private static final double MAX_ACCEL = 20;
 	
-	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.8);
+	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.3);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
 	private static final TunableNum DEMO_TARGET_DEG = new TunableNum("coralIntakePivot/demoTarget(deg)", 0);
 	private static final TunableNum DEMO_VOLTAGE = new TunableNum("coralIntakePivot/demoVoltage", 0);
@@ -59,13 +61,16 @@ public class CoralIntakePivot extends StandardSubsystem {
 			.voltageCompensation(12);
 	
 	static {
-		MOTOR_CONFIG.absoluteEncoder.zeroCentered(true);
+		MOTOR_CONFIG.absoluteEncoder
+			.zeroCentered(true)
+			.setSparkMaxDataPortConfig();
 	}
 	
 	private final DoubleSupplier elevatorSpeed;
 	private final TrapezoidProfile motionProfile = new TrapezoidProfile(new Constraints(MAX_VEL, MAX_ACCEL));
 	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
 	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_MAX, MOTOR_CONFIG)
+		                                    .withAbsoluteEncoder()
 		                                    .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	@Logged private Angle target = Degrees.of(Double.NaN);
 	@Logged public final Trigger atTarget =
@@ -82,10 +87,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	private void setGearRatioAndPID() {
 		motor.setControlsConfig(
-			Motor.ControlsConfig.EMPTY
-				.withGearRatio(GEAR_RATIO)
-				.withPositionPID(new PIDConstants(KP.get(), 0.0, KD.get()))
-				.withContinuousInput(true)
+			Motor.ControlsConfig.EMPTY.withPositionPID(new PIDConstants(KP.get(), 0.0, KD.get()))
 		);
 	}
 	
@@ -107,6 +109,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 		})
 	       .andThen(
 			   this.run(() -> {
+				   if (atTarget.getAsBoolean()) return;
 				   if (Math.abs(elevatorSpeed.getAsDouble()) > ELEVATOR_SPEED_LIMIT) {
 					   requestStop();
 					   elevatorWasFast = true;

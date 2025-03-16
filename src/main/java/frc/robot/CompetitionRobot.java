@@ -235,7 +235,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
 		
 		doubleClicked(operator.start())
-			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true));
+			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true).unless(DriverStation::isAutonomous));
+		doubleClicked(operator.back())
+			.onTrue(climber.resetStartingAngle());
 	}
 	
 	private void mapDefaultCommands() {
@@ -258,13 +260,16 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapAutoModes() {
 		// TODO
+		autoChooser.addCmd("Taxi", autoCommands::taxi);
 		autoChooser.addCmd("3x L4 Right", autoCommands::tripleL4South);
 		autoChooser.addCmd("4x L1 Right", autoCommands::quadL1South);
 		autoChooser.addCmd("L4 L1 L1 Right", autoCommands::l4L1L1South);
 		autoChooser.addCmd("L4 L4 L1 Right", autoCommands::l4L4L1South);
 		autoChooser.addCmd("One Piece L4", autoCommands::onePieceL4);
+		autoChooser.addCmd("One Piece L1", autoCommands::onePieceL1);
 		autoChooser.addCmd("(TEST ONLY) figure eight", autoCommands::figureEight);
 		autoChooser.addCmd("(TEST ONLY) multi piece", autoCommands::multiPieceTest);
+		autoChooser.select("Taxi");
 		
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		autonomous()
@@ -276,6 +281,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd("Simple Path", autoCommands::simplePath);
 		testModeChooser.addCmd("Simple Path w/ rotate", autoCommands::simplePathWithRotate);
 		
+		testModeChooser.addCmd("MoveL4", () -> botCommands.moveTo(Setpoint.score(4)));
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));
 		testModeChooser.addCmd(

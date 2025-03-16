@@ -46,7 +46,7 @@ public class Elevator extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNEO(2);
 	
 	private static final Distance TOLERANCE = Inches.of(0.5);
-	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.8);
+	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.3);
 	private static final Distance MAX_HEIGHT = Meters.of(1.27);
 	private static final Distance MIN_HEIGHT = Meters.of(-0.01);
 	
@@ -57,7 +57,7 @@ public class Elevator extends StandardSubsystem {
 	private static final ElevatorFeedforward FEEDFORWARD =
 		RobotBase.isSimulation()
 		    ? new ElevatorFeedforward(0, 0, KV)
-			: new ElevatorFeedforward(0.15, 0.4, KV); // confirmed data
+			: new ElevatorFeedforward(0.15, 0.44, KV); // confirmed data
 	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5);
