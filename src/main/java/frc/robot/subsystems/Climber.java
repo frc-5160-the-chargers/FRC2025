@@ -21,7 +21,8 @@ import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
 import static edu.wpi.first.math.util.Units.degreesToRadians;
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.KilogramSquareMeters;
 import static frc.chargers.utils.UtilMethods.tryUntilOk;
 
 // Convention: + is forward, - is backward
@@ -59,7 +60,7 @@ public class Climber extends StandardSubsystem {
 			if (limitSwitch.get() && voltageReq < 0) {
 				requestStop();
 			} else {
-				voltageReq += getKgVolts();
+				voltageReq += gravityCompensationV();
 				motor.setVoltage(voltageReq);
 			}
 		})
@@ -67,7 +68,7 @@ public class Climber extends StandardSubsystem {
 	}
 	
 	@Logged
-	public double getKgVolts() {
+	public double gravityCompensationV() {
 		double angleRads = motor.encoder().positionRad();
 		shouldApplyKg = angleRads > degreesToRadians(KG_START_LIMIT_DEG.get());
 		return shouldApplyKg ? KG_VOLTS.get() * Math.cos(angleRads) : 0;
@@ -81,6 +82,6 @@ public class Climber extends StandardSubsystem {
 	
 	@Override
 	protected void requestStop() {
-		motor.setVoltage(getKgVolts());
+		motor.setVoltage(gravityCompensationV());
 	}
 }

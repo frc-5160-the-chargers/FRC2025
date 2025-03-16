@@ -3,7 +3,15 @@
  "version":1,
  "type":"Swerve",
  "variables":{
-  "expressions":{},
+  "expressions":{
+   "offset":{
+    "dimension":"Length",
+    "var":{
+     "exp":"3 in",
+     "val":0.07619999999999999
+    }
+   }
+  },
   "poses":{
    "northSource":{
     "x":{

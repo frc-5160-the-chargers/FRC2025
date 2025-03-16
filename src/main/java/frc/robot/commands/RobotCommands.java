@@ -100,8 +100,8 @@ public class RobotCommands {
 							   .withTimeout(3)
 					           .andThen(Commands.waitSeconds(0.5), coralIntake.outtakeCmd()),
 						   coralIntakePivot.idleCmd() // keeps it steady by counteracting gravity
-					   ),
-				       stow()
+					   )
+				       //stow()
 			       )
 			       .withName("score sequence(L" + scoringLevel + ")");
 	}

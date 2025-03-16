@@ -24,11 +24,10 @@ import frc.chargers.utils.data.TunableValues;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
-import frc.robot.components.controllers.DriverController;
 import frc.robot.components.GyroWrapper;
-import frc.robot.components.controllers.ManualOperatorController;
 import frc.robot.components.OperatorUi;
-import frc.robot.components.vision.AprilTagVision;
+import frc.robot.components.controllers.DriverController;
+import frc.robot.components.controllers.ManualOperatorController;
 import frc.robot.constants.BuildConstants;
 import frc.robot.constants.Setpoint;
 import frc.robot.constants.TargetPoses;
@@ -68,8 +67,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	);
 	private final CoralIntake coralIntake = new CoralIntake();
 	private final Elevator elevator = new Elevator();
-	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(elevator::velocityMPS);
-	private final AprilTagVision vision = new AprilTagVision();
+	private final CoralIntakePivot coralIntakePivot =
+		new CoralIntakePivot(elevator::velocityMPS, coralIntake.hasCoral.debounce(0.7));
 	private final Climber climber = new Climber();
 	
 	/* Generic constants/utility classes */
@@ -118,8 +117,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// Vision setup - there are 2 overloads for addVisionData
-		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
-		vision.setSimPoseSupplier(drivetrain::bestPose);
+//		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
+//		vision.setSimPoseSupplier(drivetrain::bestPose);
 		DriverStation.silenceJoystickConnectionWarning(true);
 		SmartDashboard.putData(
 			"View Connection warnings",
@@ -137,7 +136,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		// Tracer.trace(...) runs the method while recording loop times
 		Tracer.trace("cmd scheduler", CommandScheduler.getInstance()::run);
 		Tracer.trace("mech visualizer", visualizer::periodic);
-		Tracer.trace("vision", vision::periodic);
+//		Tracer.trace("vision", vision::periodic);
 		Tracer.trace("node selector", nodeSelector::periodic);
 		if (RobotBase.isSimulation()) {
 			Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);

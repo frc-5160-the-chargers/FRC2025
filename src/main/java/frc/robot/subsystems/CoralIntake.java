@@ -16,8 +16,8 @@ import frc.chargers.hardware.motorcontrol.ChargerSpark.Model;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
-import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.LaserCanUtil;
+import frc.chargers.utils.data.InputStream;
 
 import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
@@ -34,7 +34,7 @@ public class CoralIntake extends StandardSubsystem {
 	private static final double DISTANCE_TOLERANCE_MM = 50;
 	private static final double OUTTAKE_VOLTAGE = 2;
 	private static final double INTAKE_VOLTAGE = -4;
-	private static final double OUTTAKE_DELAY_SECS = 1.5;
+	private static final double OUTTAKE_DELAY_SECS = 1;
 	private static final SparkBaseConfig MOTOR_CONFIG =
 		new SparkFlexConfig()
 			.smartCurrentLimit(60)
@@ -48,8 +48,6 @@ public class CoralIntake extends StandardSubsystem {
 	private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
 	private boolean hasCoralInSim = false;
 	
-	/** Whether outtakeCmd() and intakeCmd() should end when a gamepiece is detected. */
-	public boolean runContinuously = false;
 	/** A trigger that returns true when the intake detects coral. */
 	public final Trigger hasCoral = new Trigger(
 		() -> (RobotBase.isSimulation() && hasCoralInSim) ||
@@ -87,10 +85,12 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	public Command outtakeCmd() {
-		return this.run(() -> {
-			motor.setVoltage(OUTTAKE_VOLTAGE);
-				System.out.println("buigpuhuiphupihhu;hn;h");
-			}).withTimeout(1.5)
+		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE))
+			       .until(hasCoral.negate())
+			       .andThen(
+				       this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(OUTTAKE_DELAY_SECS),
+				       super.stopCmd()
+			       )
 			       .withName("coral outtake");
 	}
 	

@@ -4,12 +4,13 @@ import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.MomentOfInertia;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -23,9 +24,9 @@ import frc.chargers.utils.data.PIDConstants;
 import frc.chargers.utils.data.TunableValues.TunableNum;
 
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
-import static edu.wpi.first.math.util.Units.radiansToRotations;
 import static edu.wpi.first.units.Units.*;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
@@ -33,19 +34,18 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double ELEVATOR_SPEED_LIMIT = 0.4;
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
-	private static final Angle TOLERANCE = Degrees.of(0.5);
+	private static final Angle TOLERANCE = Degrees.of(1.5);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
 	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.739);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
-	private static final ArmFeedforward FEEDFORWARD = RobotBase.isSimulation()
-		? new ArmFeedforward(0, 0, KV)
-	    : new ArmFeedforward(0, -0.35, KV);
-	// KG needs to be larger when coral inside - otherwise auto fails!!!!!!!
+	private static final SimpleMotorFeedforward FF_EQUATION = new SimpleMotorFeedforward(0.05, KV);
+	private static final Voltage NO_CORAL_KG = Volts.of(-0.34);
+	private static final Voltage WITH_CORAL_KG = Volts.of(-0.48);
 	
 	// In rad/sec and rad/sec^2
-	private static final double MAX_VEL = (12 - FEEDFORWARD.getKs()) / KV;
+	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
 	private static final double MAX_ACCEL = 20;
 	
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.3);
@@ -67,19 +67,21 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 	
 	private final DoubleSupplier elevatorSpeed;
+	private final BooleanSupplier hasCoral;
 	private final TrapezoidProfile motionProfile = new TrapezoidProfile(new Constraints(MAX_VEL, MAX_ACCEL));
 	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
 	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_MAX, MOTOR_CONFIG)
 		                                    .withAbsoluteEncoder()
 		                                    .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	@Logged private Angle target = Degrees.of(Double.NaN);
+	@Logged private double feedforwardV = 0.0;
 	@Logged public final Trigger atTarget =
 		new Trigger(() -> Math.abs(angleRads() - target.in(Radians)) < TOLERANCE.in(Radians));
 	private boolean elevatorWasFast = false;
 
-	public CoralIntakePivot(DoubleSupplier elevatorSpeed) {
+	public CoralIntakePivot(DoubleSupplier elevatorSpeed, BooleanSupplier hasCoral) {
 		this.elevatorSpeed = elevatorSpeed;
-//		waitThenRun(2, () -> motor.encoder().setPositionReading(STARTING_ANGLE));
+		this.hasCoral = hasCoral;
 		setGearRatioAndPID();
 		KP.onChange(this::setGearRatioAndPID);
 		KD.onChange(this::setGearRatioAndPID);
@@ -93,7 +95,9 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	@Logged
 	public double gravityCompensationV() {
-		return FEEDFORWARD.getKg() * Math.cos(angleRads());
+		if (RobotBase.isSimulation()) return 0.0;
+		var kg = hasCoral.getAsBoolean() ? WITH_CORAL_KG : NO_CORAL_KG;
+		return kg.in(Volts) * Math.cos(angleRads());
 	}
 	
 	public Command setDemoAngleCmd() {
@@ -121,11 +125,9 @@ public class CoralIntakePivot extends StandardSubsystem {
 				   double previousVel = profileState.velocity;
 				   profileState = motionProfile.calculate(0.02, profileState, goalState);
 				   log("velIsNegative", previousVel < 0);
-				   double feedforward = FEEDFORWARD.calculateWithVelocities(
-					   angleRads(), previousVel, profileState.velocity
-				   );
-				   log("feedforward", feedforward);
-				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforward);
+				   feedforwardV = FF_EQUATION.calculateWithVelocities(previousVel, profileState.velocity);
+				   feedforwardV += gravityCompensationV();
+				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforwardV);
 			   })
 	       )
 	       .until(atTarget)

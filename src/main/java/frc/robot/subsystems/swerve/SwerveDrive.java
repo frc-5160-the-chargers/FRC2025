@@ -37,10 +37,10 @@ import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
 import frc.chargers.utils.AllianceUtil;
+import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.data.PIDConstants;
-import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.data.TunableValues.TunableNum;
 import frc.robot.components.vision.GlobalPoseEstimate;
 import frc.robot.components.vision.SingleTagPoseEstimate;
@@ -582,8 +582,8 @@ public class SwerveDrive extends StandardSubsystem {
 		return this.run(() -> {
 			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
 			log("align/goal", target);
-			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 5;
-			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 5;
+			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 3.6;
+			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 3.6;
 			var rotationV = rotationController.calculate(
 				angleModulus(bestPose().getRotation().getRadians()),
 				angleModulus(target.getRotation().getRadians())

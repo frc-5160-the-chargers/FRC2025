@@ -6,8 +6,8 @@ import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.LaserCanUtil;
+import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.data.StatusSignalRefresher;
 import frc.chargers.utils.data.TunableValues;
 import frc.robot.subsystems.CoralIntake;
@@ -29,7 +29,7 @@ public class MechanismTestBot extends TimedRobot implements LogLocal {
 			.deadband(0.1, 1)
 			.times(0.4);
 	
-	private final CoralIntakePivot pivot = new CoralIntakePivot(elevator::velocityMPS);
+	private final CoralIntakePivot pivot = new CoralIntakePivot(elevator::velocityMPS, () -> false);
 	private final InputStream pivotInput =
 		InputStream.of(controller::getRightY)
 			.signedPow(2)

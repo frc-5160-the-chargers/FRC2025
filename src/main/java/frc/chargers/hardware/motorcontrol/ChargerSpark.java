@@ -1,13 +1,11 @@
 package frc.chargers.hardware.motorcontrol;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkSim;
-import com.revrobotics.spark.config.ClosedLoopConfig;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkFlexConfig;
@@ -24,8 +22,6 @@ import edu.wpi.first.wpilibj.RobotController;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.utils.Tracer;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Optional;
 
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot0;
 import static com.revrobotics.spark.ClosedLoopSlot.kSlot1;

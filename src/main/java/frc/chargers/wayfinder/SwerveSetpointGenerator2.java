@@ -1,7 +1,5 @@
 package frc.chargers.wayfinder;
 
-import static edu.wpi.first.units.Units.*;
-
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.util.DriveFeedforwards;
@@ -15,8 +13,11 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotController;
+
 import java.util.ArrayList;
 import java.util.Optional;
+
+import static edu.wpi.first.units.Units.*;
 
 /**
  * Swerve setpoint generator based on a version created by FRC team 254.
