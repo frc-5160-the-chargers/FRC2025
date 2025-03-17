@@ -65,8 +65,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
 		gyroWrapper::yaw
 	);
-	private final CoralIntake coralIntake = new CoralIntake();
 	private final Elevator elevator = new Elevator();
+	private final CoralIntake coralIntake = new CoralIntake(() -> elevator.heightMeters() < 0.15);
 	private final CoralIntakePivot coralIntakePivot =
 		new CoralIntakePivot(elevator::velocityMPS, coralIntake.hasCoral.debounce(0.7));
 	private final Climber climber = new Climber();
@@ -217,9 +217,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.stow());
 		
-		operator.rightTrigger().whileTrue(climber.setPowerCmd(operator.climbUpInput));
-		operator.leftTrigger().whileTrue(climber.setPowerCmd(operator.climbDownInput));
-		
 		operator.a()
 			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
@@ -237,6 +234,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true).unless(DriverStation::isAutonomous));
 		doubleClicked(operator.back())
 			.onTrue(climber.resetStartingAngle());
+		operator.start()
+			.whileTrue(botCommands.moveTo(Setpoint.ALGAE_PREP_L2));
+		operator.back()
+			.whileTrue(botCommands.moveTo(Setpoint.ALGAE_PREP_L3));
 	}
 	
 	private void mapDefaultCommands() {
@@ -259,6 +260,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapAutoModes() {
 		// TODO
+		autoChooser.addCmd("L1 + L4", autoCommands::l1L4);
 		autoChooser.addCmd("Taxi", autoCommands::taxi);
 		autoChooser.addCmd("3x L4 Right", autoCommands::tripleL4South);
 		autoChooser.addCmd("4x L1 Right", autoCommands::quadL1South);

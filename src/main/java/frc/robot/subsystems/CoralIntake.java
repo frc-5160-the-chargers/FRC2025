@@ -19,6 +19,8 @@ import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.data.InputStream;
 
+import java.util.function.BooleanSupplier;
+
 import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
 // Constant power when coral in
@@ -42,6 +44,7 @@ public class CoralIntake extends StandardSubsystem {
 			.inverted(true)
 			.voltageCompensation(12.0);
 	
+	@Logged private final BooleanSupplier elevatorAtL1;
 	private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, MOTOR_CONFIG)
 		                            .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	private final LaserCan laserCan = new LaserCan(LASER_CAN_ID);
@@ -56,8 +59,13 @@ public class CoralIntake extends StandardSubsystem {
 	/** A trigger that returns true when the intake is outtaking coral. */
 	public final Trigger isOuttaking = new Trigger(() -> motor.outputVoltage() > 1.0);
 	
-	public CoralIntake() {
+	public CoralIntake(BooleanSupplier elevatorAtL1) {
+		this.elevatorAtL1 = elevatorAtL1;
 		motor.setControlsConfig(ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO));
+	}
+	
+	private double getOuttakeVoltage() {
+		return elevatorAtL1.getAsBoolean() ? OUTTAKE_VOLTAGE / 3 : OUTTAKE_VOLTAGE;
 	}
 	
 	public double velocityRadPerSec() {
@@ -85,7 +93,7 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	public Command outtakeCmd() {
-		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE))
+		return this.run(() -> motor.setVoltage(getOuttakeVoltage()))
 			       .until(hasCoral.negate())
 			       .andThen(
 				       this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withTimeout(OUTTAKE_DELAY_SECS),
@@ -99,7 +107,7 @@ public class CoralIntake extends StandardSubsystem {
 	}
 	
 	public Command outtakeForeverCmd() {
-		return this.run(() -> motor.setVoltage(OUTTAKE_VOLTAGE)).withName("coral outtake(Forever)");
+		return this.run(() -> motor.setVoltage(getOuttakeVoltage())).withName("coral outtake(Forever)");
 	}
 	
 	@Override

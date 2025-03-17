@@ -35,7 +35,7 @@ public class MechanismTestBot extends TimedRobot implements LogLocal {
 			.signedPow(2)
 			.times(0.3);
 	
-	private final CoralIntake intake = new CoralIntake();
+	private final CoralIntake intake = new CoralIntake(() -> false);
 	
 	public MechanismTestBot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work

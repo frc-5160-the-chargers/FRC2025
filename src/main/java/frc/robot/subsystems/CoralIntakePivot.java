@@ -37,7 +37,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final Angle TOLERANCE = Degrees.of(1.5);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
-	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.739);
+	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.739).minus(Degrees.of(9));
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final SimpleMotorFeedforward FF_EQUATION = new SimpleMotorFeedforward(0.05, KV);
@@ -48,7 +48,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
 	private static final double MAX_ACCEL = 20;
 	
-	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.3);
+	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.64);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
 	private static final TunableNum DEMO_TARGET_DEG = new TunableNum("coralIntakePivot/demoTarget(deg)", 0);
 	private static final TunableNum DEMO_VOLTAGE = new TunableNum("coralIntakePivot/demoVoltage", 0);
@@ -153,5 +153,6 @@ public class CoralIntakePivot extends StandardSubsystem {
 	@Override
 	public void requestStop() {
 		motor.setVoltage(gravityCompensationV());
+		feedforwardV = gravityCompensationV();
 	}
 }

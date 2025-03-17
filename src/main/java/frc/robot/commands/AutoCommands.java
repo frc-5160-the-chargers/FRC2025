@@ -187,6 +187,18 @@ public class AutoCommands {
 		return genericAuto(routine, null, new ScoringStep(1, 9, 0.3, false));
 	}
 	
+	public Command l1L4() {
+		var routine = autoFactory.newRoutine("L1 + L4");
+		return genericAuto(
+			routine, null,
+			new ScoringStep(1, 9, 0.3, false),
+			new CombinedStep(
+				new IntakeStep(SourceLoc.BOTTOM, 0.6),
+				new ScoringStep(4, 11, 0.7)
+			)
+		);
+	}
+	
 	public Command simplePath() {
 		return autoFactory.resetOdometry("SimplePath")
 			       .andThen(autoFactory.trajectoryCmd("SimplePath"));

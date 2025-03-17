@@ -5,16 +5,15 @@ import edu.wpi.first.units.measure.Distance;
 
 import java.util.Map;
 
-import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 import static java.util.Map.entry;
 
 /** Represents an elevator + wrist setpoint. */
 public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) {
 	private static final Map<Integer, Setpoint> LEVEL_TO_SETPOINT_MAP = Map.ofEntries(
-		entry(1, new Setpoint(Meters.zero(), Degrees.zero(), "L1")),
-		entry(2, new Setpoint(Meters.of(0.11), Degrees.of(0), "L2")),
-		entry(3, new Setpoint(Meters.of(0.48), Degrees.of(0), "L3")),
+		entry(1, new Setpoint(Meters.zero(), Radians.of(0.28), "L1")),
+		entry(2, new Setpoint(Meters.of(0.085), Degrees.of(0), "L2")),
+		entry(3, new Setpoint(Meters.of(0.39), Degrees.of(5), "L3")),
 		entry(4, new Setpoint(Meters.of(1.27), Degrees.of(20), "L4")) // highest possible elevator setpoint
 	);
 	
