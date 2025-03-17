@@ -16,6 +16,11 @@ import static edu.wpi.first.units.Units.Meters;
  */
 @Logged
 public class TargetPoses {
+	/** An enum used to describe which pole(left or right) to align on for a "face" on the hexagonal reef. */
+	public enum ReefSide {
+		LEFT, RIGHT
+	}
+	
 	@NotLogged private final SwerveHardwareSpecs hardwareSpecs;
 	/**
 	 * A list of pathfinding poses corresponding to the various scoring locations
@@ -46,19 +51,20 @@ public class TargetPoses {
 	}
 	
 	/**
-	 * Determines the best reef pose, depending on how close the robot is to each position,
+	 * Determines the best reef pose on your current alliance,
+	 * depending on how close the robot is to each position,
 	 * as well as the heading difference.
 	 */
-	public Pose2d closestReefPose(Side side, Pose2d robotPose) {
-		robotPose = AllianceUtil.flipIfRed(robotPose);
+	public Pose2d closestReefPose(ReefSide side, Pose2d currentBotPose) {
+		currentBotPose = AllianceUtil.flipIfRed(currentBotPose);
 		var closest = reefBlue[0];
 		double smallestTranslationDiff = 1000;
-		for (int i = (side == Side.RIGHT ? 0 : 1); i < 12; i++) {
-			double rotationDiff = Math.abs(robotPose.getRotation().getDegrees() - reefBlue[i].getRotation().getDegrees());
+		for (int i = (side == ReefSide.RIGHT ? 0 : 1); i < 12; i += 2) {
+			double rotationDiff = Math.abs(currentBotPose.getRotation().getDegrees() - reefBlue[i].getRotation().getDegrees());
 			if (rotationDiff > 45) {
 				continue;
 			}
-			double translationDiff = robotPose.getTranslation().getDistance(reefBlue[i].getTranslation());
+			double translationDiff = currentBotPose.getTranslation().getDistance(reefBlue[i].getTranslation());
 			if (translationDiff < smallestTranslationDiff) {
 				smallestTranslationDiff = translationDiff;
 				closest = reefBlue[i];

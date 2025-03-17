@@ -27,11 +27,11 @@ import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
 import frc.robot.components.GyroWrapper;
 import frc.robot.components.controllers.DriverController;
-import frc.robot.components.controllers.ManualOperatorController;
+import frc.robot.components.controllers.OperatorController;
 import frc.robot.constants.BuildConstants;
 import frc.robot.constants.Setpoint;
-import frc.robot.constants.Side;
 import frc.robot.constants.TargetPoses;
+import frc.robot.constants.TargetPoses.ReefSide;
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -92,7 +92,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	/* Controllers/Driver input */
 	private final DriverController driver = new DriverController();
-	private final ManualOperatorController operator = new ManualOperatorController();
+	private final OperatorController operator = new OperatorController();
 	
 	public CompetitionRobot() {
 		// Required for ChargerTalonFX and ChargerCANcoder to work
@@ -155,14 +155,14 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		driver.L1()
 			.whileTrue(
 				drivetrain.pathfindCmd(
-					() -> AllianceUtil.flipIfRed(targetPoses.closestReefPose(Side.LEFT, drivetrain.poseEstimate())),
+					() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()),
 					setpointGen
 				)
 			);
 		driver.R1()
 			.whileTrue(
 				drivetrain.pathfindCmd(
-					() -> AllianceUtil.flipIfRed(targetPoses.closestReefPose(Side.RIGHT, drivetrain.poseEstimate())),
+					() -> targetPoses.closestReefPose(ReefSide.RIGHT, drivetrain.poseEstimate()),
 					setpointGen
 				)
 			);
@@ -269,10 +269,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
 		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));
 		testModeChooser.addCmd(
-			"Pathfind",
-			() -> drivetrain.pathfindCmd(() -> AllianceUtil.flipIfRed(targetPoses.reefBlue[5]), setpointGen)
-		);
-		testModeChooser.addCmd(
 			"Outtake",
 			() -> coralIntake.setHasCoralInSimCmd(true).andThen(coralIntake.outtakeCmd())
 		);
@@ -289,10 +285,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			drivetrain::wheelRadiusCharacterization
 		);
 		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
-		testModeChooser.addCmd("Align", () -> drivetrain.pathfindCmd(
-			() -> AllianceUtil.flipIfRed(targetPoses.closestReefPose(Side.LEFT, drivetrain.poseEstimate())),
-			setpointGen
-		));
+		testModeChooser.addCmd("Align(repulsor)", () -> drivetrain.pathfindCmd());
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
 		test().onTrue(testModeChooser.selectedCommandScheduler().ignoringDisable(true));

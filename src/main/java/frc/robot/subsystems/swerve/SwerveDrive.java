@@ -508,12 +508,10 @@ public class SwerveDrive extends StandardSubsystem {
 		}
 	}
 	
-	public void resetToDemoPose() {
-		resetPose(
-			new Pose2d(
-				DEMO_POSE_X.get(), DEMO_POSE_Y.get(),
-				Rotation2d.fromDegrees(DEMO_POSE_HEADING_DEG.get())
-			)
+	public Pose2d getDemoPose() {
+		return new Pose2d(
+			DEMO_POSE_X.get(), DEMO_POSE_Y.get(),
+			Rotation2d.fromDegrees(DEMO_POSE_HEADING_DEG.get())
 		);
 	}
 	

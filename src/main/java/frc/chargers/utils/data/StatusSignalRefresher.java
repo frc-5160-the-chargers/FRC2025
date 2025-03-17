@@ -18,6 +18,7 @@ import static monologue.Monologue.GlobalLog;
 public class StatusSignalRefresher {
 	private StatusSignalRefresher() {}
 	
+	private static BaseStatusSignal[] statusSignalsAsArray = null;
 	private static final Set<BaseStatusSignal> statusSignals = new HashSet<>();
 	
 	/**
@@ -34,7 +35,10 @@ public class StatusSignalRefresher {
 	 */
 	public static void periodic() {
 		Tracer.startTrace("CAN signal refresh");
-		var latestStatus = BaseStatusSignal.refreshAll(statusSignals.toArray(new BaseStatusSignal[0]));
+		if (statusSignalsAsArray == null || statusSignalsAsArray.length != statusSignals.size()) {
+			statusSignalsAsArray = statusSignals.toArray(new BaseStatusSignal[0]);
+		}
+		var latestStatus = BaseStatusSignal.refreshAll(statusSignalsAsArray);
 		GlobalLog.log("refreshStatus", latestStatus.toString());
 		Tracer.endTrace();
 	}

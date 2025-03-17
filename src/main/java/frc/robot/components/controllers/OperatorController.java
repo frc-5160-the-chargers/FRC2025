@@ -11,10 +11,10 @@ import frc.chargers.utils.data.InputStream;
 import static frc.robot.constants.OtherConstants.IS_DANIEL_COMPUTER;
 
 @Logged
-public class ManualOperatorController extends CommandXboxController implements Subsystem {
+public class OperatorController extends CommandXboxController implements Subsystem {
 	private static final int PORT = IS_DANIEL_COMPUTER ? 0 : 1;
 	
-	public ManualOperatorController() {
+	public OperatorController() {
 		super(PORT);
 		this.register();
 	}
