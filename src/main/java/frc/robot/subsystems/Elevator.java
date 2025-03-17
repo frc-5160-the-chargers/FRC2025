@@ -47,7 +47,7 @@ public class Elevator extends StandardSubsystem {
 	
 	private static final Distance TOLERANCE = Inches.of(0.5);
 	private static final Distance COG_LOW_BOUNDARY = Meters.of(0.3);
-	private static final Distance MAX_HEIGHT = Meters.of(1.27);
+	private static final Distance MAX_HEIGHT = Meters.of(1.285);
 	private static final Distance MIN_HEIGHT = Meters.of(-0.01);
 	
 	// KV is in volts / (meters/sec)

@@ -34,13 +34,11 @@ public class StatusSignalRefresher {
 	 * Alternatively, use startPeriodic(this) in your Robot class instead.
 	 */
 	public static void periodic() {
-		Tracer.startTrace("CAN signal refresh");
 		if (statusSignalsAsArray == null || statusSignalsAsArray.length != statusSignals.size()) {
 			statusSignalsAsArray = statusSignals.toArray(new BaseStatusSignal[0]);
 		}
 		var latestStatus = BaseStatusSignal.refreshAll(statusSignalsAsArray);
 		GlobalLog.log("refreshStatus", latestStatus.toString());
-		Tracer.endTrace();
 	}
 	
 	/** Refreshes the specified status signals automatically, at a rate of 0.02 seconds. */

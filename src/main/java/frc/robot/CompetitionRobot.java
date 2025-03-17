@@ -28,6 +28,7 @@ import frc.robot.commands.SimulatedAutoEnder;
 import frc.robot.components.GyroWrapper;
 import frc.robot.components.controllers.DriverController;
 import frc.robot.components.controllers.OperatorController;
+import frc.robot.components.vision.AprilTagVision;
 import frc.robot.constants.BuildConstants;
 import frc.robot.constants.Setpoint;
 import frc.robot.constants.TargetPoses;
@@ -68,9 +69,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	);
 	private final Elevator elevator = new Elevator();
 	private final CoralIntake coralIntake = new CoralIntake(() -> elevator.heightMeters() < 0.15);
-	private final CoralIntakePivot coralIntakePivot =
-		new CoralIntakePivot(elevator::velocityMPS, coralIntake.hasCoral.debounce(0.7));
+	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(() -> 0, coralIntake.hasCoral.debounce(0.7));
 	private final Climber climber = new Climber();
+	private final AprilTagVision vision = new AprilTagVision();
 	
 	/* Generic constants/utility classes */
 	private final RobotVisualization visualizer =
@@ -95,8 +96,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final OperatorController operator = new OperatorController();
 	
 	public CompetitionRobot() {
-		// Required for ChargerTalonFX and ChargerCANcoder to work
-		StatusSignalRefresher.startPeriodic(this);
 		// calls runTcp() and setups jni
 		LaserCanUtil.setup(true);
 		// logging setup(required)
@@ -117,8 +116,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// Vision setup - there are 2 overloads for addVisionData
-//		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
-//		vision.setSimPoseSupplier(drivetrain::bestPose);
+		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
+		vision.setSimPoseSupplier(drivetrain::bestPose);
 		DriverStation.silenceJoystickConnectionWarning(true);
 		SmartDashboard.putData(
 			"View Connection warnings",
@@ -136,7 +135,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		// Tracer.trace(...) runs the method while recording loop times
 		Tracer.trace("cmd scheduler", CommandScheduler.getInstance()::run);
 		Tracer.trace("mech visualizer", visualizer::periodic);
-//		Tracer.trace("vision", vision::periodic);
+		Tracer.trace("CAN signal refresh", StatusSignalRefresher::periodic); // you must add this line
+		Tracer.trace("vision", vision::periodic);
 		if (RobotBase.isSimulation()) {
 			Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
 		}
@@ -180,7 +180,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.onTrue(
 				Commands.runOnce(() -> {
 					var currPose = drivetrain.bestPose();
-					drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), Rotation2d.kZero));
+					drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), AllianceUtil.flipIfRed(Rotation2d.kZero)));
 				})
 					.ignoringDisable(true)
 					.withName("zero heading")
@@ -214,7 +214,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
 		
 		doubleClicked(operator.start())
-			.onTrue(Commands.runOnce(drivetrain::resetToDemoPose).ignoringDisable(true).unless(DriverStation::isAutonomous));
+			.onTrue(Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose())).ignoringDisable(true).unless(DriverStation::isAutonomous));
 		doubleClicked(operator.back())
 			.onTrue(climber.resetStartingAngle());
 		operator.start()
@@ -284,8 +284,14 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			"Wheel radius characterization",
 			drivetrain::wheelRadiusCharacterization
 		);
-		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
-		testModeChooser.addCmd("Align(repulsor)", () -> drivetrain.pathfindCmd());
+		testModeChooser.addCmd(
+			"Align(repulsor)",
+			() -> drivetrain.pathfindCmd(drivetrain::getDemoPose, setpointGen)
+		);
+		testModeChooser.addCmd(
+			"Align(basic)",
+			() -> drivetrain.alignCmd(drivetrain::getDemoPose)
+		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
 		test().onTrue(testModeChooser.selectedCommandScheduler().ignoringDisable(true));

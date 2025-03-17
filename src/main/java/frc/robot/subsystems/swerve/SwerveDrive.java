@@ -9,7 +9,6 @@ import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
@@ -42,8 +41,6 @@ import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.data.PIDConstants;
 import frc.chargers.utils.data.TunableValues.TunableNum;
 import frc.robot.components.vision.GlobalPoseEstimate;
-import frc.robot.components.vision.SingleTagPoseEstimate;
-import frc.robot.components.vision.SingleTagPoseEstimator;
 import frc.robot.subsystems.StandardSubsystem;
 import lombok.RequiredArgsConstructor;
 import org.ironmaple.simulation.SimulatedArena;
@@ -144,7 +141,6 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveControlsConfig controlsConfig;
 	private final ModuleType moduleType;
 	private final SwerveDrivePoseEstimator poseEstimator;
-	private final SingleTagPoseEstimator singleTagPoseEstimator; // isn't working yet -- don't use
 	private final SwerveDriveSimulation mapleSim;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
@@ -158,9 +154,6 @@ public class SwerveDrive extends StandardSubsystem {
 
 	private final Supplier<Rotation2d> gyroYawSupplier;
 	private Rotation2d prevHeadingCache = Rotation2d.kZero;
-	@Logged(name = "singleTagEstimation/id")
-	private int targetTagId = -1;
-	private boolean useSingleTagEstimation = false;
 	@Logged private ChassisSpeeds robotRelativeSpeeds = new ChassisSpeeds();
 	private SwerveSetpoint pathfindSetpoint = new SwerveSetpoint(
 		new ChassisSpeeds(),
@@ -215,7 +208,6 @@ public class SwerveDrive extends StandardSubsystem {
 		this.poseEstimator = new SwerveDrivePoseEstimator(
 			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
 		);
-		this.singleTagPoseEstimator = new SingleTagPoseEstimator(kinematics, VecBuilder.fill(0.003, 0.003, 0.02));
 
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
@@ -459,27 +451,10 @@ public class SwerveDrive extends StandardSubsystem {
 		}
 	}
 	
-	public void enableSingleTagEstimation(int targetTagId) {
-		useSingleTagEstimation = true;
-		this.targetTagId = targetTagId;
-	}
-	
-	public void disableSingleTagEstimation() {
-		useSingleTagEstimation = false;
-	}
-	
 	/** Gets the drivetrain's calculated pose estimate. */
 	@Logged
 	public Pose2d poseEstimate() {
-		var multiTagEstimate = poseEstimator.getEstimatedPosition();
-		if (useSingleTagEstimation) {
-			var singleTagEstimate = singleTagPoseEstimator.getEstimatedPosition(targetTagId);
-			log("singleTagEstimation/used", singleTagEstimate.isPresent());
-			return singleTagPoseEstimator.getEstimatedPosition(targetTagId).orElse(multiTagEstimate);
-		} else {
-			log("singleTagEstimation/used", false);
-			return multiTagEstimate;
-		}
+		return poseEstimator.getEstimatedPosition();
 	}
 	
 	/**
@@ -692,10 +667,6 @@ public class SwerveDrive extends StandardSubsystem {
 	public void addVisionData(GlobalPoseEstimate estimate) {
 		if (!acceptVisionObservations) return;
 		poseEstimator.addVisionMeasurement(estimate.pose(), estimate.timestampSecs(), estimate.standardDeviations());
-	}
-	
-	public void addVisionData(SingleTagPoseEstimate singleTagEstimate) {
-		singleTagPoseEstimator.addVisionMeasurement(singleTagEstimate, poseEstimator.getEstimatedPosition());
 	}
 	
 	public void setPathfindingObstacles(List<Pose2d> obstacles) {
