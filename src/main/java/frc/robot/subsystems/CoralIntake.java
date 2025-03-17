@@ -113,7 +113,7 @@ public class CoralIntake extends StandardSubsystem {
 	@Override
 	protected void requestStop() {
 		// set a constant power so coral stays in
-		motor.setVoltage(-0.65);
+		motor.setVoltage(hasCoral.getAsBoolean() ? -0.65 : 0);
 	}
 	
 	@Override
