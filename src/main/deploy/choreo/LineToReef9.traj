@@ -14,8 +14,7 @@
  "params":{
   "waypoints":[
     {"x":{"exp":"7.09510612487793 m", "val":7.09510612487793}, "y":{"exp":"1.4785926342010498 m", "val":1.4785926342010498}, "heading":{"exp":"180 deg", "val":3.141592653589793}, "intervals":48, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
-    {"x":{"exp":"reef9.x + (offset * cos(reef9.heading))", "val":5.057375622996481}, "y":{"exp":"reef9.y + (offset * sin(reef9.heading))", "val":2.6531231896878387}, "heading":{"exp":"2.0943951023931957 rad", "val":2.0943951023931957}, "intervals":40, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
-    {"x":{"exp":"5.059807300567627 m", "val":5.059807300567627}, "y":{"exp":"2.9340765476226807 m", "val":2.9340765476226807}, "heading":{"exp":"0 deg", "val":0.0}, "intervals":40, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
+    {"x":{"exp":"reef9.x + (offset * cos(reef9.heading))", "val":5.057375622996481}, "y":{"exp":"reef9.y + (offset * sin(reef9.heading))", "val":2.6531231896878387}, "heading":{"exp":"2.0943951023931957 rad", "val":2.0943951023931957}, "intervals":40, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
   "constraints":[
     {"from":"first", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},
     {"from":"last", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},

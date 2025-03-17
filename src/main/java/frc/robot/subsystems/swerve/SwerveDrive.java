@@ -36,7 +36,6 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
-import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.InputStream;
@@ -58,7 +57,6 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -133,11 +131,6 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	// static members
-	private static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
-		new ChassisSpeeds(),
-		new SwerveModuleState[]{ new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState() },
-		DriveFeedforwards.zeros(4)
-	);
 	private static final TunableNum DEMO_POSE_X = new TunableNum("swerveDrive/demoPose/x", 0);
 	private static final TunableNum DEMO_POSE_Y = new TunableNum("swerveDrive/demoPose/y", 0);
 	private static final TunableNum DEMO_POSE_HEADING_DEG = new TunableNum("swerveDrive/demoPose/headingDeg", 0);
@@ -169,6 +162,13 @@ public class SwerveDrive extends StandardSubsystem {
 	private int targetTagId = -1;
 	private boolean useSingleTagEstimation = false;
 	@Logged private ChassisSpeeds robotRelativeSpeeds = new ChassisSpeeds();
+	private SwerveSetpoint pathfindSetpoint = new SwerveSetpoint(
+		new ChassisSpeeds(),
+		new SwerveModuleState[]{ new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState() },
+		DriveFeedforwards.zeros(4)
+	);
+	@Logged(name = "align/goal")
+	private Pose2d targetPose = Pose2d.kZero;
 
 	// workaround before array logging comes around
 	@Logged private final SwerveModule topLeftModule;
@@ -574,78 +574,72 @@ public class SwerveDrive extends StandardSubsystem {
 	
 	/**
 	 * Returns a Command that simply aligns to a pose, with no obstacle avoidance.
-	 * @param blueTargetPose The target pose on the blue side of the field
-	 * @param flipPoseIfRed Whether to flip the pose if the alliance is red.
 	 * @return A command
 	 */
-	public Command alignCmd(Pose2d blueTargetPose, boolean flipPoseIfRed) {
-		return this.run(() -> {
-			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
-			log("align/goal", target);
-			var vx = xPoseController.calculate(poseEstimate().getX(), target.getX()) / 2;
-			var vy = yPoseController.calculate(poseEstimate().getY(), target.getY()) / 2;
-			var rotationV = rotationController.calculate(
-				angleModulus(bestPose().getRotation().getRadians()),
-				angleModulus(target.getRotation().getRadians())
-			);
-			var desiredStates = toDesiredModuleStates(
-				ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, bestPose().getRotation()),
-				true
-			);
-			for (int i = 0; i < 4; i++) {
-				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
-			}
+	public Command alignCmd(Supplier<Pose2d> targetPoseSupplier) {
+		return Commands.runOnce(() -> {
+			targetPose = targetPoseSupplier.get();
+			log("align/mode", "simple");
 		})
-	       .until(
-			   () -> log("atSetpoints", xPoseController.atSetpoint() &&
-			         yPoseController.atSetpoint() &&
-			         rotationController.atSetpoint())
+	       .andThen(
+			   this.run(() -> {
+					var vx = xPoseController.calculate(poseEstimate().getX(), targetPose.getX()) / 2.7;
+					var vy = yPoseController.calculate(poseEstimate().getY(), targetPose.getY()) / 2.7;
+					var rotationV = rotationController.calculate(
+						angleModulus(bestPose().getRotation().getRadians()),
+						angleModulus(targetPose.getRotation().getRadians())
+					);
+					var desiredStates = toDesiredModuleStates(
+						ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, bestPose().getRotation()),
+						true
+					);
+					for (int i = 0; i < 4; i++) {
+						swerveModules[i].setDesiredState(desiredStates[i], true, 0);
+					}
+				}).until(() -> log("atSetpoints", xPoseController.atSetpoint() && yPoseController.atSetpoint() && rotationController.atSetpoint())),
+		       stopCmd()
 	       )
-	       .andThen(stopCmd())
 	       .withName("align(drivetrain)");
 	}
 	
 	/**
 	 * Returns a command that pathfinds the drivetrain to the correct pose.
-	 * @param blueTargetPose A function that returns the target pose.
-	 * @param flipPoseIfRed Whether to flip the pose if the alliance is red.
-	 * @param setpointGenerator Can be null. If not, will use the setpoint generator to generate
+	 * @param setpointGen Can be null. If not, will use the setpoint generator to generate
 	 *                          smoother pathfinding setpoints, reducing inaccuracy in pose estimation.
 	 * @return a Command
 	 */
 	public Command pathfindCmd(
-		Pose2d blueTargetPose, boolean flipPoseIfRed,
-		@Nullable SwerveSetpointGenerator setpointGenerator
+		Supplier<Pose2d> targetPoseSupplier,
+		@Nullable SwerveSetpointGenerator setpointGen
 	) {
-		// you cannot reassign variables in a lambda function, thus, you must use an AtomicReference
-		var currentSetpointRef = new AtomicReference<>(NULL_SETPOINT);
 		double maxVelocityMps = hardwareSpecs.maxVelocity.in(MetersPerSecond);
 		
-		return this.run(() -> {
-			Tracer.startTrace("repulsor pathfinding");
-			var target = flipPoseIfRed ? AllianceUtil.flipIfRed(blueTargetPose): blueTargetPose;
-			repulsor.setGoal(target);
-			var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-			var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
-			SwerveModuleState[] desiredStates;
-			if (setpointGenerator != null) {
-				currentSetpointRef.set(
-					setpointGenerator.generateSetpoint(currentSetpointRef.get(), desiredSpeeds, 0.02)
-				);
-				desiredStates = currentSetpointRef.get().moduleStates();
-			} else {
-				desiredStates = toDesiredModuleStates(desiredSpeeds, true);
-			}
-			log("pathfinding/goal", target);
-			log("setpointGen/speeds", currentSetpointRef.get().robotRelativeSpeeds());
-			log("setpointGen/states", currentSetpointRef.get().moduleStates());
-			for (int i = 0; i < 4; i++) {
-				swerveModules[i].setDesiredState(desiredStates[i], true, 0);
-			}
-			Tracer.endTrace();
+		return Commands.runOnce(() -> {
+			targetPose = targetPoseSupplier.get();
+			log("align/mode", "repulsor");
+			repulsor.setGoal(targetPose);
 		})
-	       .until(() -> repulsor.atGoal(0.02))
-	       .andThen(super.stopCmd())
+	       .andThen(
+			   this.run(() -> {
+					Tracer.startTrace("repulsor pathfinding");
+					var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
+					var desiredSpeeds = toDesiredSpeeds(sample, 1.4);
+					SwerveModuleState[] desiredStates;
+					if (setpointGen != null) {
+						pathfindSetpoint = setpointGen.generateSetpoint(pathfindSetpoint, desiredSpeeds, 0.02);
+						desiredStates = pathfindSetpoint.moduleStates();
+					} else {
+						desiredStates = toDesiredModuleStates(desiredSpeeds, true);
+					}
+					log("setpointGen/speeds", pathfindSetpoint.robotRelativeSpeeds());
+					log("setpointGen/states", desiredStates);
+					for (int i = 0; i < 4; i++) {
+						swerveModules[i].setDesiredState(desiredStates[i], true, 0);
+					}
+					Tracer.endTrace();
+			   }).until(() -> repulsor.atGoal(0.02)),
+		       stopCmd()
+	       )
 	       .withName("PathfindCmd");
 	}
 	

@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.StatusSignalRefresher;
@@ -25,11 +26,11 @@ import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
 import frc.robot.components.GyroWrapper;
-import frc.robot.components.OperatorUi;
 import frc.robot.components.controllers.DriverController;
 import frc.robot.components.controllers.ManualOperatorController;
 import frc.robot.constants.BuildConstants;
 import frc.robot.constants.Setpoint;
+import frc.robot.constants.Side;
 import frc.robot.constants.TargetPoses;
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.CoralIntake;
@@ -81,7 +82,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	/* Commands */
 	@NotLogged private final RobotCommands botCommands =
-		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator, setpointGen);
+		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator);
 	@NotLogged private final AutoCommands autoCommands =
 		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, drivetrain, targetPoses);
 	
@@ -91,7 +92,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	/* Controllers/Driver input */
 	private final DriverController driver = new DriverController();
-	private final OperatorUi nodeSelector = new OperatorUi();
 	private final ManualOperatorController operator = new ManualOperatorController();
 	
 	public CompetitionRobot() {
@@ -137,7 +137,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		Tracer.trace("cmd scheduler", CommandScheduler.getInstance()::run);
 		Tracer.trace("mech visualizer", visualizer::periodic);
 //		Tracer.trace("vision", vision::periodic);
-		Tracer.trace("node selector", nodeSelector::periodic);
 		if (RobotBase.isSimulation()) {
 			Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
 		}
@@ -153,81 +152,65 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			() -> !operator.isConnected()
 		);
 		
-		/* Driver controller/Operator UI bindings */
-		for (int wantedLevel = 1; wantedLevel <= 4; wantedLevel++) {
-			for (int wantedPathTarget = 0; wantedPathTarget < 12; wantedPathTarget++) {
-				var moveAndPathfindCmd = botCommands.pathfindAndMoveTo(
-					Setpoint.score(wantedLevel),
-					targetPoses.reefBlue[wantedPathTarget]
-				);
-				var moveAndAimCmd = botCommands.aimAndMoveTo(
-					Setpoint.score(wantedLevel),
-					targetPoses.reefBlue[wantedPathTarget],
-					driver,
-					0.15
-				);
-				driver.cross()
-					.and(nodeSelector.targetLevelIs(wantedLevel))
-					.and(nodeSelector.pathfindTargetIs(wantedPathTarget))
-					.whileTrue(USE_PATHFINDING ? moveAndPathfindCmd : moveAndAimCmd);
-			}
-		}
-		
-		driver.square()
-			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, driver));
-		driver.circle()
-			.whileTrue(botCommands.aimAndSourceIntake(targetPoses.westSourceBlue, driver));
-		
-		driver.L1().whileTrue(botCommands.stow());
-		driver.R2().whileTrue(coralIntake.outtakeForeverCmd());
+		driver.L1()
+			.whileTrue(
+				drivetrain.pathfindCmd(
+					() -> AllianceUtil.flipIfRed(targetPoses.closestReefPose(Side.LEFT, drivetrain.poseEstimate())),
+					setpointGen
+				)
+			);
+		driver.R1()
+			.whileTrue(
+				drivetrain.pathfindCmd(
+					() -> AllianceUtil.flipIfRed(targetPoses.closestReefPose(Side.RIGHT, drivetrain.poseEstimate())),
+					setpointGen
+				)
+			);
 		
 		driver.povUp()
-			.whileTrue(drivetrain.driveCmd(() -> NUDGE_OUTPUT, () -> 0, () -> 0, false));
+			.whileTrue(drivetrain.driveCmd(() -> NUDGE_OUTPUT, () -> 0, () -> 0, false).withName("nudge"));
 		driver.povDown()
-			.whileTrue(drivetrain.driveCmd(() -> -NUDGE_OUTPUT, () -> 0, () -> 0, false));
+			.whileTrue(drivetrain.driveCmd(() -> -NUDGE_OUTPUT, () -> 0, () -> 0, false).withName("nudge"));
 		driver.povLeft()
-			.whileTrue(drivetrain.driveCmd(() -> 0, () -> -NUDGE_OUTPUT, () -> 0, false));
+			.whileTrue(drivetrain.driveCmd(() -> 0, () -> NUDGE_OUTPUT, () -> 0, false).withName("nudge"));
 		driver.povRight()
-			.whileTrue(drivetrain.driveCmd(() -> 0, () -> NUDGE_OUTPUT, () -> 0, false));
+			.whileTrue(drivetrain.driveCmd(() -> 0, () -> -NUDGE_OUTPUT, () -> 0, false).withName("nudge"));
+		
 		doubleClicked(driver.touchpad())
-			.onTrue(Commands.runOnce(() -> {
-				var currPose = drivetrain.bestPose();
-				drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), Rotation2d.kZero));
-			}).ignoringDisable(true));
+			.onTrue(
+				Commands.runOnce(() -> {
+					var currPose = drivetrain.bestPose();
+					drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), Rotation2d.kZero));
+				})
+					.ignoringDisable(true)
+					.withName("zero heading")
+			);
 		
 		// anti-tipping
 		gyroWrapper.isTipping
 			.onTrue(botCommands.stow().withInterruptBehavior(InterruptionBehavior.kCancelIncoming));
 		
 		operator.povUp()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(coralIntake.outtakeForeverCmd());
 		operator.povDown()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(coralIntake.intakeForeverCmd());
 		
 		operator.rightBumper()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(
 				botCommands.moveTo(Setpoint.INTAKE)
 					.alongWith(coralIntake.intakeForeverCmd())
 					.withName("Manual source intake")
 			);
 		operator.leftBumper()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.stow());
 		
 		operator.a()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
 		operator.b()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(2)));
 		operator.y()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(3)));
 		operator.x()
-			.and(nodeSelector.isManualOverride)
 			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
 		
 		doubleClicked(operator.start())
@@ -287,7 +270,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd("MoveToCoralSetpoint", () -> coralIntakePivot.setPowerCmd(() -> 1));
 		testModeChooser.addCmd(
 			"Pathfind",
-			() -> drivetrain.pathfindCmd(targetPoses.reefBlue[5], true, setpointGen)
+			() -> drivetrain.pathfindCmd(() -> AllianceUtil.flipIfRed(targetPoses.reefBlue[5]), setpointGen)
 		);
 		testModeChooser.addCmd(
 			"Outtake",
@@ -305,9 +288,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			"Wheel radius characterization",
 			drivetrain::wheelRadiusCharacterization
 		);
-		testModeChooser.addCmd("aimAndSourceIntake", () -> botCommands.aimAndSourceIntake(targetPoses.eastSourceBlue, driver));
 		testModeChooser.addCmd("Reset odo test", () -> Commands.runOnce(drivetrain::resetToDemoPose));
-		testModeChooser.addCmd("Align", () -> drivetrain.alignCmd(new Pose2d(5,7, Rotation2d.kZero), false));
+		testModeChooser.addCmd("Align", () -> drivetrain.pathfindCmd(
+			() -> AllianceUtil.flipIfRed(targetPoses.closestReefPose(Side.LEFT, drivetrain.poseEstimate())),
+			setpointGen
+		));
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
 		test().onTrue(testModeChooser.selectedCommandScheduler().ignoringDisable(true));

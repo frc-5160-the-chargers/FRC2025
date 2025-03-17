@@ -1,11 +1,8 @@
 package frc.robot.commands;
 
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.chargers.utils.AllianceUtil;
-import frc.robot.components.controllers.DriverController;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
@@ -14,7 +11,6 @@ import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.chargers.utils.UtilMethods.distanceBetween;
 import static monologue.Monologue.GlobalLog;
 
 /**
@@ -34,7 +30,6 @@ public class RobotCommands {
 	private final CoralIntake coralIntake;
 	private final CoralIntakePivot coralIntakePivot;
 	private final Elevator elevator;
-	private final SwerveSetpointGenerator setpointGen;
 	
 	/**
 	 * A command that waits until the intake is not holding coral,
@@ -63,21 +58,6 @@ public class RobotCommands {
 	
 	/** Moves the elevator and pivot to a stow position. */
 	public Command stow() {
-//		var elevatorLow = new Trigger(() -> elevator.heightMeters() <= Setpoint.Stow.ELEVATOR_THRESHOLD.in(Meters));
-//		var wristAtThreshold = new Trigger(() -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_THRESHOLD_1.in(Radians));
-//		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
-//			       .andThen(
-//					   // Negative wrist angle = up
-//					   coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
-//						   .until(() -> wristAtThreshold.getAsBoolean() || elevatorLow.getAsBoolean()),
-//				       Commands.parallel(
-//						   elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
-//						   coralIntakePivot.idleCmd()
-//							   .until(elevatorLow)
-//						       .andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
-//				       )
-//			       )
-//			       .withName("stow");
 		return Commands.parallel(
 			Commands.runOnce(() -> GlobalLog.log("setpoint", "stow")),
 			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Degrees))
@@ -107,42 +87,7 @@ public class RobotCommands {
 			       .withName("score sequence(L" + scoringLevel + ")");
 	}
 	
-	/** A command that pathfinds to a pose while moving to a certain setpoint. */
-	public Command pathfindAndMoveTo(Setpoint setpoint, Pose2d blueAlliancePose) {
-		return Commands.parallel(
-			drivetrain.pathfindCmd(blueAlliancePose, true, setpointGen),
-			Commands.waitUntil(() -> {
-				var distance = distanceBetween(AllianceUtil.flipIfRed(blueAlliancePose), drivetrain.poseEstimate());
-				return distance < 0.2 && drivetrain.getOverallSpeedMPS() < 0.2;
-			}).andThen(moveTo(setpoint))
-		).withName("move to setpoint(and pathfind)");
-	}
-	
-	public Command aimAndMoveTo(
-		Setpoint setpoint,
-		Pose2d blueAlliancePose,
-		DriverController controller,
-		double maxRotationSpeed
-	) {
-		return Commands.parallel(
-			moveTo(setpoint),
-			drivetrain.driveWithAimCmd(
-				controller.forwardOutput, controller.strafeOutput,
-				AllianceUtil.flipIfRed(blueAlliancePose.getRotation()).getMeasure(),
-				maxRotationSpeed,
-				true
-			)
-		).withName("move to setpoint(and aim)");
-	}
-	
-	/** Runs the intake and moves the elevator and pivot to the intake position. */
-	public Command aimAndSourceIntake(Pose2d sourcePoseBlue, DriverController controller) {
-		return Commands.parallel(
-			aimAndMoveTo(Setpoint.INTAKE, sourcePoseBlue, controller, 0.3),
-			coralIntake.intakeCmd()
-		).withName("source intake with aim");
-	}
-	
+	/** Moves the robot to the source intake position and runs the coral intake. */
 	public Command sourceIntake() {
 		return Commands.waitUntil(() -> elevator.heightMeters() < Setpoint.Limits.INTAKE_MIN_HEIGHT.in(Meters))
 			       .andThen(Commands.parallel(moveTo(Setpoint.INTAKE), coralIntake.intakeCmd()))

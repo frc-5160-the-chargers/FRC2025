@@ -5,6 +5,7 @@ import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import frc.chargers.utils.AllianceUtil;
 import frc.robot.subsystems.swerve.SwerveDrive.SwerveHardwareSpecs;
 
 import static edu.wpi.first.units.Units.Meters;
@@ -42,6 +43,28 @@ public class TargetPoses {
 		var westSourceOffset = new Translation2d(eastSourceOffset.getX(), -eastSourceOffset.getY());
 		eastSourceBlue = addOffset(FieldConstants.CoralStation.leftCenterFace, eastSourceOffset);
 		westSourceBlue = addOffset(FieldConstants.CoralStation.rightCenterFace, westSourceOffset);
+	}
+	
+	/**
+	 * Determines the best reef pose, depending on how close the robot is to each position,
+	 * as well as the heading difference.
+	 */
+	public Pose2d closestReefPose(Side side, Pose2d robotPose) {
+		robotPose = AllianceUtil.flipIfRed(robotPose);
+		var closest = reefBlue[0];
+		double smallestTranslationDiff = 1000;
+		for (int i = (side == Side.RIGHT ? 0 : 1); i < 12; i++) {
+			double rotationDiff = Math.abs(robotPose.getRotation().getDegrees() - reefBlue[i].getRotation().getDegrees());
+			if (rotationDiff > 45) {
+				continue;
+			}
+			double translationDiff = robotPose.getTranslation().getDistance(reefBlue[i].getTranslation());
+			if (translationDiff < smallestTranslationDiff) {
+				smallestTranslationDiff = translationDiff;
+				closest = reefBlue[i];
+			}
+		}
+		return AllianceUtil.flipIfRed(closest);
 	}
 	
 	/** Adds the appropriate offsets to a pose oriented in the center of a field element. */

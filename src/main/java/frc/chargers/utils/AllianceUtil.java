@@ -227,7 +227,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the X coordinate.
+	 * Flips the X coordinate if on red alliance.
 	 *
 	 * @param x The X coordinate to flip.
 	 * @return The flipped X coordinate.
@@ -238,7 +238,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the Y coordinate.
+	 * Flips the Y coordinate if on red alliance.
 	 *
 	 * @param y The Y coordinate to flip.
 	 * @return The flipped Y coordinate.
@@ -249,7 +249,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the heading.
+	 * Flips the heading if on red alliance.
 	 *
 	 * @param heading The heading to flip.
 	 * @return The flipped heading.
@@ -260,7 +260,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the translation.
+	 * Flips the translation if on red alliance.
 	 *
 	 * @param translation The translation to flip.
 	 * @return The flipped translation.
@@ -271,7 +271,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the rotation.
+	 * Flips the rotation if on red alliance.
 	 *
 	 * @param rotation The rotation to flip.
 	 * @return The flipped rotation.
@@ -285,7 +285,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the pose.
+	 * Flips the pose if on red alliance.
 	 *
 	 * @param pose The pose to flip.
 	 * @return The flipped pose.
@@ -296,7 +296,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the translation.
+	 * Flips the translation if on red alliance.
 	 *
 	 * @param translation The translation to flip.
 	 * @return The flipped translation.
@@ -308,7 +308,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the rotation.
+	 * Flips the rotation if on red alliance.
 	 *
 	 * @param rotation The rotation to flip.
 	 * @return The flipped rotation.
@@ -320,7 +320,7 @@ public class AllianceUtil {
 	}
 	
 	/**
-	 * Flips the pose.
+	 * Flips the pose if on red alliance.
 	 *
 	 * @param pose The pose to flip.
 	 * @return The flipped pose.
