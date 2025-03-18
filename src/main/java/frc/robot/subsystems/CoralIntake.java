@@ -23,8 +23,6 @@ import java.util.function.BooleanSupplier;
 
 import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
-// Constant power when coral in
-@Logged
 public class CoralIntake extends StandardSubsystem {
 	private static final double GEAR_RATIO = 5;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.001);
@@ -34,8 +32,8 @@ public class CoralIntake extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeoVortex(1);
 	
 	private static final double DISTANCE_TOLERANCE_MM = 50;
-	private static final double OUTTAKE_VOLTAGE = 2;
-	private static final double INTAKE_VOLTAGE = -4;
+	private static final double OUTTAKE_VOLTAGE = 3;
+	private static final double INTAKE_VOLTAGE = -6;
 	private static final double OUTTAKE_DELAY_SECS = 1;
 	private static final SparkBaseConfig MOTOR_CONFIG =
 		new SparkFlexConfig()
@@ -44,20 +42,20 @@ public class CoralIntake extends StandardSubsystem {
 			.inverted(true)
 			.voltageCompensation(12.0);
 	
-	@Logged private final BooleanSupplier elevatorAtL1;
-	private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, MOTOR_CONFIG)
+	private final BooleanSupplier elevatorAtL1;
+	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, MOTOR_CONFIG)
 		                            .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	private final LaserCan laserCan = new LaserCan(LASER_CAN_ID);
-	private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
+	@Logged private LaserCan.Measurement laserCanMeasurement = LaserCanUtil.NULL_OP_MEASUREMENT;
 	private boolean hasCoralInSim = false;
 	
 	/** A trigger that returns true when the intake detects coral. */
-	public final Trigger hasCoral = new Trigger(
+	@Logged public final Trigger hasCoral = new Trigger(
 		() -> (RobotBase.isSimulation() && hasCoralInSim) ||
 			      (laserCanMeasurement.status == 0 && laserCanMeasurement.distance_mm < DISTANCE_TOLERANCE_MM)
 	);
 	/** A trigger that returns true when the intake is outtaking coral. */
-	public final Trigger isOuttaking = new Trigger(() -> motor.outputVoltage() > 1.0);
+	@Logged public final Trigger isOuttaking = new Trigger(() -> motor.outputVoltage() > 1.0);
 	
 	public CoralIntake(BooleanSupplier elevatorAtL1) {
 		this.elevatorAtL1 = elevatorAtL1;

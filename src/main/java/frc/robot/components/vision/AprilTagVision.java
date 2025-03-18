@@ -174,6 +174,12 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		log("fiducialIds", toIntArray(fiducialIds));
 	}
 	
+	public void enableSingleTagEstimation() {
+		for (var config: PHOTON_CAM_CONFIGS) {
+			config.poseEstimator.setPrimaryStrategy(PoseStrategy.PNP_DISTANCE_TRIG_SOLVE);
+		}
+	}
+	
 	@Override
 	public void close() {
 		for (var cam: PHOTON_CAM_CONFIGS) {

@@ -119,10 +119,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
 		vision.setSimPoseSupplier(drivetrain::bestPose);
 		DriverStation.silenceJoystickConnectionWarning(true);
-		SmartDashboard.putData(
-			"View Connection warnings",
-			Commands.runOnce(() -> DriverStation.silenceJoystickConnectionWarning(false))
-		);
 		
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
@@ -217,10 +213,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.onTrue(Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose())).ignoringDisable(true).unless(DriverStation::isAutonomous));
 		doubleClicked(operator.back())
 			.onTrue(climber.resetStartingAngle());
-		operator.start()
-			.whileTrue(botCommands.moveTo(Setpoint.ALGAE_PREP_L2));
-		operator.back()
-			.whileTrue(botCommands.moveTo(Setpoint.ALGAE_PREP_L3));
 	}
 	
 	private void mapDefaultCommands() {
@@ -291,6 +283,14 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd(
 			"Align(basic)",
 			() -> drivetrain.alignCmd(drivetrain::getDemoPose)
+		);
+		testModeChooser.addCmd(
+			"Reset Pose",
+			() -> Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose()))
+		);
+		testModeChooser.addCmd(
+			"Set Steer angles",
+			() -> drivetrain.setSteerAngles(Rotation2d.k180deg)
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);

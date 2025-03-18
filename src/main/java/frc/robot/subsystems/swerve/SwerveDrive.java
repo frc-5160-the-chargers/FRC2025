@@ -112,7 +112,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum ModuleType {
 		MK4iL2(6.75, 150.0 / 7.0, Inches.of(2)),
 		MK4iL3(6.12, 150.0 / 7.0, Inches.of(2)),
-		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2)); // Docs say its 12.1 - i think the hardware team messed up
+		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2.205)); // Docs say its 12.1 - i think the hardware team messed up
 		
 		public final double driveGearRatio;
 		public final double steerGearRatio;
@@ -526,10 +526,6 @@ public class SwerveDrive extends StandardSubsystem {
 				rotationOutput.get() * maxSpeedMps,
 				fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
 			);
-			if (Math.abs(speeds.vxMetersPerSecond) < 0.05 && Math.abs(speeds.vyMetersPerSecond) < 0.05 && Math.abs(speeds.omegaRadiansPerSecond) < 0.05) {
-				requestStop();
-				return;
-			}
 			var desiredStates = toDesiredModuleStates(speeds, true);
 			for (int i = 0; i < 4; i++) {
 				swerveModules[i].setDesiredState(desiredStates[i], false, 0.0);

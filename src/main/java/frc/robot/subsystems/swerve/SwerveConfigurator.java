@@ -50,14 +50,14 @@ public class SwerveConfigurator {
 	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(4.5, 0, 0), // azimuth pid - don't add d to this, it makes things weird
-			new PIDConstants(0.55, 0, 0), // velocity pid
+			new PIDConstants(9, 0, 0.01), // azimuth pid - don't add d to this, it makes things weird
+			new PIDConstants(0.4, 0, 0), // velocity pid
 			new SimpleMotorFeedforward( // velocity feedforward
 				RobotBase.isSimulation() ? 0.015 : 0.17,
 				1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio)
 			),
-			new PIDConstants(10, 0, 0), // path translation pid
-			new PIDConstants(10, 0, 0), // path rotation pid,
+			new PIDConstants(10, 0, 0.1), // path translation pid
+			new PIDConstants(10, 0, 0.1), // path rotation pid,
 			0.0 // kT
 		);
 	
@@ -109,7 +109,7 @@ public class SwerveConfigurator {
 			config.MotorOutput
 				.withNeutralMode(NeutralModeValue.Brake)
 				.withInverted(InvertedValue.CounterClockwise_Positive);
-			if (corner == SwerveCorner.TOP_RIGHT || corner == SwerveCorner.BOTTOM_RIGHT) {
+			if (corner != SwerveCorner.TOP_RIGHT) {
 				config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 			}
 			return config;
@@ -168,10 +168,10 @@ public class SwerveConfigurator {
 		private static CANcoderConfiguration getConfig(SwerveCorner corner) {
 			var config = new CANcoderConfiguration();
 			var offset = switch (corner) {
-				case TOP_LEFT -> Radians.of(-0.044).plus(Degrees.of(-45));
-				case TOP_RIGHT -> Radians.of(-1.333).plus(Degrees.of(45));
-				case BOTTOM_LEFT -> Radians.of(-0.595).plus(Degrees.of(45));
-				case BOTTOM_RIGHT -> Radians.of(0.12).plus(Degrees.of(-45));
+				case TOP_LEFT -> Radians.of(2.361); //Radians.of(-0.044).plus(Degrees.of(-45));
+				case TOP_RIGHT -> Radians.of(2.602); //Radians.of(-1.333).plus(Degrees.of(45));
+				case BOTTOM_LEFT -> Radians.of(-2.961); //Radians.of(-0.595).plus(Degrees.of(45));
+				case BOTTOM_RIGHT -> Radians.of(-0.709); //Radians.of(0.12).plus(Degrees.of(-45));
 			};
 			config.MagnetSensor
 				.withMagnetOffset(offset)
