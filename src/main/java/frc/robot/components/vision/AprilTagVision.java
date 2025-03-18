@@ -10,6 +10,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import lombok.Getter;
 import lombok.Setter;
@@ -133,6 +134,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				continue;
 			}
 			for (var camData: config.photonCam.getAllUnreadResults()) {
+				config.poseEstimator.setPrimaryStrategy(
+					DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
+				);
 				boolean ambiguityExceeded = camData.targets.size() == 1 && camData.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
 				if (!camData.hasTargets() || ambiguityExceeded) continue;
 				fiducialIds.addAll(camData.targets.stream().map(it -> it.fiducialId).toList());
@@ -172,12 +176,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		connectionAlert.set(!disconnectedCamNames.isEmpty());
 		log("disconnectedCameras", disconnectedCamNames.toArray(new String[0]));
 		log("fiducialIds", toIntArray(fiducialIds));
-	}
-	
-	public void enableSingleTagEstimation() {
-		for (var config: PHOTON_CAM_CONFIGS) {
-			config.poseEstimator.setPrimaryStrategy(PoseStrategy.PNP_DISTANCE_TRIG_SOLVE);
-		}
 	}
 	
 	@Override

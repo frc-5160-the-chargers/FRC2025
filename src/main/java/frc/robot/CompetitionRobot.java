@@ -150,17 +150,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		driver.L1()
 			.whileTrue(
-				drivetrain.pathfindCmd(
-					() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()),
-					setpointGen
-				)
+				drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()), setpointGen)
 			);
 		driver.R1()
 			.whileTrue(
-				drivetrain.pathfindCmd(
-					() -> targetPoses.closestReefPose(ReefSide.RIGHT, drivetrain.poseEstimate()),
-					setpointGen
-				)
+				drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.RIGHT, drivetrain.poseEstimate()), setpointGen)
 			);
 		
 		driver.povUp()
@@ -192,11 +186,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.whileTrue(coralIntake.intakeForeverCmd());
 		
 		operator.rightBumper()
-			.whileTrue(
-				botCommands.moveTo(Setpoint.INTAKE)
-					.alongWith(coralIntake.intakeForeverCmd())
-					.withName("Manual source intake")
-			);
+			.whileTrue(botCommands.sourceIntake());
 		operator.leftBumper()
 			.whileTrue(botCommands.stow());
 		
@@ -210,7 +200,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.whileTrue(botCommands.moveTo(Setpoint.score(4)));
 		
 		doubleClicked(operator.start())
-			.onTrue(Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose())).ignoringDisable(true).unless(DriverStation::isAutonomous));
+			.onTrue(Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose())).ignoringDisable(true));
 		doubleClicked(operator.back())
 			.onTrue(climber.resetStartingAngle());
 	}
