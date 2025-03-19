@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -40,7 +41,7 @@ import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.data.PIDConstants;
 import frc.chargers.utils.data.TunableValues.TunableNum;
-import frc.robot.components.vision.GlobalPoseEstimate;
+import frc.robot.components.vision.PoseEstimate;
 import frc.robot.subsystems.StandardSubsystem;
 import lombok.RequiredArgsConstructor;
 import org.ironmaple.simulation.SimulatedArena;
@@ -141,6 +142,7 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveControlsConfig controlsConfig;
 	private final ModuleType moduleType;
 	private final SwerveDrivePoseEstimator poseEstimator;
+	private final SwerveDriveOdometry noVisionPoseEstimator;
 	private final SwerveDriveSimulation mapleSim;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
@@ -206,6 +208,9 @@ public class SwerveDrive extends StandardSubsystem {
 			)
 		);
 		this.poseEstimator = new SwerveDrivePoseEstimator(
+			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
+		);
+		this.noVisionPoseEstimator = new SwerveDriveOdometry(
 			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
 		);
 
@@ -655,12 +660,15 @@ public class SwerveDrive extends StandardSubsystem {
 		Rotation2d latestHeading = gyroYawSupplier.get();
 		refreshData();
 		poseEstimator.update(latestHeading, measuredModulePositions);
+		// TODO remove the bottom 2 lines once vision pose estimation works
+		noVisionPoseEstimator.update(latestHeading, measuredModulePositions);
+		log("noVisionPose", noVisionPoseEstimator.getPoseMeters());
 		// If robot is rotating too fast, ignore vision observations.
 		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;
 	}
 	
-	public void addVisionData(GlobalPoseEstimate estimate) {
+	public void addVisionData(PoseEstimate estimate) {
 		if (!acceptVisionObservations) return;
 		poseEstimator.addVisionMeasurement(estimate.pose(), estimate.timestampSecs(), estimate.standardDeviations());
 	}

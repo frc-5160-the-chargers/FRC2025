@@ -7,11 +7,13 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
+import frc.robot.subsystems.swerve.SwerveConfigurator;
 import lombok.Getter;
 import lombok.Setter;
 import monologue.LogLocal;
@@ -30,7 +32,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
@@ -57,28 +59,30 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		);
 	private static final AprilTagFieldLayout FIELD_LAYOUT = REEF_TAGS_ONLY_LAYOUT;
 	
+	/*
+	What 254 does for vision filtering:
+	1. Area filtering - must be > 0.4 for enabled
+	2.
+	 */
+	
+	// TODO:
+	// 1. Coord system not right for cam 1
+	// 2. Pose seems to flip out near very start - check if this is normal
+	// -SwerveConfigurator.HARDWARE_SPECS.trackWidth / 2 + Centimeters.of(10.1)
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
-//		new PhotonCamConfig("ABC", 1.0, new Transform3d(
-//			Inches.of(6),
-//			Inches.of(12),
-//			Inches.of(6),
-//			new Rotation3d(
-//				Degrees.zero(),
-//				Degrees.of(-15),
-//				Degrees.zero()
-//			)
-//		)).withSim(ARDUCAM_SIM_PROPERTIES),
-//		new PhotonCamConfig("DEF", 1.0, new Transform3d(
-//			Inches.of(16),
-//			Inches.of(-12),
-//			Inches.of(6),
-//			new Rotation3d(
-//				Degrees.zero(),
-//				Degrees.of(-15),
-//				Degrees.zero()
-//			)
-//		)).withSim(ARDUCAM_SIM_PROPERTIES)
+		new PhotonCamConfig("Chargers-FrontRight", 1.0, new Transform3d(
+			SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.8)),
+			SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(-2).plus(Centimeters.of(10.1)),
+			Inches.of(7.375),
+			new Rotation3d(
+				Degrees.zero(),
+				Degrees.of(-15),
+				Degrees.of(46)
+			)
+		)).withSim(ARDUCAM_SIM_PROPERTIES)
 	);
+	
+	// 10.1 cm from right, 7.375 in up, 2.8 cm back
 	
 	static {
 		ARDUCAM_SIM_PROPERTIES.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
@@ -111,7 +115,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		}
 	}
 	
-	@Setter private Consumer<GlobalPoseEstimate> globalEstimateConsumer = estimate -> {};
+	@Setter private Consumer<PoseEstimate> globalEstimateConsumer = estimate -> {};
 	@Setter private Supplier<Pose2d> simPoseSupplier = null;
 	
 	private final Alert connectionAlert = new Alert("", kError);
@@ -148,7 +152,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				    || pose.getX() < 0.0
 				    || pose.getX() > FIELD_LAYOUT.getFieldLength()
 				    || pose.getY() < 0.0
-				    || pose.getY() > FIELD_LAYOUT.getFieldWidth()) {
+				    || pose.getY() > FIELD_LAYOUT.getFieldWidth()
+					|| camData.targets.isEmpty()) {
 					rejectedPoses.add(pose);
 					continue;
 				}
@@ -164,7 +169,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * config.stdDevFactor;
 				
 				globalEstimateConsumer.accept(
-					new GlobalPoseEstimate(
+					new PoseEstimate(
 						pose.toPose2d(),
 						result.get().timestampSeconds,
 						VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)

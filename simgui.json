@@ -15,6 +15,7 @@
       "/SmartDashboard/Choreo Alerts": "Alerts",
       "/SmartDashboard/ChoreoAlert": "Alerts",
       "/SmartDashboard/Monologue Alerts": "Alerts",
+      "/SmartDashboard/PhotonAlerts": "Alerts",
       "/SmartDashboard/SwerveDrive/fieldViz": "Field2d",
       "/SmartDashboard/TestChooser": "String Chooser",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
