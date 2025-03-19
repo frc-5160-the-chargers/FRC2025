@@ -86,7 +86,6 @@ public class AllianceUtil {
 	
 	private record YearInfo(Flipper flipper, double fieldLength, double fieldWidth) {}
 	
-	// TODO: Update and expand this map
 	private static final HashMap<Integer, YearInfo> flipperMap =
 		new HashMap<>() {
 			{

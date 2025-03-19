@@ -37,12 +37,12 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final Angle TOLERANCE = Degrees.of(1.5);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
-	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.739).minus(Degrees.of(9));
+	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.622);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final SimpleMotorFeedforward FF_EQUATION = new SimpleMotorFeedforward(0.05, KV);
-	private static final Voltage NO_CORAL_KG = Volts.of(-0.34);
-	private static final Voltage WITH_CORAL_KG = Volts.of(-0.48);
+	private static final Voltage NO_CORAL_KG = Volts.of(-0.32);
+	private static final Voltage WITH_CORAL_KG = Volts.of(-0.46);
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;

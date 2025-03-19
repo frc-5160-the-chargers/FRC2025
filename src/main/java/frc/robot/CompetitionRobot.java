@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.StatusSignalRefresher;
@@ -49,6 +48,7 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static frc.chargers.utils.TriggerUtil.bind;
 import static frc.chargers.utils.TriggerUtil.doubleClicked;
+import static frc.chargers.utils.UtilMethods.waitThenRun;
 import static frc.robot.constants.OtherConstants.*;
 import static monologue.Monologue.GlobalLog;
 
@@ -117,12 +117,13 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
-		vision.setSimPoseSupplier(drivetrain::bestPose);
 		DriverStation.silenceJoystickConnectionWarning(true);
 		
 		if (RobotBase.isSimulation()) {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+		} else {
+			waitThenRun(2, () -> drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero)));
 		}
 	}
 	
@@ -170,7 +171,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			.onTrue(
 				Commands.runOnce(() -> {
 					var currPose = drivetrain.bestPose();
-					drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), AllianceUtil.flipIfRed(Rotation2d.kZero)));
+					drivetrain.resetPose(new Pose2d(currPose.getX(), currPose.getY(), Rotation2d.kZero));
 				})
 					.ignoringDisable(true)
 					.withName("zero heading")
@@ -224,7 +225,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	}
 	
 	private void mapAutoModes() {
-		// TODO
 		autoChooser.addCmd("L1 + L4", autoCommands::l1L4);
 		autoChooser.addCmd("Taxi", autoCommands::taxi);
 		autoChooser.addCmd("3x L4 Right", autoCommands::tripleL4South);
@@ -280,7 +280,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		);
 		testModeChooser.addCmd(
 			"Set Steer angles",
-			() -> drivetrain.setSteerAngles(Rotation2d.k180deg)
+			() -> drivetrain.setSteerAngles(Rotation2d.k180deg.plus(Rotation2d.kCW_90deg))
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);

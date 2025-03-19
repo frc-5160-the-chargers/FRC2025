@@ -18,7 +18,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -36,6 +35,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.chargers.hardware.encoders.Encoder;
 import frc.chargers.hardware.encoders.VoidEncoder;
 import frc.chargers.hardware.motorcontrol.Motor;
+import frc.chargers.utils.AllianceUtil;
 import frc.chargers.utils.RepulsorFieldPlanner;
 import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.InputStream;
@@ -61,7 +61,6 @@ import java.util.function.Supplier;
 import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.math.util.Units.metersToInches;
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.wpilibj.DriverStation.Alliance;
 
 /**
  * A drivetrain with 4 drive motors and 4 steer motors.
@@ -113,7 +112,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum ModuleType {
 		MK4iL2(6.75, 150.0 / 7.0, Inches.of(2)),
 		MK4iL3(6.12, 150.0 / 7.0, Inches.of(2)),
-		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2.205)); // Docs say its 12.1 - i think the hardware team messed up
+		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2.205)); // Multiplied by 0.775 because our swerve modules are wrong
 		
 		public final double driveGearRatio;
 		public final double steerGearRatio;
@@ -142,7 +141,7 @@ public class SwerveDrive extends StandardSubsystem {
 	private final SwerveControlsConfig controlsConfig;
 	private final ModuleType moduleType;
 	private final SwerveDrivePoseEstimator poseEstimator;
-	private final SwerveDriveOdometry noVisionPoseEstimator;
+//	private final SwerveDriveOdometry noVisionPoseEstimator;
 	private final SwerveDriveSimulation mapleSim;
 	private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
 	
@@ -210,9 +209,9 @@ public class SwerveDrive extends StandardSubsystem {
 		this.poseEstimator = new SwerveDrivePoseEstimator(
 			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
 		);
-		this.noVisionPoseEstimator = new SwerveDriveOdometry(
-			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
-		);
+//		this.noVisionPoseEstimator = new SwerveDriveOdometry(
+//			kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero
+//		);
 
 		var driveSimConfig =
 			DriveTrainSimulationConfig.Default()
@@ -331,14 +330,6 @@ public class SwerveDrive extends StandardSubsystem {
 		this.topRightModule = this.swerveModules[1];
 		this.bottomLeftModule = this.swerveModules[2];
 		this.bottomRightModule = this.swerveModules[3];
-	}
-
-	private boolean isRedAlliance() {
-		return DriverStation.getAlliance().orElse(Alliance.Blue).equals(Alliance.Red);
-	}
-
-	private Rotation2d offsetWithAlliance(Rotation2d base) {
-		return isRedAlliance() ? base.plus(Rotation2d.k180deg) : base;
 	}
 	
 	/** Obtains desired module states from a ChassisSpeeds target. */
@@ -506,7 +497,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public ChassisSpeeds getMeasuredSpeeds() {
 		return ChassisSpeeds.fromRobotRelativeSpeeds(
 			robotRelativeSpeeds,
-			offsetWithAlliance(poseEstimate().getRotation())
+			AllianceUtil.flipIfRed(poseEstimate().getRotation())
 		);
 	}
 
@@ -529,7 +520,7 @@ public class SwerveDrive extends StandardSubsystem {
 				forwardOutput.get() * maxSpeedMps,
 				strafeOutput.get() * maxSpeedMps,
 				rotationOutput.get() * maxSpeedMps,
-				fieldRelative ? offsetWithAlliance(poseEstimate().getRotation()) : Rotation2d.kZero
+				fieldRelative ? AllianceUtil.flipIfRed(poseEstimate().getRotation()) : Rotation2d.kZero
 			);
 			var desiredStates = toDesiredModuleStates(speeds, true);
 			for (int i = 0; i < 4; i++) {
@@ -661,8 +652,8 @@ public class SwerveDrive extends StandardSubsystem {
 		refreshData();
 		poseEstimator.update(latestHeading, measuredModulePositions);
 		// TODO remove the bottom 2 lines once vision pose estimation works
-		noVisionPoseEstimator.update(latestHeading, measuredModulePositions);
-		log("noVisionPose", noVisionPoseEstimator.getPoseMeters());
+//		noVisionPoseEstimator.update(latestHeading, measuredModulePositions);
+//		log("noVisionPose", noVisionPoseEstimator.getPoseMeters());
 		// If robot is rotating too fast, ignore vision observations.
 		acceptVisionObservations = latestHeading.minus(prevHeadingCache).getDegrees() / 0.02 < 720.0;
 		prevHeadingCache = latestHeading;

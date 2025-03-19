@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
+import static frc.chargers.utils.UtilMethods.toDoubleArray;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
 @SuppressWarnings("unused")
@@ -44,8 +45,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.1;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
-	private static final double LINEAR_STD_DEV_BASELINE = 0.08;
-	private static final double ANGULAR_STD_DEV_BASELINE = 50.0;
+	private static final double LINEAR_STD_DEV_BASELINE = 0.2;
+	private static final double ANGULAR_STD_DEV_BASELINE = 90000;
 	
 	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
 	private static final AprilTagFieldLayout REEF_TAGS_ONLY_LAYOUT =
@@ -65,21 +66,36 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	2.
 	 */
 	
-	// TODO:
-	// 1. Coord system not right for cam 1
-	// 2. Pose seems to flip out near very start - check if this is normal
-	// -SwerveConfigurator.HARDWARE_SPECS.trackWidth / 2 + Centimeters.of(10.1)
+	// TODO: Figure out why the robot almost drove into jack
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
-		new PhotonCamConfig("Chargers-FrontRight", 1.0, new Transform3d(
-			SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.8)),
-			SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(-2).plus(Centimeters.of(10.1)),
-			Inches.of(7.375),
-			new Rotation3d(
-				Degrees.zero(),
-				Degrees.of(-15),
-				Degrees.of(46)
+		new PhotonCamConfig(
+			"Chargers-FrontRight",
+			1.0,
+			new Transform3d(
+				SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.6)),
+				SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(-2).plus(Centimeters.of(10.1)),
+				Inches.of(7.375),
+				new Rotation3d(
+					Degrees.zero(),
+					Degrees.of(-15),
+					Degrees.of(46) // measured as: 46
+				)
 			)
-		)).withSim(ARDUCAM_SIM_PROPERTIES)
+		).withSim(ARDUCAM_SIM_PROPERTIES),
+		new PhotonCamConfig(
+			"Chargers-FrontLeft",
+			1.0,
+			new Transform3d(
+				SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.6)),
+				SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(2).minus(Centimeters.of(10)),
+				Inches.of(7.375),
+				new Rotation3d(
+					Degrees.zero(),
+					Degrees.of(-15),
+					Degrees.of(-51) // measured as: -56
+				)
+			)
+		).withSim(ARDUCAM_SIM_PROPERTIES)
 	);
 	
 	// 10.1 cm from right, 7.375 in up, 2.8 cm back
@@ -121,17 +137,20 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private final Alert connectionAlert = new Alert("", kError);
 	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
 	@Logged private final List<Pose3d> rejectedPoses = new ArrayList<>();
+	private final List<Double> timestamps = new ArrayList<>();
 	@Getter private final Set<Integer> fiducialIds = new HashSet<>();
+	private final List<String> disconnectedCamNames = new ArrayList<>();
 	
 	/** Must be called periodically in the robotPeriodic method of the Robot class. */
 	public void periodic() {
 		acceptedPoses.clear();
 		rejectedPoses.clear();
 		fiducialIds.clear();
+		timestamps.clear();
+		disconnectedCamNames.clear();
 		if (VISION_SYSTEM_SIM.isPresent() && simPoseSupplier != null) {
 			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
 		}
-		var disconnectedCamNames = new ArrayList<String>();
 		for (var config: PHOTON_CAM_CONFIGS) {
 			if (!RobotBase.isSimulation() && !config.photonCam.isConnected()) {
 				disconnectedCamNames.add(config.photonCam.getName());
@@ -160,19 +179,22 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				acceptedPoses.add(pose);
 				double tagDistSum = 0.0;
 				for (var target: camData.targets) {
-					// TODO fix single tag pose estimation
 					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
 				}
 				double stdDevMultiplier = Math.pow(tagDistSum / camData.targets.size(), 2) / camData.targets.size();
 				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * config.stdDevFactor;
-				double angularStdDev = stdDevMultiplier * ANGULAR_STD_DEV_BASELINE * config.stdDevFactor;
+				log("linearStdDevs/" + config.photonCam.getName() + "/linear", linearStdDev);
+				if (Double.isNaN(linearStdDev)) {
+					System.out.println("LMAO");
+				}
 				
+				timestamps.add(result.get().timestampSeconds);
 				globalEstimateConsumer.accept(
 					new PoseEstimate(
 						pose.toPose2d(),
 						result.get().timestampSeconds,
-						VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev)
+						VecBuilder.fill(linearStdDev, linearStdDev, 100000000)
 					)
 				);
 			}
@@ -180,6 +202,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		connectionAlert.setText("The following cameras are disconnected: " + disconnectedCamNames);
 		connectionAlert.set(!disconnectedCamNames.isEmpty());
 		log("disconnectedCameras", disconnectedCamNames.toArray(new String[0]));
+		log("timestamps", toDoubleArray(timestamps));
 		log("fiducialIds", toIntArray(fiducialIds));
 	}
 	
