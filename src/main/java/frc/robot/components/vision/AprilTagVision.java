@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -171,6 +172,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	/** Must be called periodically in the robotPeriodic method of the Robot class. */
 	public void periodic() {
+		if (DriverStation.isDisabled()) return;
 		if (VISION_SYSTEM_SIM.isPresent() && simPoseSupplier != null) {
 			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
 		}

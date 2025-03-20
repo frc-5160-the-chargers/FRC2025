@@ -236,6 +236,10 @@ public class AutoCommands {
 		return routine.cmd();
 	}
 	
+	public Command resetOdoTest() {
+		return autoFactory.resetOdometry("LineToReef9");
+	}
+	
 	public Command figureEight() {
 		var routine = autoFactory.newRoutine("FigureEight");
 		var figureEight = routine.trajectory("FigureEight");

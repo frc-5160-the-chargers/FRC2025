@@ -278,8 +278,8 @@ public class SwerveDrive extends StandardSubsystem {
 		this.rotationController = controlsConfig.pathRotationPID.asController();
 		this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
 		
-		this.xPoseController.setTolerance(0.01);
-		this.yPoseController.setTolerance(0.01);
+		this.xPoseController.setTolerance(0.014);
+		this.yPoseController.setTolerance(0.014);
 		this.rotationController.setTolerance(0.05);
 		
 		for (int i = 0; i < 4; i++) {
@@ -548,8 +548,8 @@ public class SwerveDrive extends StandardSubsystem {
 		})
 	       .andThen(
 			   this.run(() -> {
-					var vx = xPoseController.calculate(poseEstimate().getX(), targetPose.getX()) / 2.7;
-					var vy = yPoseController.calculate(poseEstimate().getY(), targetPose.getY()) / 2.7;
+					var vx = xPoseController.calculate(poseEstimate().getX(), targetPose.getX()) / 5;
+					var vy = yPoseController.calculate(poseEstimate().getY(), targetPose.getY()) / 5;
 					var rotationV = rotationController.calculate(
 						angleModulus(bestPose().getRotation().getRadians()),
 						angleModulus(targetPose.getRotation().getRadians())
@@ -588,7 +588,7 @@ public class SwerveDrive extends StandardSubsystem {
 			   this.run(() -> {
 					Tracer.startTrace("repulsor pathfinding");
 					var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-					var desiredSpeeds = toDesiredSpeeds(sample, 1.4);
+					var desiredSpeeds = toDesiredSpeeds(sample, 1);
 					SwerveModuleState[] desiredStates;
 					if (setpointGen != null) {
 						pathfindSetpoint = setpointGen.generateSetpoint(pathfindSetpoint, desiredSpeeds, 0.02);

@@ -32,9 +32,9 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 	public static final Setpoint STOW_STEP_1 = new Setpoint(Meters.zero(), Degrees.of(-28), "stow");
 	
 	public static class Stow {
-		public static final Angle WRIST_TARGET_1 = Degrees.of(-20);
+		public static final Angle WRIST_TARGET_1 = Degrees.of(-15);
 		public static final Distance ELEVATOR_HEIGHT = Meters.zero();
-		public static final Distance ELEVATOR_THRESHOLD = Meters.of(0.3);
+		public static final Distance ELEVATOR_THRESHOLD = Meters.of(0.1);
 		public static final Angle WRIST_TARGET_2 = Degrees.of(-40);
 	}
 	

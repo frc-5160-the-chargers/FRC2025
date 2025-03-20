@@ -57,9 +57,9 @@ public class Elevator extends StandardSubsystem {
 	// calculate kG by setting voltage until it moves, while upright. Subtract from kS
 	// Note: to use calculateWithVelocities(), we need an accurate kA value
 	private static final SimpleMotorFeedforward FEEDFORWARD =
-		new SimpleMotorFeedforward(RobotBase.isSimulation() ? 0.15 : 0, KV);
-	private static final double NO_CORAL_KG = 0.37;
-	private static final double WITH_CORAL_KG = 0.45;
+		new SimpleMotorFeedforward(RobotBase.isSimulation() ? 0 : 0.15, KV);
+	private static final double NO_CORAL_KG = 0.43;
+	private static final double WITH_CORAL_KG = 0.5;
 	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5);

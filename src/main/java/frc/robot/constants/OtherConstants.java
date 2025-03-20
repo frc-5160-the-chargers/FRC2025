@@ -14,7 +14,7 @@ public class OtherConstants {
 	// to the right
 	public static final Distance INTAKE_OFFSET_FROM_CENTER = Inches.of(1.1875);
 	public static final Translation2d REEF_SCORE_OFFSET =
-		new Translation2d(Inches.of(-5.5), INTAKE_OFFSET_FROM_CENTER);
+		new Translation2d(Inches.of(-7.5), INTAKE_OFFSET_FROM_CENTER);
 	public static final Translation2d SOURCE_OFFSET =
 		new Translation2d(Meters.of(-0.1), INTAKE_OFFSET_FROM_CENTER.plus(Inches.of(-20)));
 }

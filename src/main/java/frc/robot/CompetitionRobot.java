@@ -18,10 +18,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.Tracer;
 import frc.chargers.utils.data.StatusSignalRefresher;
 import frc.chargers.utils.data.TunableValues;
+import frc.chargers.utils.data.TunableValues.TunableBool;
 import frc.robot.commands.AutoCommands;
 import frc.robot.commands.RobotCommands;
 import frc.robot.commands.SimulatedAutoEnder;
@@ -73,6 +75,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	}
 	
 	/* Subsystems/Components */
+	private final TunableBool fieldRelativeToggle = new TunableBool("swerveDrive/fieldRelative", true);
 	private final SharedState sharedState = new SharedState();
 	private final GyroWrapper gyroWrapper = new GyroWrapper();
 	private final SwerveDrive drivetrain = new SwerveDrive(
@@ -171,6 +174,11 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			() -> !operator.isConnected()
 		);
 		
+		new Trigger(() -> !fieldRelativeToggle.get())
+			.whileTrue(
+				drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false)
+			);
+		
 		driver.L1()
 			.and(vision.hasConnectedCams)
 			.whileTrue(
@@ -259,7 +267,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		autoChooser.addCmd("One Piece L1", autoCommands::onePieceL1);
 		autoChooser.addCmd("(TEST ONLY) figure eight", autoCommands::figureEight);
 		autoChooser.addCmd("(TEST ONLY) multi piece", autoCommands::multiPieceTest);
-		autoChooser.select("Taxi");
+		autoChooser.addCmd("Stupid fing reset pose test", autoCommands::resetOdoTest);
+		autoChooser.select("Stupid fing reset pose test");
 		
 		SmartDashboard.putData("AutoChooser", autoChooser);
 		autonomous()

@@ -48,6 +48,13 @@ public class SwerveConfigurator {
 			Inches.of(3.5) // width of bumpers
 		);
 	
+	// VecBuilder.fill
+	// Encoders - pose estimate (x, y, theta)
+	// Vision cameras - pose estimate (x, y, theta)
+	// distance from tag
+	// Area of tag
+	// Pose estimator
+	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
 			new PIDConstants(9, 0, 0.01), // azimuth pid - don't add d to this, it makes things weird
