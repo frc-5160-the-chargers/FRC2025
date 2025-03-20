@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.CompetitionRobot.SharedState;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import lombok.Setter;
 import monologue.LogLocal;
@@ -154,11 +155,13 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	@Setter private Consumer<PoseEstimate> globalEstimateConsumer = estimate -> {};
 	@Setter private Supplier<Pose2d> simPoseSupplier = null;
 	private final Map<PhotonCamConfig, CameraStats> camStatsMap = new HashMap<>();
+	private final SharedState sharedState;
 	
 	public final Trigger hasConnectedCams =
 		new Trigger(() -> camStatsMap.values().stream().anyMatch(it -> it.isConnected));
 	
-	public AprilTagVision() {
+	public AprilTagVision(SharedState sharedState) {
+		this.sharedState = sharedState;
 		for (var config: PHOTON_CAM_CONFIGS) {
 			camStatsMap.put(config, new CameraStats());
 		}
@@ -180,10 +183,13 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			config.poseEstimator.setPrimaryStrategy(
 				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
 			);
+			config.poseEstimator.addHeadingData(sharedState.headingTimestamp.getAsDouble(), sharedState.gyroHeading.get());
 			for (var result: config.photonCam.getAllUnreadResults()) {
 				// ignores result if ambiguity is exceeded or if there is no targets.
 				boolean ambiguityExceeded = result.targets.size() == 1 && result.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
-				if (!result.hasTargets() || ambiguityExceeded) continue;
+				if (!result.hasTargets() || ambiguityExceeded) {
+					continue;
+				}
 				
 				// updates the pose estimate, and makes sure that the estimated pose
 				// has a z coordinate near 0 and x and y coordinates within the field.

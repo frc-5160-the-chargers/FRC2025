@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -45,6 +46,8 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.urcl.URCL;
 
 import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
@@ -65,11 +68,13 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	public static class SharedState {
 		public BooleanSupplier atL1Range = () -> false;
 		public BooleanSupplier hasCoral = () -> false;
+		public Supplier<Rotation2d> gyroHeading = () -> Rotation2d.kZero;
+		public DoubleSupplier headingTimestamp = Timer::getTimestamp;
 	}
 	
 	/* Subsystems/Components */
 	private final SharedState sharedState = new SharedState();
-	private final GyroWrapper gyroWrapper = new GyroWrapper();
+	private final GyroWrapper gyroWrapper = new GyroWrapper(sharedState);
 	private final SwerveDrive drivetrain = new SwerveDrive(
 		SwerveConfigurator.HARDWARE_SPECS,
 		SwerveConfigurator.CONTROLS_CONFIG,
@@ -81,7 +86,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final CoralIntake coralIntake = new CoralIntake(sharedState);
 	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(sharedState);
 	private final Climber climber = new Climber();
-	private final AprilTagVision vision = new AprilTagVision();
+	private final AprilTagVision vision = new AprilTagVision(sharedState);
 	
 	/* Generic constants/utility classes */
 	private final RobotVisualization visualizer =

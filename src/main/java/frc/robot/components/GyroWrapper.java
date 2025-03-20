@@ -7,6 +7,7 @@ import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.data.StatusSignalRefresher;
+import frc.robot.CompetitionRobot.SharedState;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 
 @Logged
@@ -23,10 +24,12 @@ public class GyroWrapper {
 		() -> Math.abs(pitch().getDegrees()) > 25 || Math.abs(roll().getDegrees()) > 25
 	);
 	
-	public GyroWrapper() {
+	public GyroWrapper(SharedState sharedState) {
 		yaw.setUpdateFrequency(SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// automatically calls refresh() on signals
 		StatusSignalRefresher.addSignals(pitch, roll, pitchRate, rollRate);
+		sharedState.gyroHeading = this::yaw;
+		sharedState.headingTimestamp = () -> yaw.getTimestamp().getTime();
 	}
 	
 	public Rotation2d yaw() {
