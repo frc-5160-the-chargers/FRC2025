@@ -2,6 +2,7 @@ package frc.robot.components.vision;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -139,6 +140,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			acceptedPoses.clear();
 			rejectedPoses.clear();
 			fiducialIds.clear();
+			isConnected = true;
+			linearStdDev = 0.0;
 		}
 		
 		public void logTo(String name) {
@@ -157,7 +160,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private final Map<PhotonCamConfig, CameraStats> camStatsMap = new HashMap<>();
 	private final SharedState sharedState;
 	
-	public final Trigger hasConnectedCams =
+	@Logged public final Trigger hasConnectedCams =
 		new Trigger(() -> camStatsMap.values().stream().anyMatch(it -> it.isConnected));
 	
 	public AprilTagVision(SharedState sharedState) {
