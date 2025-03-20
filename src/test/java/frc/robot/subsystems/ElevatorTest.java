@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.UnitTestCmdScheduler;
+import frc.robot.CompetitionRobot.SharedState;
 import org.junit.jupiter.api.Test;
 import testingutil.StandardUnitTest;
 
@@ -12,7 +13,7 @@ class ElevatorTest extends StandardUnitTest {
 	@Test
 	void moveToHeight() {
 		var scheduler = UnitTestCmdScheduler.create();
-		var elevator = new Elevator(false);
+		var elevator = new Elevator(new SharedState());
 		scheduler.schedule(
 			elevator.moveToHeightCmd(Meters.of(5.0))
 		);

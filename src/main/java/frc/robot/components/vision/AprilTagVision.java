@@ -2,7 +2,6 @@ package frc.robot.components.vision;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -13,8 +12,8 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
-import lombok.Getter;
 import lombok.Setter;
 import monologue.LogLocal;
 import org.photonvision.PhotonCamera;
@@ -25,8 +24,10 @@ import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -34,7 +35,6 @@ import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
-import static frc.chargers.utils.UtilMethods.toDoubleArray;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
 @SuppressWarnings("unused")
@@ -45,8 +45,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.1;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
-	private static final double LINEAR_STD_DEV_BASELINE = 0.2;
-	private static final double ANGULAR_STD_DEV_BASELINE = 90000;
+	private static final double LINEAR_STD_DEV_BASELINE = 0.2; // was 0.5 when last tested - shouldn't be that high prob?
+	private static final double ANGULAR_STD_DEV = 10000000;
 	
 	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
 	private static final AprilTagFieldLayout REEF_TAGS_ONLY_LAYOUT =
@@ -59,12 +59,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			ALL_TAGS_LAYOUT.getFieldWidth()
 		);
 	private static final AprilTagFieldLayout FIELD_LAYOUT = REEF_TAGS_ONLY_LAYOUT;
-	
-	/*
-	What 254 does for vision filtering:
-	1. Area filtering - must be > 0.4 for enabled
-	2.
-	 */
 	
 	// TODO: Figure out why the robot almost drove into jack
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
@@ -131,79 +125,105 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		}
 	}
 	
+	private class CameraStats {
+		private final Alert connectionAlert = new Alert("", kError);
+		
+		public List<Pose3d> acceptedPoses = new ArrayList<>();
+		public List<Pose3d> rejectedPoses = new ArrayList<>();
+		public Set<Integer> fiducialIds = new HashSet<>();
+		public boolean isConnected = true;
+		public double linearStdDev = 0.0;
+		
+		public void reset() {
+			acceptedPoses.clear();
+			rejectedPoses.clear();
+			fiducialIds.clear();
+		}
+		
+		public void logTo(String name) {
+			log(name + "/acceptedPoses", acceptedPoses.toArray(new Pose3d[0]));
+			log(name + "/rejectedPoses", rejectedPoses.toArray(new Pose3d[0]));
+			log(name + "/fiducialIds", toIntArray(fiducialIds));
+			log(name + "/isConnected", isConnected);
+			log(name + "/linearStdDev", linearStdDev);
+			connectionAlert.setText("camera " + name + "is disconnected.");
+			connectionAlert.set(isConnected);
+		}
+	}
+	
 	@Setter private Consumer<PoseEstimate> globalEstimateConsumer = estimate -> {};
 	@Setter private Supplier<Pose2d> simPoseSupplier = null;
+	private final Map<PhotonCamConfig, CameraStats> camStatsMap = new HashMap<>();
 	
-	private final Alert connectionAlert = new Alert("", kError);
-	@Logged private final List<Pose3d> acceptedPoses = new ArrayList<>();
-	@Logged private final List<Pose3d> rejectedPoses = new ArrayList<>();
-	private final List<Double> timestamps = new ArrayList<>();
-	@Getter private final Set<Integer> fiducialIds = new HashSet<>();
-	private final List<String> disconnectedCamNames = new ArrayList<>();
+	public final Trigger hasConnectedCams =
+		new Trigger(() -> camStatsMap.values().stream().anyMatch(it -> it.isConnected));
+	
+	public AprilTagVision() {
+		for (var config: PHOTON_CAM_CONFIGS) {
+			camStatsMap.put(config, new CameraStats());
+		}
+	}
 	
 	/** Must be called periodically in the robotPeriodic method of the Robot class. */
 	public void periodic() {
-		acceptedPoses.clear();
-		rejectedPoses.clear();
-		fiducialIds.clear();
-		timestamps.clear();
-		disconnectedCamNames.clear();
 		if (VISION_SYSTEM_SIM.isPresent() && simPoseSupplier != null) {
 			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
 		}
 		for (var config: PHOTON_CAM_CONFIGS) {
+			var cameraStats = camStatsMap.get(config);
+			cameraStats.reset();
 			if (!RobotBase.isSimulation() && !config.photonCam.isConnected()) {
-				disconnectedCamNames.add(config.photonCam.getName());
+				cameraStats.isConnected = false;
+				cameraStats.logTo(config.photonCam.getName());
 				continue;
 			}
-			for (var camData: config.photonCam.getAllUnreadResults()) {
-				config.poseEstimator.setPrimaryStrategy(
-					DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
-				);
-				boolean ambiguityExceeded = camData.targets.size() == 1 && camData.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
-				if (!camData.hasTargets() || ambiguityExceeded) continue;
-				fiducialIds.addAll(camData.targets.stream().map(it -> it.fiducialId).toList());
-				var result = config.poseEstimator.update(camData);
-				if (result.isEmpty()) continue;
-				var pose = result.get().estimatedPose;
-				if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters) // Must have realistic Z coordinate
-				    // Must be within the field boundaries
+			config.poseEstimator.setPrimaryStrategy(
+				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
+			);
+			for (var result: config.photonCam.getAllUnreadResults()) {
+				// ignores result if ambiguity is exceeded or if there is no targets.
+				boolean ambiguityExceeded = result.targets.size() == 1 && result.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
+				if (!result.hasTargets() || ambiguityExceeded) continue;
+				
+				// updates the pose estimate, and makes sure that the estimated pose
+				// has a z coordinate near 0 and x and y coordinates within the field.
+				var poseEstimate = config.poseEstimator.update(result);
+				if (poseEstimate.isEmpty()) continue;
+				var pose = poseEstimate.get().estimatedPose;
+				if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters)
 				    || pose.getX() < 0.0
 				    || pose.getX() > FIELD_LAYOUT.getFieldLength()
 				    || pose.getY() < 0.0
 				    || pose.getY() > FIELD_LAYOUT.getFieldWidth()
-					|| camData.targets.isEmpty()) {
-					rejectedPoses.add(pose);
+					|| result.targets.isEmpty()) {
+					cameraStats.rejectedPoses.add(pose);
 					continue;
 				}
-				acceptedPoses.add(pose);
+				cameraStats.acceptedPoses.add(pose);
+				cameraStats.fiducialIds.addAll(result.targets.stream().map(it -> it.fiducialId).toList());
+				
+				// Computes the standard deviations of the pose estimate,
+				// scaling off distance from the target, z error, and # of targets.
 				double tagDistSum = 0.0;
-				for (var target: camData.targets) {
+				for (var target: result.targets) {
 					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
 				}
-				double stdDevMultiplier = Math.pow(tagDistSum / camData.targets.size(), 2) / camData.targets.size();
+				double stdDevMultiplier = Math.pow(tagDistSum / result.targets.size(), 2) / result.targets.size();
 				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * config.stdDevFactor;
-				log("linearStdDevs/" + config.photonCam.getName() + "/linear", linearStdDev);
-				if (Double.isNaN(linearStdDev)) {
-					System.out.println("LMAO");
-				}
+				cameraStats.linearStdDev = linearStdDev;
 				
-				timestamps.add(result.get().timestampSeconds);
+				// Registers the pose estimate.
 				globalEstimateConsumer.accept(
 					new PoseEstimate(
 						pose.toPose2d(),
-						result.get().timestampSeconds,
-						VecBuilder.fill(linearStdDev, linearStdDev, 100000000)
+						poseEstimate.get().timestampSeconds,
+						VecBuilder.fill(linearStdDev, linearStdDev, ANGULAR_STD_DEV)
 					)
 				);
 			}
+			cameraStats.logTo(config.photonCam.getName());
 		}
-		connectionAlert.setText("The following cameras are disconnected: " + disconnectedCamNames);
-		connectionAlert.set(!disconnectedCamNames.isEmpty());
-		log("disconnectedCameras", disconnectedCamNames.toArray(new String[0]));
-		log("timestamps", toDoubleArray(timestamps));
-		log("fiducialIds", toIntArray(fiducialIds));
 	}
 	
 	@Override

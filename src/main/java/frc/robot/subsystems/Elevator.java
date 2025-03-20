@@ -5,7 +5,7 @@ import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.math.controller.ElevatorFeedforward;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
@@ -24,6 +24,7 @@ import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.utils.data.InputStream;
 import frc.chargers.utils.data.PIDConstants;
 import frc.chargers.utils.data.TunableValues.TunableNum;
+import frc.robot.CompetitionRobot.SharedState;
 
 import java.util.Set;
 
@@ -54,10 +55,11 @@ public class Elevator extends StandardSubsystem {
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO * RADIUS.in(Meters));
 	// calculate kS by placing robot on its side then running the elevator at tiny voltages until it moves
 	// calculate kG by setting voltage until it moves, while upright. Subtract from kS
-	private static final ElevatorFeedforward FEEDFORWARD =
-		RobotBase.isSimulation()
-		    ? new ElevatorFeedforward(0, 0, KV)
-			: new ElevatorFeedforward(0.15, 0.44, KV); // confirmed data
+	// Note: to use calculateWithVelocities(), we need an accurate kA value
+	private static final SimpleMotorFeedforward FEEDFORWARD =
+		new SimpleMotorFeedforward(RobotBase.isSimulation() ? 0.15 : 0, KV);
+	private static final double NO_CORAL_KG = 0.37;
+	private static final double WITH_CORAL_KG = 0.45;
 	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
 	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5);
@@ -83,6 +85,8 @@ public class Elevator extends StandardSubsystem {
 			.inverted(false)
 			.follow(LEADER_MOTOR_ID, true);
 	
+	@Logged private final Motor leaderMotor;
+	private final SparkMax followerMotor;
 	private final TrapezoidProfile trapezoidProfile = new TrapezoidProfile(
 		new Constraints(
 			MAX_LINEAR_VEL.in(MetersPerSecond) / RADIUS.in(Meters),
@@ -90,21 +94,21 @@ public class Elevator extends StandardSubsystem {
 		)
 	);
 	private TrapezoidProfile.State currentSetpoint = new TrapezoidProfile.State();
-	
-	@Logged private final Motor leaderMotor;
-	private final SparkMax followerMotor;
+	private final SharedState sharedState;
 	
 	@Logged public final Trigger movingUp;
 	@Logged public final Trigger atLowPosition;
 	@Logged public final Trigger atLowerLimit;
 	@Logged public final Trigger atUpperLimit;
 	
-	public Elevator() {
-		this(false);
+	public Elevator(SharedState sharedState) {
+		this(false, sharedState);
 	}
 	
 	// package-private; for unit tests
-	Elevator(boolean simulateGravity) {
+	Elevator(boolean simulateGravity, SharedState sharedState) {
+		this.sharedState = sharedState;
+		sharedState.atL1Range = () -> heightMeters() < 0.15;
 		leaderMotor = new ChargerSpark(LEADER_MOTOR_ID, Model.SPARK_MAX, LEADER_CONFIG)
 			              .withSim(SimDynamics.ofElevator(MOTOR_KIND, CARRIAGE_MASS, GEAR_RATIO, RADIUS, simulateGravity), MOTOR_KIND);
 		waitThenRun(2, () -> leaderMotor.encoder().setPositionReading(Radians.zero()));
@@ -159,10 +163,15 @@ public class Elevator extends StandardSubsystem {
 		return leaderMotor.encoder().velocityRadPerSec() * RADIUS.in(Meters);
 	}
 	
+	@Logged
+	public double gravityCompensationV() {
+		if (RobotBase.isSimulation()) return 0;
+		return sharedState.hasCoral.getAsBoolean() ? WITH_CORAL_KG : NO_CORAL_KG;
+	}
+	
 	public Command setPowerCmd(InputStream controllerInput) {
 		return this.run(() -> {
-			// not technically mathematically accurate - doesn't really matter for manual control though
-			double volts = controllerInput.get() * 12 + FEEDFORWARD.getKg() + FEEDFORWARD.getKs();
+			double volts = controllerInput.get() * 12 + gravityCompensationV() + FEEDFORWARD.getKs();
 			leaderMotor.setVoltage(volts);
 		}).withName("set power (elevator)");
 	}
@@ -184,11 +193,9 @@ public class Elevator extends StandardSubsystem {
 		}).andThen(
 			// this.run() requires the elevator, while Commands.run/Commands.runOnce dont
 			this.run(() -> {
-				double previousVelTarget = currentSetpoint.velocity * RADIUS.in(Meters);
 				currentSetpoint = trapezoidProfile.calculate(0.02, currentSetpoint, goalState);
-				double ffOutput = FEEDFORWARD.calculateWithVelocities(
-					previousVelTarget, currentSetpoint.velocity * RADIUS.in(Meters)
-				);
+				double ffOutput = FEEDFORWARD.calculate(currentSetpoint.velocity * RADIUS.in(Meters));
+				ffOutput += gravityCompensationV();
 				log("motionProfileState/positionRad", currentSetpoint.position);
 				log("motionProfileState/velRadPerSec", currentSetpoint.velocity);
 				log("feedforward", ffOutput);
@@ -200,7 +207,7 @@ public class Elevator extends StandardSubsystem {
 	@Override
 	protected void requestStop() {
 		log("targetHeight", Double.NaN);
-		leaderMotor.setVoltage(FEEDFORWARD.getKs() + FEEDFORWARD.getKg());
+		leaderMotor.setVoltage(FEEDFORWARD.getKs() + gravityCompensationV());
 	}
 	
 	public Command currentZeroCmd() {

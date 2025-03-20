@@ -44,6 +44,8 @@ import monologue.Monologue;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.urcl.URCL;
 
+import java.util.function.BooleanSupplier;
+
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static frc.chargers.utils.TriggerUtil.bind;
@@ -58,7 +60,15 @@ Comment it out if we are running a rio 1.
  */
 @Logged
 public class CompetitionRobot extends TimedRobot implements LogLocal {
+	/** State that has to be shared across subsystems. */
+	@Logged
+	public static class SharedState {
+		public BooleanSupplier atL1Range = () -> false;
+		public BooleanSupplier hasCoral = () -> false;
+	}
+	
 	/* Subsystems/Components */
+	private final SharedState sharedState = new SharedState();
 	private final GyroWrapper gyroWrapper = new GyroWrapper();
 	private final SwerveDrive drivetrain = new SwerveDrive(
 		SwerveConfigurator.HARDWARE_SPECS,
@@ -67,9 +77,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		SwerveConfigurator.DEFAULT_MOTOR_CONFIG,
 		gyroWrapper::yaw
 	);
-	private final Elevator elevator = new Elevator();
-	private final CoralIntake coralIntake = new CoralIntake(() -> elevator.heightMeters() < 0.15);
-	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(() -> 0, coralIntake.hasCoral.debounce(0.7));
+	private final Elevator elevator = new Elevator(sharedState);
+	private final CoralIntake coralIntake = new CoralIntake(sharedState);
+	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(sharedState);
 	private final Climber climber = new Climber();
 	private final AprilTagVision vision = new AprilTagVision();
 	
@@ -150,10 +160,12 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		);
 		
 		driver.L1()
+			.and(vision.hasConnectedCams)
 			.whileTrue(
 				drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()), setpointGen)
 			);
 		driver.R1()
+			.and(vision.hasConnectedCams)
 			.whileTrue(
 				drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.RIGHT, drivetrain.poseEstimate()), setpointGen)
 			);

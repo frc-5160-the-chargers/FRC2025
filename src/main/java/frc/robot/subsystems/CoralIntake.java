@@ -18,8 +18,7 @@ import frc.chargers.hardware.motorcontrol.Motor.ControlsConfig;
 import frc.chargers.hardware.motorcontrol.SimDynamics;
 import frc.chargers.utils.LaserCanUtil;
 import frc.chargers.utils.data.InputStream;
-
-import java.util.function.BooleanSupplier;
+import frc.robot.CompetitionRobot.SharedState;
 
 import static edu.wpi.first.units.Units.KilogramSquareMeters;
 
@@ -42,7 +41,7 @@ public class CoralIntake extends StandardSubsystem {
 			.inverted(true)
 			.voltageCompensation(12.0);
 	
-	private final BooleanSupplier elevatorAtL1;
+	private final SharedState sharedState;
 	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_FLEX, MOTOR_CONFIG)
 		                            .withSim(SimDynamics.of(MOTOR_KIND, GEAR_RATIO, MOI), MOTOR_KIND);
 	private final LaserCan laserCan = new LaserCan(LASER_CAN_ID);
@@ -57,13 +56,14 @@ public class CoralIntake extends StandardSubsystem {
 	/** A trigger that returns true when the intake is outtaking coral. */
 	@Logged public final Trigger isOuttaking = new Trigger(() -> motor.outputVoltage() > 1.0);
 	
-	public CoralIntake(BooleanSupplier elevatorAtL1) {
-		this.elevatorAtL1 = elevatorAtL1;
+	public CoralIntake(SharedState sharedState) {
+		this.sharedState = sharedState;
+		sharedState.hasCoral = hasCoral.debounce(0.7);
 		motor.setControlsConfig(ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO));
 	}
 	
 	private double getOuttakeVoltage() {
-		return elevatorAtL1.getAsBoolean() ? OUTTAKE_VOLTAGE / 3 : OUTTAKE_VOLTAGE;
+		return sharedState.atL1Range.getAsBoolean() ? OUTTAKE_VOLTAGE / 3 : OUTTAKE_VOLTAGE;
 	}
 	
 	public double velocityRadPerSec() {
