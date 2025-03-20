@@ -8,14 +8,10 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.chargers.utils.data.InputStream;
 
-import static frc.robot.constants.OtherConstants.IS_DANIEL_COMPUTER;
-
 @Logged
 public class OperatorController extends CommandXboxController implements Subsystem {
-	private static final int PORT = IS_DANIEL_COMPUTER ? 0 : 1;
-	
 	public OperatorController() {
-		super(PORT);
+		super(1);
 		this.register();
 	}
 	

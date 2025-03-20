@@ -66,7 +66,8 @@ public class ExtrasLogger {
 				}
 			}, 0.02);
 			new Notifier(ExtrasLogger::logRadio).startPeriodic(5.160); // go chargers!
-		} catch (Exception e) {logger.log("LoggingActive", false);
+		} catch (Exception e) {
+			logger.log("LoggingActive", false);
 			DriverStation.reportError("ExtrasLogger err(logger stopped): " + e, true);
 		}
 	}

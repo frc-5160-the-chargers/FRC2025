@@ -4,14 +4,10 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
 import frc.chargers.utils.data.InputStream;
 
-import static frc.robot.constants.OtherConstants.IS_DANIEL_COMPUTER;
-
 @Logged
 public class DriverController extends CommandPS5Controller { // does not have a rumble command due to problems
-	private static final int PORT = IS_DANIEL_COMPUTER ? 1 : 0;
-	
 	public DriverController() {
-		super(PORT);
+		super(0);
 	}
 	
 	private final InputStream slowModeOutput =

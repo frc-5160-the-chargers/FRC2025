@@ -86,7 +86,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	/* Generic constants/utility classes */
 	private final RobotVisualization visualizer =
 		new RobotVisualization(drivetrain, coralIntake, coralIntakePivot, elevator);
-	private final SwerveSetpointGenerator setpointGen =
+	@NotLogged private final SwerveSetpointGenerator setpointGen =
 		drivetrain.createSetpointGenerator(SwerveConfigurator.BODY_MOI, SwerveConfigurator.DRIVE_CURRENT_LIMIT);
 	private final TargetPoses targetPoses =
 		new TargetPoses(REEF_SCORE_OFFSET, SOURCE_OFFSET, SwerveConfigurator.HARDWARE_SPECS);

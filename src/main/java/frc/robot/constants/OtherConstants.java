@@ -10,9 +10,7 @@ import static edu.wpi.first.units.Units.Meters;
 public class OtherConstants {
 	private OtherConstants() {}
 	
-	public static final boolean USE_PATHFINDING = false;
 	public static final double NUDGE_OUTPUT = 0.03;
-	public static final boolean IS_DANIEL_COMPUTER = false;
 	// to the right
 	public static final Distance INTAKE_OFFSET_FROM_CENTER = Inches.of(1.1875);
 	public static final Translation2d REEF_SCORE_OFFSET =
