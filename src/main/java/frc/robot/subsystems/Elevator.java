@@ -108,7 +108,6 @@ public class Elevator extends StandardSubsystem {
 	// package-private; for unit tests
 	Elevator(boolean simulateGravity, SharedState sharedState) {
 		this.sharedState = sharedState;
-		sharedState.atL1Range = () -> heightMeters() < 0.15;
 		leaderMotor = new ChargerSpark(LEADER_MOTOR_ID, Model.SPARK_MAX, LEADER_CONFIG)
 			              .withSim(SimDynamics.ofElevator(MOTOR_KIND, CARRIAGE_MASS, GEAR_RATIO, RADIUS, simulateGravity), MOTOR_KIND);
 		waitThenRun(2, () -> leaderMotor.encoder().setPositionReading(Radians.zero()));
@@ -166,7 +165,7 @@ public class Elevator extends StandardSubsystem {
 	@Logged
 	public double gravityCompensationV() {
 		if (RobotBase.isSimulation()) return 0;
-		return sharedState.hasCoral.getAsBoolean() ? WITH_CORAL_KG : NO_CORAL_KG;
+		return sharedState.hasCoralDelayed.getAsBoolean() ? WITH_CORAL_KG : NO_CORAL_KG;
 	}
 	
 	public Command setPowerCmd(InputStream controllerInput) {

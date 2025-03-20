@@ -67,14 +67,14 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	@Logged
 	public static class SharedState {
 		public BooleanSupplier atL1Range = () -> false;
-		public BooleanSupplier hasCoral = () -> false;
-		public Supplier<Rotation2d> gyroHeading = () -> Rotation2d.kZero;
+		public BooleanSupplier hasCoralDelayed = () -> false;
+		public Supplier<Rotation2d> robotHeading = () -> Rotation2d.kZero;
 		public DoubleSupplier headingTimestamp = Timer::getTimestamp;
 	}
 	
 	/* Subsystems/Components */
 	private final SharedState sharedState = new SharedState();
-	private final GyroWrapper gyroWrapper = new GyroWrapper(sharedState);
+	private final GyroWrapper gyroWrapper = new GyroWrapper();
 	private final SwerveDrive drivetrain = new SwerveDrive(
 		SwerveConfigurator.HARDWARE_SPECS,
 		SwerveConfigurator.CONTROLS_CONFIG,
@@ -111,8 +111,17 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final OperatorController operator = new OperatorController();
 	
 	public CompetitionRobot() {
+		// Initializes shared state
+		sharedState.robotHeading = () -> drivetrain.bestPose().getRotation();
+		sharedState.headingTimestamp = gyroWrapper::yawTimestamp;
+		sharedState.atL1Range = () -> elevator.heightMeters() < 0.15;
+		sharedState.hasCoralDelayed = coralIntake.hasCoral.debounce(0.7);
+		
 		// calls runTcp() and setups jni
 		LaserCanUtil.setup(true);
+		// enables tuning mode
+		TunableValues.setTuningMode(true);
+		
 		// logging setup(required)
 		Epilogue.bind(this);
 		Monologue.setup(this, Epilogue.getConfig());
@@ -121,8 +130,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		logMetadata();
 		URCL.start();
 		ExtrasLogger.start(this, null);
-		// enables tuning mode
-		TunableValues.setTuningMode(true);
 		
 		mapTriggers();
 		mapDefaultCommands();

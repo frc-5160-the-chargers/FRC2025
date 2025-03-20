@@ -39,7 +39,6 @@ import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
-@SuppressWarnings("unused")
 public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
 		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
@@ -74,7 +73,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				new Rotation3d(
 					Degrees.zero(),
 					Degrees.of(-15),
-					Degrees.of(46) // measured as: 46
+					Degrees.of(48) // measured as: 46
 				)
 			)
 		).withSim(ARDUCAM_SIM_PROPERTIES),
@@ -186,7 +185,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			config.poseEstimator.setPrimaryStrategy(
 				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
 			);
-			config.poseEstimator.addHeadingData(sharedState.headingTimestamp.getAsDouble(), sharedState.gyroHeading.get());
+			config.poseEstimator.addHeadingData(
+				sharedState.headingTimestamp.getAsDouble(), sharedState.robotHeading.get()
+			);
 			for (var result: config.photonCam.getAllUnreadResults()) {
 				// ignores result if ambiguity is exceeded or if there is no targets.
 				boolean ambiguityExceeded = result.targets.size() == 1 && result.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;

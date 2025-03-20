@@ -58,7 +58,6 @@ public class CoralIntake extends StandardSubsystem {
 	
 	public CoralIntake(SharedState sharedState) {
 		this.sharedState = sharedState;
-		sharedState.hasCoral = hasCoral.debounce(0.7);
 		motor.setControlsConfig(ControlsConfig.EMPTY.withGearRatio(GEAR_RATIO));
 	}
 	

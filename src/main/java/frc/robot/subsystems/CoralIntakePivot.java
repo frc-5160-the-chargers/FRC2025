@@ -91,7 +91,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	@Logged
 	public double gravityCompensationV() {
 		if (RobotBase.isSimulation()) return 0.0;
-		var kg = sharedState.hasCoral.getAsBoolean() ? WITH_CORAL_KG : NO_CORAL_KG;
+		var kg = sharedState.hasCoralDelayed.getAsBoolean() ? WITH_CORAL_KG : NO_CORAL_KG;
 		return kg.in(Volts) * Math.cos(angleRads());
 	}
 	
