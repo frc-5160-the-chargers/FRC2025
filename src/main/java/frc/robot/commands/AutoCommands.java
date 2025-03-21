@@ -41,7 +41,7 @@ public class AutoCommands {
 	 */
 	private record ScoringStep(int level, int position, double extendDelay, boolean shouldAlign) {
 		public ScoringStep(int level, int position, double extendDelay) {
-			this(level, position, extendDelay, false); // Align is unecessary for L1
+			this(level, position, extendDelay, level != 1); // Align is unecessary for L1
 		}
 	}
 	

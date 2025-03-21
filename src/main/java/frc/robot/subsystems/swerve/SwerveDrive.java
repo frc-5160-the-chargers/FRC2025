@@ -548,8 +548,8 @@ public class SwerveDrive extends StandardSubsystem {
 		})
 	       .andThen(
 			   this.run(() -> {
-					var vx = xPoseController.calculate(poseEstimate().getX(), targetPose.getX()) / 5;
-					var vy = yPoseController.calculate(poseEstimate().getY(), targetPose.getY()) / 5;
+					var vx = xPoseController.calculate(poseEstimate().getX(), targetPose.getX()) / 3;
+					var vy = yPoseController.calculate(poseEstimate().getY(), targetPose.getY()) / 3;
 					var rotationV = rotationController.calculate(
 						angleModulus(bestPose().getRotation().getRadians()),
 						angleModulus(targetPose.getRotation().getRadians())

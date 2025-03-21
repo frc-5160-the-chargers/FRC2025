@@ -76,6 +76,7 @@ public class RobotCommands {
 	 */
 	public Command scoreSequence(int scoringLevel) {
 		return moveTo(Setpoint.score(scoringLevel))
+			       //.withTimeout(3)
 			       .andThen(
 					   Commands.deadline(
 						   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.15)

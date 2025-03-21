@@ -52,7 +52,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		new AprilTagFieldLayout(
 			ALL_TAGS_LAYOUT.getTags()
 				.stream()
-				.filter(it -> it.ID == 22 || (it.ID >= 6 && it.ID <= 11))
+				.filter(it -> (it.ID >= 17 && it.ID <= 22) || (it.ID >= 6 && it.ID <= 11))
 				.toList(),
 			ALL_TAGS_LAYOUT.getFieldLength(),
 			ALL_TAGS_LAYOUT.getFieldWidth()
