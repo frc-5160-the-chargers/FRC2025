@@ -21,9 +21,7 @@ import frc.chargers.utils.data.TunableValues.TunableNum;
 
 import java.util.Set;
 
-import static edu.wpi.first.math.util.Units.degreesToRadians;
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.units.Units.Radians;
 import static frc.chargers.utils.UtilMethods.waitThenRun;
 
 // + voltage is backward

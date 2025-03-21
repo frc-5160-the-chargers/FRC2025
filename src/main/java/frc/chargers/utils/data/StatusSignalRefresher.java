@@ -2,7 +2,6 @@ package frc.chargers.utils.data;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import edu.wpi.first.wpilibj.TimedRobot;
-import frc.chargers.utils.Tracer;
 
 import java.util.HashSet;
 import java.util.List;
