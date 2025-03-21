@@ -32,12 +32,13 @@ public class GyroWrapper implements LogLocal {
 		StatusSignalRefresher.addSignals(pitch, roll, pitchRate, rollRate);
 	}
 	
+	/** Refreshes the yaw signal of the gyro wrapper. Must be placed in an addPeriodic. */
 	public void refreshYaw() {
+		lastLatency = yaw.getTimestamp().getLatency();
 		BaseStatusSignal.refreshAll(yaw);
 	}
 	
 	public Rotation2d yaw() {
-		lastLatency = yaw.getTimestamp().getLatency();
 		return Rotation2d.fromDegrees(yaw.getValueAsDouble());
 	}
 	

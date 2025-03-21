@@ -5,6 +5,8 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.WrapperCommand;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -343,6 +345,27 @@ public class Tracer {
 		} finally {
 			endTraceInner(state);
 		}
+	}
+	
+	/**
+	 * Traces a command's execute() method.
+	 *
+	 * @param command the command to trace.
+	 * @param name the name of the trace, should be unique to the function.
+	 * @return the command with the runtime trace.
+	 */
+	public static Command trace(Command command, String name) {
+		return new WrapperCommand(command) {
+			@Override
+			public void execute() {
+				Tracer.trace(name, super::execute);
+			}
+			
+			@Override
+			public String getName() {
+				return name;
+			}
+		};
 	}
 	
 	/** This function is only to be used in tests and is package private to prevent misuse. */

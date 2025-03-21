@@ -73,23 +73,11 @@ public class UtilMethods {
 	}
 	
 	public static int[] toIntArray(Collection<Integer> list) {
-		var arr = new int[list.size()];
-		int idx = 0;
-		for (var value: list) {
-			arr[idx] = value;
-			idx++;
-		}
-		return arr;
+		return list.stream().mapToInt(Integer::intValue).toArray();
 	}
 	
 	public static double[] toDoubleArray(Collection<Double> list) {
-		var arr = new double[list.size()];
-		int idx = 0;
-		for (var value: list) {
-			arr[idx] = value;
-			idx++;
-		}
-		return arr;
+		return list.stream().mapToDouble(Double::doubleValue).toArray();
 	}
 	
 	/** Runs a CTRE configure call up to 10 times, stopping if it returns an ok status. */

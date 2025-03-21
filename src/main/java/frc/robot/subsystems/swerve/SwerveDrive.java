@@ -588,7 +588,7 @@ public class SwerveDrive extends StandardSubsystem {
 			   this.run(() -> {
 					Tracer.startTrace("repulsor pathfinding");
 					var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-					var desiredSpeeds = toDesiredSpeeds(sample, 1);
+					var desiredSpeeds = toDesiredSpeeds(sample, 1.4);
 					SwerveModuleState[] desiredStates;
 					if (setpointGen != null) {
 						pathfindSetpoint = setpointGen.generateSetpoint(pathfindSetpoint, desiredSpeeds, 0.02);
@@ -660,8 +660,10 @@ public class SwerveDrive extends StandardSubsystem {
 	}
 	
 	public void addVisionData(PoseEstimate estimate) {
-		if (!acceptVisionObservations) return;
-		poseEstimator.addVisionMeasurement(estimate.pose(), estimate.timestampSecs(), estimate.standardDeviations());
+		Tracer.trace("addVisionData", () -> {
+			if (!acceptVisionObservations) return;
+			poseEstimator.addVisionMeasurement(estimate.pose(), estimate.timestampSecs(), estimate.standardDeviations());
+		});
 	}
 	
 	public void setPathfindingObstacles(List<Pose2d> obstacles) {

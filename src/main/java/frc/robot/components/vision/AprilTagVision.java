@@ -3,6 +3,7 @@ package frc.robot.components.vision;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -12,6 +13,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
+import frc.chargers.utils.Tracer;
 import frc.robot.CompetitionRobot.SharedState;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import lombok.Setter;
@@ -24,6 +26,7 @@ import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,8 +37,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.chargers.utils.UtilMethods.toDoubleArray;
-import static frc.chargers.utils.UtilMethods.toIntArray;
 
 public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
@@ -146,10 +147,14 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		public void logTo(String name) {
 			log(name + "/acceptedPoses", acceptedPoses.toArray(DUMMY_POSE_ARR));
 			log(name + "/rejectedPoses", rejectedPoses.toArray(DUMMY_POSE_ARR));
-			log(name + "/fiducialIds", toIntArray(fiducialIds));
-			//log(name + "/rejectionReasons", rejectionReasons.toArray(DUMMY_STRING_ARR));
-			log(name + "/linearStdDevs", toDoubleArray(linearStdDevs));
-			log(name + "/ambiguityData", toDoubleArray(ambiguityData));
+			if (!ambiguityData.isEmpty()) {
+				log(name + "/largestAmbiguity", Collections.max(ambiguityData));
+			}
+			// FIXME array logging - slows down ascope to unbearable speed
+//			log(name + "/fiducialIds", toIntArray(fiducialIds));
+//			log(name + "/rejectionReasons", rejectionReasons.toArray(DUMMY_STRING_ARR));
+//			log(name + "/linearStdDevs", toDoubleArray(linearStdDevs));
+//			log(name + "/ambiguityData", toDoubleArray(ambiguityData));
 		}
 	}
 	
@@ -168,8 +173,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	/** Must be called periodically in the robotPeriodic method of the Robot class. */
 	public void periodic() {
 		if (VISION_SYSTEM_SIM.isPresent() && simPoseSupplier != null) {
-			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
+			Tracer.trace("vision sim", () -> VISION_SYSTEM_SIM.get().update(simPoseSupplier.get()));
 		}
+		Tracer.startTrace("vision compute");
 		for (var config: PHOTON_CAM_CONFIGS) {
 			var cameraStats = camStatsMap.get(config);
 			cameraStats.reset();
@@ -186,11 +192,22 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				sharedState.headingSupplier.get()
 			);
 			for (var result: config.photonCam.getAllUnreadResults()) {
+				// TODO fix bad ambiguity at large distances with recalibration
 				// ignores result if ambiguity is exceeded or if there is no targets.
-				boolean ambiguityExceeded = result.targets.size() == 1 && result.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
-				if (ambiguityExceeded) {
-					cameraStats.rejectionReasons.add("ambiguity exceeded(data not logged)");
-					continue;
+				if (result.targets.size() == 1) {
+					double latestAmbiguity = result.targets.get(0).poseAmbiguity;
+					if (latestAmbiguity < 1e-4) {
+						log("ambiguityRejectedBecauseTooLow", true);
+						continue;
+					} else {
+						log("ambiguityRejectedBecauseToLow", false);
+					}
+					log("lastAmbiguityValue", latestAmbiguity);
+					boolean ambiguityExceeded = result.targets.size() == 1 && latestAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
+					if (ambiguityExceeded) {
+						cameraStats.rejectionReasons.add("ambiguity exceeded(ambiguity not logged)");
+						continue;
+					}
 				}
 				
 				// updates the pose estimate, and makes sure that the estimated pose
@@ -236,6 +253,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			}
 			cameraStats.logTo(config.photonCam.getName());
 		}
+		Tracer.endTrace();
 	}
 	
 	@Override

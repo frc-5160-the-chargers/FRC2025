@@ -34,7 +34,7 @@ import frc.robot.constants.BuildConstants;
 import frc.robot.constants.Setpoint;
 import frc.robot.constants.TargetPoses;
 import frc.robot.constants.TargetPoses.ReefSide;
-import frc.robot.subsystems.Climber;
+import frc.robot.subsystems.AlgaeKicker;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
 import frc.robot.subsystems.Elevator;
@@ -50,6 +50,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
+import static edu.wpi.first.math.util.Units.degreesToRadians;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.test;
 import static frc.chargers.utils.TriggerUtil.bind;
@@ -86,7 +87,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	private final Elevator elevator = new Elevator(sharedState);
 	private final CoralIntake coralIntake = new CoralIntake(sharedState);
 	private final CoralIntakePivot coralIntakePivot = new CoralIntakePivot(sharedState);
-	private final Climber climber = new Climber();
+	private final AlgaeKicker algaeKicker = new AlgaeKicker();
 	private final AprilTagVision vision = new AprilTagVision(sharedState);
 	
 	/* Generic constants/utility classes */
@@ -159,11 +160,16 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		// Tracer.trace(...) runs the method while recording loop times
 		Tracer.trace("cmd scheduler", CommandScheduler.getInstance()::run);
 		Tracer.trace("mech visualizer", visualizer::periodic);
-		Tracer.trace("CAN signal refresh", StatusSignalRefresher::periodic); // you must add this line
+		Tracer.trace("CAN signal refresh", StatusSignalRefresher::periodic);
 		Tracer.trace("vision", vision::periodic);
 		if (RobotBase.isSimulation()) {
 			Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
 		}
+	}
+	
+	@Override
+	public void loopFunc() { // WARNING: Do not modify this method.
+		Tracer.trace("main loop", super::loopFunc);
 	}
 	
 	private void mapTriggers() {
@@ -223,6 +229,9 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		operator.leftBumper()
 			.whileTrue(botCommands.stow());
 		
+		operator.leftTrigger().whileTrue(algaeKicker.setPowerCmd(() -> 0.2));
+		operator.rightTrigger().whileTrue(algaeKicker.setPowerCmd(() -> -0.2));
+		
 		operator.a()
 			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
 		operator.b()
@@ -234,8 +243,6 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		
 		doubleClicked(operator.start())
 			.onTrue(Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose())).ignoringDisable(true));
-		doubleClicked(operator.back())
-			.onTrue(climber.resetStartingAngle());
 	}
 	
 	private void mapDefaultCommands() {
@@ -245,7 +252,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
 		coralIntakePivot.setDefaultCommand(coralIntakePivot.setPowerCmd(operator.manualPivotInput));
-		climber.setDefaultCommand(climber.idleCmd());
+		algaeKicker.setDefaultCommand(algaeKicker.idleCmd());
 	}
 	
 	private void logMetadata() {
