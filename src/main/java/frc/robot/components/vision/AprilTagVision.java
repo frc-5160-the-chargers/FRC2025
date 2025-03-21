@@ -2,7 +2,6 @@ package frc.robot.components.vision;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -10,10 +9,9 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj.Timer;
 import frc.robot.CompetitionRobot.SharedState;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
 import lombok.Setter;
@@ -31,13 +29,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
+import static frc.chargers.utils.UtilMethods.toDoubleArray;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
 public class AprilTagVision implements AutoCloseable, LogLocal {
@@ -55,12 +52,15 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 		new AprilTagFieldLayout(
 			ALL_TAGS_LAYOUT.getTags()
 				.stream()
-				.filter(it -> (it.ID >= 17 && it.ID <= 22) || (it.ID >= 6 && it.ID <= 11))
+				.filter(it -> it.ID == 22 || (it.ID >= 6 && it.ID <= 11))
 				.toList(),
 			ALL_TAGS_LAYOUT.getFieldLength(),
 			ALL_TAGS_LAYOUT.getFieldWidth()
 		);
 	private static final AprilTagFieldLayout FIELD_LAYOUT = REEF_TAGS_ONLY_LAYOUT;
+	
+	private static final Pose3d[] DUMMY_POSE_ARR = new Pose3d[0];
+	private static final String[] DUMMY_STRING_ARR = new String[0];
 	
 	// TODO: Figure out why the robot almost drove into jack
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
@@ -128,30 +128,28 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	}
 	
 	private class CameraStats {
-		private final Alert connectionAlert = new Alert("", kError);
-		
-		public List<Pose3d> acceptedPoses = new ArrayList<>();
-		public List<Pose3d> rejectedPoses = new ArrayList<>();
-		public Set<Integer> fiducialIds = new HashSet<>();
-		public boolean isConnected = true;
-		public double linearStdDev = 0.0;
+		public final List<Pose3d> acceptedPoses = new ArrayList<>();
+		public final List<Pose3d> rejectedPoses = new ArrayList<>();
+		public final Set<Integer> fiducialIds = new HashSet<>();
+		public final Set<String> rejectionReasons = new HashSet<>();
+		public final List<Double> ambiguityData = new ArrayList<>();
+		public final List<Double> linearStdDevs = new ArrayList<>();
 		
 		public void reset() {
 			acceptedPoses.clear();
 			rejectedPoses.clear();
+			rejectionReasons.clear();
 			fiducialIds.clear();
-			isConnected = true;
-			linearStdDev = 0.0;
+			ambiguityData.clear();
 		}
 		
 		public void logTo(String name) {
-			log(name + "/acceptedPoses", acceptedPoses.toArray(new Pose3d[0]));
-			log(name + "/rejectedPoses", rejectedPoses.toArray(new Pose3d[0]));
+			log(name + "/acceptedPoses", acceptedPoses.toArray(DUMMY_POSE_ARR));
+			log(name + "/rejectedPoses", rejectedPoses.toArray(DUMMY_POSE_ARR));
 			log(name + "/fiducialIds", toIntArray(fiducialIds));
-			log(name + "/isConnected", isConnected);
-			log(name + "/linearStdDev", linearStdDev);
-			connectionAlert.setText("camera " + name + "is disconnected.");
-			connectionAlert.set(isConnected);
+			//log(name + "/rejectionReasons", rejectionReasons.toArray(DUMMY_STRING_ARR));
+			log(name + "/linearStdDevs", toDoubleArray(linearStdDevs));
+			log(name + "/ambiguityData", toDoubleArray(ambiguityData));
 		}
 	}
 	
@@ -159,9 +157,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	@Setter private Supplier<Pose2d> simPoseSupplier = null;
 	private final Map<PhotonCamConfig, CameraStats> camStatsMap = new HashMap<>();
 	private final SharedState sharedState;
-	
-	@Logged public final Trigger hasConnectedCams =
-		new Trigger(() -> camStatsMap.values().stream().anyMatch(it -> it.isConnected));
 	
 	public AprilTagVision(SharedState sharedState) {
 		this.sharedState = sharedState;
@@ -172,7 +167,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	
 	/** Must be called periodically in the robotPeriodic method of the Robot class. */
 	public void periodic() {
-		if (DriverStation.isDisabled()) return;
 		if (VISION_SYSTEM_SIM.isPresent() && simPoseSupplier != null) {
 			VISION_SYSTEM_SIM.get().update(simPoseSupplier.get());
 		}
@@ -180,7 +174,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			var cameraStats = camStatsMap.get(config);
 			cameraStats.reset();
 			if (!RobotBase.isSimulation() && !config.photonCam.isConnected()) {
-				cameraStats.isConnected = false;
+				cameraStats.rejectionReasons.add("not connected");
 				cameraStats.logTo(config.photonCam.getName());
 				continue;
 			}
@@ -188,12 +182,14 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
 			);
 			config.poseEstimator.addHeadingData(
-				sharedState.headingTimestamp.getAsDouble(), sharedState.robotHeading.get()
+				Timer.getFPGATimestamp() - sharedState.headingLatency.getAsDouble(),
+				sharedState.headingSupplier.get()
 			);
 			for (var result: config.photonCam.getAllUnreadResults()) {
 				// ignores result if ambiguity is exceeded or if there is no targets.
 				boolean ambiguityExceeded = result.targets.size() == 1 && result.targets.get(0).poseAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
-				if (!result.hasTargets() || ambiguityExceeded) {
+				if (ambiguityExceeded) {
+					cameraStats.rejectionReasons.add("ambiguity exceeded(data not logged)");
 					continue;
 				}
 				
@@ -206,9 +202,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				    || pose.getX() < 0.0
 				    || pose.getX() > FIELD_LAYOUT.getFieldLength()
 				    || pose.getY() < 0.0
-				    || pose.getY() > FIELD_LAYOUT.getFieldWidth()
-					|| result.targets.isEmpty()) {
+				    || pose.getY() > FIELD_LAYOUT.getFieldWidth()) {
 					cameraStats.rejectedPoses.add(pose);
+					cameraStats.rejectionReasons.add("z err too high/outside of field bounds");
 					continue;
 				}
 				cameraStats.acceptedPoses.add(pose);
@@ -217,13 +213,17 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				// Computes the standard deviations of the pose estimate,
 				// scaling off distance from the target, z error, and # of targets.
 				double tagDistSum = 0.0;
+				double tagAreaSum = 0.0;
 				for (var target: result.targets) {
 					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
+					tagAreaSum += target.area;
+					cameraStats.ambiguityData.add(target.poseAmbiguity);
 				}
 				double stdDevMultiplier = Math.pow(tagDistSum / result.targets.size(), 2) / result.targets.size();
 				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
+				stdDevMultiplier *= Math.pow(result.targets.size() / Math.abs(tagAreaSum), 0.2);
+				cameraStats.linearStdDevs.add(stdDevMultiplier);
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * config.stdDevFactor;
-				cameraStats.linearStdDev = linearStdDev;
 				
 				// Registers the pose estimate.
 				globalEstimateConsumer.accept(

@@ -8,16 +8,19 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.data.StatusSignalRefresher;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
+import lombok.Getter;
+import monologue.LogLocal;
 
 @Logged
-public class GyroWrapper {
+public class GyroWrapper implements LogLocal {
 	@NotLogged private final Pigeon2 pigeon = new Pigeon2(0);
-	private final BaseStatusSignal
+	@NotLogged private final BaseStatusSignal
 		yaw = pigeon.getYaw(),
 		pitch = pigeon.getPitch(),
 		roll = pigeon.getRoll(),
 		pitchRate = pigeon.getAngularVelocityYWorld(),
 		rollRate = pigeon.getAngularVelocityXWorld();
+	@Getter private double lastLatency = 0.0;
 	
 	public final Trigger isTipping = new Trigger(
 		() -> Math.abs(pitch().getDegrees()) > 25 || Math.abs(roll().getDegrees()) > 25
@@ -29,13 +32,12 @@ public class GyroWrapper {
 		StatusSignalRefresher.addSignals(pitch, roll, pitchRate, rollRate);
 	}
 	
-	@NotLogged
-	public double yawTimestamp() {
-		return yaw.getTimestamp().getTime();
+	public void refreshYaw() {
+		BaseStatusSignal.refreshAll(yaw);
 	}
 	
 	public Rotation2d yaw() {
-		BaseStatusSignal.refreshAll(yaw);
+		lastLatency = yaw.getTimestamp().getLatency();
 		return Rotation2d.fromDegrees(yaw.getValueAsDouble());
 	}
 	

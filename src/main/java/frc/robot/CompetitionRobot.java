@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -66,12 +65,11 @@ Comment it out if we are running a rio 1.
 @Logged
 public class CompetitionRobot extends TimedRobot implements LogLocal {
 	/** State that has to be shared across subsystems. */
-	@Logged
 	public static class SharedState {
-		public BooleanSupplier atL1Range = () -> false;
-		public BooleanSupplier hasCoralDelayed = () -> false;
-		public Supplier<Rotation2d> robotHeading = () -> Rotation2d.kZero;
-		public DoubleSupplier headingTimestamp = Timer::getTimestamp;
+		public BooleanSupplier atL1Range;
+		public BooleanSupplier hasCoralDelayed;
+		public DoubleSupplier headingLatency;
+		public Supplier<Rotation2d> headingSupplier;
 	}
 	
 	/* Subsystems/Components */
@@ -115,8 +113,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	public CompetitionRobot() {
 		// Initializes shared state
-		sharedState.robotHeading = () -> drivetrain.bestPose().getRotation();
-		sharedState.headingTimestamp = gyroWrapper::yawTimestamp;
+		sharedState.headingSupplier = () -> drivetrain.bestPose().getRotation();
+		sharedState.headingLatency = gyroWrapper::getLastLatency;
 		sharedState.atL1Range = () -> elevator.heightMeters() < 0.15;
 		sharedState.hasCoralDelayed = coralIntake.hasCoral.debounce(0.7);
 		
@@ -139,9 +137,13 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		mapAutoModes();
 		mapTestCommands();
 		
-		addPeriodic(drivetrain::updateOdometry, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
+		addPeriodic(() -> {
+			gyroWrapper.refreshYaw();
+			drivetrain.updateOdometry();
+		}, 1 / SwerveConfigurator.ODOMETRY_FREQUENCY_HZ);
 		// Vision setup - there are 2 overloads for addVisionData
 		vision.setGlobalEstimateConsumer(drivetrain::addVisionData);
+		vision.setSimPoseSupplier(drivetrain::bestPose);
 		DriverStation.silenceJoystickConnectionWarning(true);
 		
 		if (RobotBase.isSimulation()) {
@@ -180,12 +182,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			);
 		
 		driver.L1()
-			.and(vision.hasConnectedCams)
 			.whileTrue(
 				drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()), setpointGen)
 			);
 		driver.R1()
-			.and(vision.hasConnectedCams)
 			.whileTrue(
 				drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.RIGHT, drivetrain.poseEstimate()), setpointGen)
 			);
@@ -240,7 +240,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false)
 		);
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
@@ -314,6 +314,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd(
 			"Set Steer angles",
 			() -> drivetrain.setSteerAngles(Rotation2d.k180deg.plus(Rotation2d.kCW_90deg))
+		);
+		testModeChooser.addCmd(
+			"HelloThere",
+			() -> drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()), setpointGen)
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
