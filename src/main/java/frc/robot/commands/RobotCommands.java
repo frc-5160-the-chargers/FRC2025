@@ -47,16 +47,18 @@ public class RobotCommands {
 	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
 	 */
 	public Command moveTo(Setpoint setpoint) {
-		return Commands.parallel(
+		return Commands.sequence(
 			Commands.runOnce(() -> GlobalLog.log("setpoint", setpoint.name())),
-			coralIntakePivot.setAngleCmd(setpoint.wristTarget()),
-			Commands.waitUntil(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Degrees))
-				.andThen(elevator.moveToHeightCmd(setpoint.elevatorHeight()))
+			coralIntakePivot.setAngleCmd(Setpoint.Limits.WRIST_LIMIT)
+                .until(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Radians)),
+			elevator.moveToHeightCmd(setpoint.elevatorHeight()),
+			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
 		).withName("move to setpoint");
 	}
 	
 	/** Moves the elevator and pivot to a stow position. */
 	public Command stow() {
+		//return moveTo(Setpoint.STOW_STEP_1).andThen(moveTo(Setpoint.STOW_STEP_2));
 		return Commands.sequence(
 			Commands.runOnce(() -> GlobalLog.log("setpoint", "stow")),
 			coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)

@@ -41,7 +41,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
 		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
 	private static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
-	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.1;
+	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.18;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
 	private static final double LINEAR_STD_DEV_BASELINE = 0.2; // was 0.5 when last tested - shouldn't be that high prob?
@@ -57,7 +57,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			ALL_TAGS_LAYOUT.getFieldLength(),
 			ALL_TAGS_LAYOUT.getFieldWidth()
 		);
-	private static final AprilTagFieldLayout FIELD_LAYOUT = REEF_TAGS_ONLY_LAYOUT;
+	private static final AprilTagFieldLayout FIELD_LAYOUT = ALL_TAGS_LAYOUT;
 	
 	private static final Pose3d[] DUMMY_POSE_ARR = new Pose3d[0];
 	private static final String[] DUMMY_STRING_ARR = new String[0];
@@ -151,7 +151,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			}
 			// FIXME array logging - slows down ascope to unbearable speed
 //			log(name + "/fiducialIds", toIntArray(fiducialIds));
-//			log(name + "/rejectionReasons", rejectionReasons.toArray(DUMMY_STRING_ARR));
+			log(name + "/rejectionReasons", rejectionReasons.toArray(DUMMY_STRING_ARR));
 //			log(name + "/linearStdDevs", toDoubleArray(linearStdDevs));
 //			log(name + "/ambiguityData", toDoubleArray(ambiguityData));
 		}
@@ -183,9 +183,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				cameraStats.logTo(config.photonCam.getName());
 				continue;
 			}
-			config.poseEstimator.setPrimaryStrategy(
-				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
-			);
+//			config.poseEstimator.setPrimaryStrategy(
+//				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
+//			);
 			config.poseEstimator.addHeadingData(
 				Timer.getFPGATimestamp() - sharedState.headingLatency.getAsDouble(),
 				sharedState.headingSupplier.get()

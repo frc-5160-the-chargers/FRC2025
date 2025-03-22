@@ -93,7 +93,8 @@ public class AutoCommands {
 				var goal = previousTarget; // we create a temp variable because the () -> ... expression cannot use variables that change
 				previousTraj.atTranslation(goal.getTranslation(), 0.3).onTrue(
 					drivetrain.pathfindCmd(() -> AllianceUtil.flipIfRed(goal), setpointGen)
-						.andThen(botCommands.waitUntilReady(), intakeTraj.spawnCmd())
+						.withTimeout(3)
+						.andThen(Commands.print("AUTOALIGN DONE"), botCommands.waitUntilReady(), intakeTraj.spawnCmd())
 						.withName("intake traj spawner")
 				);
 			} else {
@@ -139,7 +140,7 @@ public class AutoCommands {
 		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiShort"),
-			new ScoringStep(4, 9, 0.75, false),
+			new ScoringStep(4, 9, 0.75, true),
 			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.7)),
 			new CombinedStep(intakeStep, new ScoringStep(4, 10, 0.8))
 		);
@@ -182,9 +183,10 @@ public class AutoCommands {
 		);
 	}
 	
-	public Command onePieceL4() {
+	public Command onePieceL4(boolean mirrored) {
+		int position = mirrored ? 5 : 9;
 		var routine = autoFactory.newRoutine("OnePieceL4");
-		return genericAuto(routine, null, new ScoringStep(4, 9, 0.6, false));
+		return genericAuto(routine, null, new ScoringStep(4, position, 0.6, false));
 	}
 	
 	public Command onePieceL1() {

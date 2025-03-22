@@ -32,7 +32,7 @@ import static edu.wpi.first.units.Units.*;
 public class CoralIntakePivot extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
-	private static final Angle TOLERANCE = Degrees.of(1.5);
+	private static final Angle TOLERANCE = Degrees.of(1);
 	private static final double GEAR_RATIO = 256 / 3.0;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
 	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.622);
@@ -40,7 +40,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final SimpleMotorFeedforward FF_EQUATION = new SimpleMotorFeedforward(0.05, KV);
 	private static final Voltage NO_CORAL_KG = Volts.of(-0.32);
-	private static final Voltage WITH_CORAL_KG = Volts.of(-0.46);
+	private static final Voltage WITH_CORAL_KG = Volts.of(-0.48);
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
@@ -115,7 +115,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforwardV);
 			   })
 	       )
-	       .until(atTarget.and(() -> sharedState.elevatorSpeed.getAsDouble() < 0.1))
+	       .until(atTarget.and(() -> sharedState.elevatorSpeed.getAsDouble() < 0.05))
 	       .finallyDo(this::requestStop)
 	       .withName("set angle (pivot)");
 	}

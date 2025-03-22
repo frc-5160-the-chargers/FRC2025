@@ -112,7 +112,7 @@ public class SwerveDrive extends StandardSubsystem {
 	public enum ModuleType {
 		MK4iL2(6.75, 150.0 / 7.0, Inches.of(2)),
 		MK4iL3(6.12, 150.0 / 7.0, Inches.of(2)),
-		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2.205)); // Multiplied by 0.775 because our swerve modules are wrong
+		SwerveX2L2P11(6.20, 12.1 * 0.775, Inches.of(2)); // Multiplied by 0.775 because our swerve modules are wrong
 		
 		public final double driveGearRatio;
 		public final double steerGearRatio;
@@ -564,9 +564,9 @@ public class SwerveDrive extends StandardSubsystem {
 					for (int i = 0; i < 4; i++) {
 						swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 					}
-				}).until(() -> log("atSetpoints", xPoseController.atSetpoint() && yPoseController.atSetpoint() && rotationController.atSetpoint())),
-		       stopCmd()
+				}).until(() -> log("atSetpoints", xPoseController.atSetpoint() && yPoseController.atSetpoint() && rotationController.atSetpoint()))
 	       )
+	       .finallyDo(this::requestStop)
 	       .withName("align(drivetrain)");
 	}
 	
@@ -591,7 +591,7 @@ public class SwerveDrive extends StandardSubsystem {
 			   this.run(() -> {
 					Tracer.startTrace("repulsor pathfinding");
 					var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-					var desiredSpeeds = toDesiredSpeeds(sample, 1.5);
+					var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
 					SwerveModuleState[] desiredStates;
 					if (setpointGen != null) {
 						pathfindSetpoint = setpointGen.generateSetpoint(pathfindSetpoint, desiredSpeeds, 0.02);
@@ -605,9 +605,9 @@ public class SwerveDrive extends StandardSubsystem {
 						swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 					}
 					Tracer.endTrace();
-			   }).until(() -> repulsor.atGoal(0.02)),
-		       stopCmd()
+			   }).until(() -> repulsor.atGoal(0.02))
 	       )
+	       .finallyDo(this::requestStop)
 	       .withName("PathfindCmd");
 	}
 	

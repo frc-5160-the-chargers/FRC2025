@@ -62,7 +62,7 @@ public class Elevator extends StandardSubsystem {
 	private static final double WITH_CORAL_KG = 0.5;
 	
 	private static final LinearVelocity MAX_LINEAR_VEL = MetersPerSecond.of((12 - FEEDFORWARD.getKs()) / KV);
-	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(5.5);
+	private static final LinearAcceleration MAX_LINEAR_ACCEL = MetersPerSecondPerSecond.of(4);
 	
 	// Leader is the right motor
 	private static final int LEADER_MOTOR_ID = 27;

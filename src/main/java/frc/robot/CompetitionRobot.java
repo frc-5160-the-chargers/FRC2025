@@ -250,7 +250,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
 		);
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
@@ -273,7 +273,8 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		autoChooser.addCmd("4x L1 Right", autoCommands::quadL1South);
 		autoChooser.addCmd("L4 L1 L1 Right", autoCommands::l4L1L1South);
 		autoChooser.addCmd("L4 L4 L1 Right", autoCommands::l4L4L1South);
-		autoChooser.addCmd("One Piece L4", autoCommands::onePieceL4);
+		autoChooser.addCmd("One Piece L4", () -> autoCommands.onePieceL4(false));
+		autoChooser.addCmd("One Piece L4(mirrored)", () -> autoCommands.onePieceL4(true));
 		autoChooser.addCmd("One Piece L1", autoCommands::onePieceL1);
 		autoChooser.addCmd("(TEST ONLY) figure eight", autoCommands::figureEight);
 		autoChooser.addCmd("(TEST ONLY) multi piece", autoCommands::multiPieceTest);

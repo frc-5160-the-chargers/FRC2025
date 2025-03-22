@@ -14,7 +14,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 		entry(1, new Setpoint(Meters.zero(), Radians.of(0.28), "L1")),
 		entry(2, new Setpoint(Meters.of(0.095), Degrees.of(10), "L2")),
 		entry(3, new Setpoint(Meters.of(0.39), Degrees.of(5), "L3")),
-		entry(4, new Setpoint(Meters.of(1.27), Degrees.of(25.5), "L4")) // highest possible elevator setpoint
+		entry(4, new Setpoint(Meters.of(1.27), Degrees.of(27), "L4")) // highest possible elevator setpoint
 	);
 	
 	public static Setpoint score(int level) {
@@ -29,7 +29,8 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 	public static final Setpoint ALGAE_PREP_L3 = new Setpoint(Meters.of(0.88), Degrees.of(15), "algae prep L3");
 	public static final Setpoint ALGAE_POP_L2 = new Setpoint(Meters.of(0.45), Degrees.of(15), "algae pop L2");
 	public static final Setpoint ALGAE_POP_L3 = new Setpoint(Meters.of(0.83), Degrees.of(15),"algae pop L3");
-	public static final Setpoint STOW_STEP_1 = new Setpoint(Meters.zero(), Degrees.of(-28), "stow");
+	public static final Setpoint STOW_STEP_1 = new Setpoint(Meters.zero(), Limits.WRIST_LIMIT, "stow pt 1");
+	public static final Setpoint STOW_STEP_2 = new Setpoint(Meters.zero(), Degrees.of(-40), "stow pt 2");
 	
 	public static class Stow {
 		public static final Angle WRIST_TARGET_1 = Degrees.of(-15);
@@ -40,7 +41,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 	
 	public static class Limits {
 		// The wrist has to be extended this much to not hit the elevator
-		public static final Angle WRIST_LIMIT = Degrees.of(-23);
+		public static final Angle WRIST_LIMIT = Degrees.of(-25);
 		// The elevator has to be at least this low before intake starts
 		public static final Distance INTAKE_MIN_HEIGHT = Meters.of(0.2);
 	}
