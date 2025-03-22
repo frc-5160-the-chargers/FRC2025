@@ -124,6 +124,6 @@ public class AlgaeKicker extends StandardSubsystem {
 
 	@Override
 	public void requestStop() {
-		motor.setVoltage(0);
+		motor.setVoltage(0.3);
 	}
 }

@@ -3,6 +3,7 @@ package frc.robot.commands;
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.utils.AllianceUtil;
@@ -19,6 +20,7 @@ public class AutoCommands {
 	private final CoralIntake coralIntake;
 	private final SwerveDrive drivetrain;
 	private final TargetPoses targetPoses;
+	private final SwerveSetpointGenerator setpointGen;
 	
 	/* Utility classes/methods */
 	
@@ -90,7 +92,7 @@ public class AutoCommands {
 			if (previousScoreStep.shouldAlign) {
 				var goal = previousTarget; // we create a temp variable because the () -> ... expression cannot use variables that change
 				previousTraj.atTranslation(goal.getTranslation(), 0.3).onTrue(
-					drivetrain.alignCmd(() -> AllianceUtil.flipIfRed(goal))
+					drivetrain.pathfindCmd(() -> AllianceUtil.flipIfRed(goal), setpointGen)
 						.andThen(botCommands.waitUntilReady(), intakeTraj.spawnCmd())
 						.withName("intake traj spawner")
 				);
@@ -119,7 +121,7 @@ public class AutoCommands {
 			var goal = previousTarget;
 			previousTraj.atTranslation(previousTarget.getTranslation(), 0.2)
 				.onTrue(
-					drivetrain.alignCmd(() -> AllianceUtil.flipIfRed(goal))
+					drivetrain.pathfindCmd(() -> AllianceUtil.flipIfRed(goal), setpointGen)
 						.andThen(botCommands.waitUntilReady(), taxiCmd)
 						.withName("taxi traj spawner")
 				);
@@ -137,7 +139,7 @@ public class AutoCommands {
 		var intakeStep = new IntakeStep(SourceLoc.BOTTOM, 0.6);
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiShort"),
-			new ScoringStep(4, 9, 0.75),
+			new ScoringStep(4, 9, 0.75, false),
 			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.7)),
 			new CombinedStep(intakeStep, new ScoringStep(4, 10, 0.8))
 		);

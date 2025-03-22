@@ -591,7 +591,7 @@ public class SwerveDrive extends StandardSubsystem {
 			   this.run(() -> {
 					Tracer.startTrace("repulsor pathfinding");
 					var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-					var desiredSpeeds = toDesiredSpeeds(sample, 1.4);
+					var desiredSpeeds = toDesiredSpeeds(sample, 1.5);
 					SwerveModuleState[] desiredStates;
 					if (setpointGen != null) {
 						pathfindSetpoint = setpointGen.generateSetpoint(pathfindSetpoint, desiredSpeeds, 0.02);

@@ -68,6 +68,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	public static class SharedState {
 		public BooleanSupplier atL1Range;
 		public BooleanSupplier hasCoralDelayed;
+		public DoubleSupplier elevatorSpeed;
 		public DoubleSupplier headingLatency;
 		public Supplier<Rotation2d> headingSupplier;
 	}
@@ -101,7 +102,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	@NotLogged private final RobotCommands botCommands =
 		new RobotCommands(drivetrain, coralIntake, coralIntakePivot, elevator);
 	@NotLogged private final AutoCommands autoCommands =
-		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, drivetrain, targetPoses);
+		new AutoCommands(botCommands, drivetrain.createAutoFactory(), coralIntake, drivetrain, targetPoses, setpointGen);
 	
 	/* Auto choosers */
 	@NotLogged private final AutoChooser autoChooser = new AutoChooser();
@@ -117,6 +118,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		sharedState.headingLatency = gyroWrapper::getLastLatency;
 		sharedState.atL1Range = () -> elevator.heightMeters() < 0.15;
 		sharedState.hasCoralDelayed = coralIntake.hasCoral.debounce(0.7);
+		sharedState.elevatorSpeed = elevator::velocityMPS;
 		
 		// calls runTcp() and setups jni
 		LaserCanUtil.setup(true);
@@ -330,6 +332,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd(
 			"DriveVoltages",
 			drivetrain::runDriveMotors
+		);
+		testModeChooser.addCmd(
+			"AlgaeKickerTest",
+			algaeKicker::setDemoVoltageCmd
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);

@@ -195,12 +195,12 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				// ignores result if ambiguity is exceeded or if there is no targets.
 				if (result.targets.size() == 1) {
 					double latestAmbiguity = result.targets.get(0).poseAmbiguity;
-					if (latestAmbiguity < 1e-4) {
-						log("ambiguityRejectedBecauseTooLow", true);
-						continue;
-					} else {
-						log("ambiguityRejectedBecauseToLow", false);
-					}
+//					if (latestAmbiguity < 1e-4) {
+//						log("ambiguityRejectedBecauseTooLow", true);
+//						continue;
+//					} else {
+//						log("ambiguityRejectedBecauseToLow", false);
+//					}
 					log("lastAmbiguityValue", latestAmbiguity);
 					boolean ambiguityExceeded = result.targets.size() == 1 && latestAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
 					if (ambiguityExceeded) {

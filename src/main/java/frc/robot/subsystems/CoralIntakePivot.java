@@ -115,7 +115,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforwardV);
 			   })
 	       )
-	       .until(atTarget)
+	       .until(atTarget.and(() -> sharedState.elevatorSpeed.getAsDouble() < 0.1))
 	       .finallyDo(this::requestStop)
 	       .withName("set angle (pivot)");
 	}
