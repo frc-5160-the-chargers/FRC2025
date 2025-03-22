@@ -9,7 +9,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import frc.chargers.utils.Tracer;
@@ -44,7 +43,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.18;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
-	private static final double LINEAR_STD_DEV_BASELINE = 0.2; // was 0.5 when last tested - shouldn't be that high prob?
+	private static final double LINEAR_STD_DEV_BASELINE = 0.4; // was 0.5 when last tested - shouldn't be that high prob?
 	private static final double ANGULAR_STD_DEV = 10000000;
 	
 	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);

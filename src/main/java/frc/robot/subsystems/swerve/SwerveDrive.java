@@ -581,7 +581,6 @@ public class SwerveDrive extends StandardSubsystem {
 		@Nullable SwerveSetpointGenerator setpointGen
 	) {
 		double maxVelocityMps = hardwareSpecs.maxVelocity.in(MetersPerSecond);
-		
 		return Commands.runOnce(() -> {
 			targetPose = targetPoseSupplier.get();
 			log("align/mode", "repulsor");
@@ -591,7 +590,7 @@ public class SwerveDrive extends StandardSubsystem {
 			   this.run(() -> {
 					Tracer.startTrace("repulsor pathfinding");
 					var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-					var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
+					var desiredSpeeds = toDesiredSpeeds(sample, 1.7);
 					SwerveModuleState[] desiredStates;
 					if (setpointGen != null) {
 						pathfindSetpoint = setpointGen.generateSetpoint(pathfindSetpoint, desiredSpeeds, 0.02);
