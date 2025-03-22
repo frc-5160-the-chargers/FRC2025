@@ -5,6 +5,7 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.NotLogged;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.utils.data.StatusSignalRefresher;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
@@ -20,7 +21,7 @@ public class GyroWrapper implements LogLocal {
 		roll = pigeon.getRoll(),
 		pitchRate = pigeon.getAngularVelocityYWorld(),
 		rollRate = pigeon.getAngularVelocityXWorld();
-	@Getter private double lastLatency = 0.0;
+	@Getter private double lastHeadingTimestamp = 0.0;
 	
 	public final Trigger isTipping = new Trigger(
 		() -> Math.abs(pitch().getDegrees()) > 25 || Math.abs(roll().getDegrees()) > 25
@@ -34,7 +35,7 @@ public class GyroWrapper implements LogLocal {
 	
 	/** Refreshes the yaw signal of the gyro wrapper. Must be placed in an addPeriodic. */
 	public void refreshYaw() {
-		lastLatency = yaw.getTimestamp().getLatency();
+		lastHeadingTimestamp = Timer.getFPGATimestamp() - yaw.getTimestamp().getLatency();
 		BaseStatusSignal.refreshAll(yaw);
 	}
 	

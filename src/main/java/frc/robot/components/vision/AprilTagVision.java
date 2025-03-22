@@ -186,7 +186,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 //				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
 //			);
 			config.poseEstimator.addHeadingData(
-				Timer.getFPGATimestamp() - sharedState.headingLatency.getAsDouble(),
+				Timer.getFPGATimestamp() - sharedState.headingTimestampSecs.getAsDouble(),
 				sharedState.headingSupplier.get()
 			);
 			for (var result: config.photonCam.getAllUnreadResults()) {

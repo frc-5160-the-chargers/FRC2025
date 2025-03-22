@@ -69,7 +69,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		public BooleanSupplier atL1Range;
 		public BooleanSupplier hasCoralDelayed;
 		public DoubleSupplier elevatorSpeed;
-		public DoubleSupplier headingLatency;
+		public DoubleSupplier headingTimestampSecs;
 		public Supplier<Rotation2d> headingSupplier;
 	}
 	
@@ -115,7 +115,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	public CompetitionRobot() {
 		// Initializes shared state
 		sharedState.headingSupplier = () -> drivetrain.bestPose().getRotation();
-		sharedState.headingLatency = gyroWrapper::getLastLatency;
+		sharedState.headingTimestampSecs = gyroWrapper::getLastHeadingTimestamp;
 		sharedState.atL1Range = () -> elevator.heightMeters() < 0.15;
 		sharedState.hasCoralDelayed = coralIntake.hasCoral.debounce(0.7);
 		sharedState.elevatorSpeed = elevator::velocityMPS;

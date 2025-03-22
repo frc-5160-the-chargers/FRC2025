@@ -64,7 +64,7 @@ public class SwerveConfigurator {
 				1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio)
 			),
 			new PIDConstants(10, 0, 0.1), // path translation pid
-			new PIDConstants(10, 0, 0.1), // path rotation pid,
+			new PIDConstants(12, 0, 0.1), // path rotation pid,
 			0.0 // kT
 		);
 	
