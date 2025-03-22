@@ -152,7 +152,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 			SimulatedArena.getInstance().placeGamePiecesOnField();
 			drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
 		} else {
-			waitThenRun(2, () -> drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero)));
+			waitThenRun(2, () -> drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.fromDegrees(120))));
 		}
 	}
 	
@@ -250,7 +250,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false) // FIXME
 		);
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());

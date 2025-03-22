@@ -37,6 +37,8 @@ import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
 
+// TODO add anti-slipping for source!
+// DO NOT CHANGE THIS FOR A LONG WHILE
 public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
 		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
@@ -66,7 +68,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
 		new PhotonCamConfig(
 			"Chargers-FrontRight",
-			1.0,
+			1.5,
 			new Transform3d(
 				SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.6)),
 				SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(-2).plus(Centimeters.of(10.1)),
@@ -74,7 +76,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				new Rotation3d(
 					Degrees.zero(),
 					Degrees.of(-15),
-					Degrees.of(48) // measured as: 46
+					Degrees.of(51) // measured as: 46, previously working: 48
 				)
 			)
 		).withSim(ARDUCAM_SIM_PROPERTIES),
@@ -88,7 +90,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				new Rotation3d(
 					Degrees.zero(),
 					Degrees.of(-15),
-					Degrees.of(-51) // measured as: -56
+					Degrees.of(-51) // prob correct - another value -56
 				)
 			)
 		).withSim(ARDUCAM_SIM_PROPERTIES)

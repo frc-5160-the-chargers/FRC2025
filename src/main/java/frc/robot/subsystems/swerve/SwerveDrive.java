@@ -604,7 +604,7 @@ public class SwerveDrive extends StandardSubsystem {
 						swerveModules[i].setDesiredState(desiredStates[i], true, 0);
 					}
 					Tracer.endTrace();
-			   }).until(() -> repulsor.atGoal(0.02))
+			   }).until(() -> repulsor.atGoal(0.017))
 	       )
 	       .finallyDo(this::requestStop)
 	       .withName("PathfindCmd");

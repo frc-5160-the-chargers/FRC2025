@@ -141,8 +141,8 @@ public class AutoCommands {
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiShort"),
 			new ScoringStep(4, 9, 0.75, true),
-			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.7)),
-			new CombinedStep(intakeStep, new ScoringStep(4, 10, 0.8))
+			new CombinedStep(intakeStep, new ScoringStep(4, 10, 0.8)),
+			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.8))
 		);
 	}
 	
@@ -186,7 +186,7 @@ public class AutoCommands {
 	public Command onePieceL4(boolean mirrored) {
 		int position = mirrored ? 5 : 9;
 		var routine = autoFactory.newRoutine("OnePieceL4");
-		return genericAuto(routine, null, new ScoringStep(4, position, 0.6, false));
+		return genericAuto(routine, null, new ScoringStep(4, position, 0.6, true));
 	}
 	
 	public Command onePieceL1() {
