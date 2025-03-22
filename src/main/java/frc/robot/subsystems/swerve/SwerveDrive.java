@@ -370,11 +370,14 @@ public class SwerveDrive extends StandardSubsystem {
 				var desiredModuleStates = toDesiredModuleStates(toDesiredSpeeds(trajSample, 1), false);
 				for (int i = 0; i < 4; i++) {
 					var desiredState = desiredModuleStates[i];
-					double wheelTorqueNm = moduleType.wheelRadius.in(Meters) * (
-						desiredState.angle.getCos() * trajSample.moduleForcesX()[i] +
-							desiredState.angle.getSin() * trajSample.moduleForcesY()[i]
-					);
-					double torqueFF = wheelTorqueNm / moduleType.driveGearRatio * controlsConfig.forceKT;
+					double torqueFF = 0;
+					if (controlsConfig.forceKT != 0.0) {
+						double wheelTorqueNm = moduleType.wheelRadius.in(Meters) * (
+							desiredState.angle.getCos() * trajSample.moduleForcesX()[i] +
+								desiredState.angle.getSin() * trajSample.moduleForcesY()[i]
+						);
+						torqueFF = wheelTorqueNm / moduleType.driveGearRatio * controlsConfig.forceKT;
+					}
 					swerveModules[i].setDesiredState(desiredState, true, torqueFF);
 				}
 			},

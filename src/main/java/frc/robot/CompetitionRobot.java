@@ -228,8 +228,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		operator.leftBumper()
 			.whileTrue(botCommands.stow());
 		
-		operator.leftTrigger().whileTrue(algaeKicker.setPowerCmd(() -> 0.2));
-		operator.rightTrigger().whileTrue(algaeKicker.setPowerCmd(() -> -0.2));
+		// backward
+		operator.leftTrigger().whileTrue(algaeKicker.setPowerCmd(() -> 0.07));
+		// forward
+		operator.rightTrigger().whileTrue(algaeKicker.setPowerCmd(() -> -0.07));
 		
 		operator.a()
 			.whileTrue(botCommands.moveTo(Setpoint.score(1)));
@@ -324,6 +326,10 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		testModeChooser.addCmd(
 			"HelloThere",
 			() -> drivetrain.pathfindCmd(() -> targetPoses.closestReefPose(ReefSide.LEFT, drivetrain.poseEstimate()), setpointGen)
+		);
+		testModeChooser.addCmd(
+			"DriveVoltages",
+			drivetrain::runDriveMotors
 		);
 		
 		SmartDashboard.putData("TestChooser", testModeChooser);
