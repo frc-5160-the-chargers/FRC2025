@@ -44,7 +44,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.18;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
-	private static final double LINEAR_STD_DEV_BASELINE = 0.2; // was 0.5 when last tested - shouldn't be that high prob?
+	private static final double LINEAR_STD_DEV_BASELINE = 0.5; // was 0.5 when last tested - shouldn't be that high prob?
 	private static final double ANGULAR_STD_DEV = 10000000;
 	
 	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
@@ -183,9 +183,9 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				cameraStats.logTo(config.photonCam.getName());
 				continue;
 			}
-			config.poseEstimator.setPrimaryStrategy(
-				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
-			);
+//			config.poseEstimator.setPrimaryStrategy(
+//				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
+//			);
 			config.poseEstimator.addHeadingData(
 				Timer.getFPGATimestamp() - sharedState.headingTimestampSecs.getAsDouble(),
 				sharedState.headingSupplier.get()
@@ -237,7 +237,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				}
 				double stdDevMultiplier = Math.pow(tagDistSum / result.targets.size(), 2) / result.targets.size();
 				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
-				stdDevMultiplier *= Math.pow(result.targets.size() / Math.abs(tagAreaSum), 0.2);
+				double areaSumMultiplier = log(config.photonCam.getName() + "/areaSumMultiplier", Math.pow(result.targets.size() / Math.abs(tagAreaSum), 0.2));
+				stdDevMultiplier *= Math.max(areaSumMultiplier, 1);
 				cameraStats.linearStdDevs.add(stdDevMultiplier);
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * config.stdDevFactor;
 				
