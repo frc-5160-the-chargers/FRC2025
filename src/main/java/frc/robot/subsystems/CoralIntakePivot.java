@@ -33,9 +33,9 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
 	private static final Angle TOLERANCE = Degrees.of(1);
-	private static final double GEAR_RATIO = 256 / 3.0;
+	private static final double GEAR_RATIO = 72;
 	private static final MomentOfInertia MOI = KilogramSquareMeters.of(0.012);
-	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.622);
+	private static final Angle ZERO_OFFSET = RobotBase.isSimulation() ? Radians.zero() : Radians.of(1.7);
 	
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final SimpleMotorFeedforward FF_EQUATION = new SimpleMotorFeedforward(0.05, KV);
@@ -44,7 +44,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
-	private static final double MAX_ACCEL = 35;
+	private static final double MAX_ACCEL = 30;
 	
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.64);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
@@ -115,7 +115,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforwardV);
 			   })
 	       )
-	       .until(atTarget.and(() -> sharedState.elevatorSpeed.getAsDouble() < 0.03))
+	       .until(atTarget.and(() -> Math.abs(sharedState.elevatorSpeed.getAsDouble()) < 0.08))
 	       .finallyDo(this::requestStop)
 	       .withName("set angle (pivot)");
 	}

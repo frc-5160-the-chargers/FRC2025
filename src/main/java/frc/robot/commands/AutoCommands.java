@@ -141,8 +141,8 @@ public class AutoCommands {
 		return genericAuto(
 			routine, routine.trajectory("Reef10TaxiShort"),
 			new ScoringStep(4, 9, 0.75, true),
-			new CombinedStep(intakeStep, new ScoringStep(4, 10, 0.8)),
-			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.8))
+			new CombinedStep(intakeStep, new ScoringStep(4, 11, 0.8)),
+			new CombinedStep(intakeStep, new ScoringStep(4, 10, 0.8))
 		);
 	}
 	

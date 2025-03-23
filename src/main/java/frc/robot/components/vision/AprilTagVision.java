@@ -76,7 +76,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				new Rotation3d(
 					Degrees.zero(),
 					Degrees.of(-15),
-					Degrees.of(51) // measured as: 46, previously working: 48
+					Degrees.of(48) // measured as: 46, previously working: 48
 				)
 			)
 		).withSim(ARDUCAM_SIM_PROPERTIES),
@@ -90,7 +90,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				new Rotation3d(
 					Degrees.zero(),
 					Degrees.of(-15),
-					Degrees.of(-51) // prob correct - another value -56
+					Degrees.of(-48) // prob correct - another value -56
 				)
 			)
 		).withSim(ARDUCAM_SIM_PROPERTIES)
