@@ -40,11 +40,11 @@ public class CoralIntakePivot extends StandardSubsystem {
 	private static final double KV = 1 / (MOTOR_KIND.KvRadPerSecPerVolt / GEAR_RATIO);
 	private static final SimpleMotorFeedforward FF_EQUATION = new SimpleMotorFeedforward(0.05, KV);
 	private static final Voltage NO_CORAL_KG = Volts.of(-0.32);
-	private static final Voltage WITH_CORAL_KG = Volts.of(-0.48);
+	private static final Voltage WITH_CORAL_KG = Volts.of(-0.49);
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
-	private static final double MAX_ACCEL = 25;
+	private static final double MAX_ACCEL = 35;
 	
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.64);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
@@ -115,7 +115,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 				   motor.moveToPosition(profileState.position + ZERO_OFFSET.in(Radians), feedforwardV);
 			   })
 	       )
-	       .until(atTarget.and(() -> sharedState.elevatorSpeed.getAsDouble() < 0.05))
+	       .until(atTarget.and(() -> sharedState.elevatorSpeed.getAsDouble() < 0.03))
 	       .finallyDo(this::requestStop)
 	       .withName("set angle (pivot)");
 	}

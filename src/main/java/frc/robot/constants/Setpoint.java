@@ -14,7 +14,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 		entry(1, new Setpoint(Meters.zero(), Radians.of(0.28), "L1")),
 		entry(2, new Setpoint(Meters.of(0.095), Degrees.of(10), "L2")),
 		entry(3, new Setpoint(Meters.of(0.39), Degrees.of(5), "L3")),
-		entry(4, new Setpoint(Meters.of(1.27), Degrees.of(27), "L4")) // highest possible elevator setpoint
+		entry(4, new Setpoint(Meters.of(1.27), Degrees.of(29), "L4")) // highest possible elevator setpoint
 	);
 	
 	public static Setpoint score(int level) {
@@ -41,7 +41,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 	
 	public static class Limits {
 		// The wrist has to be extended this much to not hit the elevator
-		public static final Angle WRIST_LIMIT = Degrees.of(-25);
+		public static final Angle WRIST_LIMIT = Degrees.of(-20);
 		// The elevator has to be at least this low before intake starts
 		public static final Distance INTAKE_MIN_HEIGHT = Meters.of(0.2);
 	}

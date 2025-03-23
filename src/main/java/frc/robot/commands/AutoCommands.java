@@ -189,21 +189,13 @@ public class AutoCommands {
 		return genericAuto(routine, null, new ScoringStep(4, position, 0.6, true));
 	}
 	
+	public Command onePieceL4Center() {
+		return genericAuto(autoFactory.newRoutine("OnePieceL4"), null, new ScoringStep(4, 7, 0.5));
+	}
+	
 	public Command onePieceL1() {
 		var routine = autoFactory.newRoutine("OnePieceL1");
 		return genericAuto(routine, null, new ScoringStep(1, 9, 0.3, false));
-	}
-	
-	public Command l1L4() {
-		var routine = autoFactory.newRoutine("L1 + L4");
-		return genericAuto(
-			routine, null,
-			new ScoringStep(1, 9, 0.3, false),
-			new CombinedStep(
-				new IntakeStep(SourceLoc.BOTTOM, 0.6),
-				new ScoringStep(4, 11, 0.7)
-			)
-		);
 	}
 	
 	public Command simplePath() {
