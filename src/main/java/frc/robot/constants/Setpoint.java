@@ -24,7 +24,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 		return LEVEL_TO_SETPOINT_MAP.get(level);
 	}
 	
-	public static final Setpoint INTAKE = new Setpoint(Meters.zero(), Degrees.of(-25), "intake");
+	public static final Setpoint INTAKE = new Setpoint(Meters.zero(), Degrees.of(-24), "intake");
 	public static final Setpoint ALGAE_PREP_L2 = new Setpoint(Meters.of(0.5), Degrees.of(15), "algae prep L2");
 	public static final Setpoint ALGAE_PREP_L3 = new Setpoint(Meters.of(0.88), Degrees.of(15), "algae prep L3");
 	public static final Setpoint ALGAE_POP_L2 = new Setpoint(Meters.of(0.45), Degrees.of(15), "algae pop L2");
