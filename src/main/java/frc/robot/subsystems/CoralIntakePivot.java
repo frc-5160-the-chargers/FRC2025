@@ -44,7 +44,7 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
-	private static final double MAX_ACCEL = 30;
+	private static final double MAX_ACCEL = 40;
 	
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.64);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);

@@ -58,18 +58,9 @@ public class RobotCommands {
 	
 	/** Moves the elevator and pivot to a stow position. */
 	public Command stow() {
-		//return moveTo(Setpoint.STOW_STEP_1).andThen(moveTo(Setpoint.STOW_STEP_2));
-		return Commands.sequence(
-			Commands.runOnce(() -> GlobalLog.log("setpoint", "stow")),
-			coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_1)
-				.until(() -> coralIntakePivot.angleRads() <= Setpoint.Stow.WRIST_TARGET_1.in(Radians)),
-			Commands.parallel(
-				elevator.moveToHeightCmd(Setpoint.Stow.ELEVATOR_HEIGHT),
-				coralIntakePivot.idleCmd()
-	                .until(() -> elevator.heightMeters() < 0.2)
-					.andThen(coralIntakePivot.setAngleCmd(Setpoint.Stow.WRIST_TARGET_2))
-			)
-		).withName("stow");
+		return moveTo(Setpoint.STOW_STEP_1)
+			       .andThen(moveTo(Setpoint.STOW_STEP_2))
+			       .withName("stow");
 	}
 	
 	/**
