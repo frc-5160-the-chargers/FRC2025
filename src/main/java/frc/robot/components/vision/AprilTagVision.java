@@ -68,7 +68,7 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final List<PhotonCamConfig> PHOTON_CAM_CONFIGS = List.of(
 		new PhotonCamConfig(
 			"Chargers-FrontRight",
-			1.5,
+			1.0,
 			new Transform3d(
 				SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.6)),
 				SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(-2).plus(Centimeters.of(10.1)),
@@ -185,11 +185,11 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				cameraStats.logTo(config.photonCam.getName());
 				continue;
 			}
-//			config.poseEstimator.setPrimaryStrategy(
-//				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
-//			);
+			config.poseEstimator.setPrimaryStrategy(
+				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
+			);
 			config.poseEstimator.addHeadingData(
-				Timer.getFPGATimestamp() - sharedState.headingTimestampSecs.getAsDouble(),
+				sharedState.headingTimestampSecs.getAsDouble(),
 				sharedState.headingSupplier.get()
 			);
 			for (var result: config.photonCam.getAllUnreadResults()) {
@@ -197,12 +197,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				// ignores result if ambiguity is exceeded or if there is no targets.
 				if (result.targets.size() == 1) {
 					double latestAmbiguity = result.targets.get(0).poseAmbiguity;
-//					if (latestAmbiguity < 1e-4) {
-//						log("ambiguityRejectedBecauseTooLow", true);
-//						continue;
-//					} else {
-//						log("ambiguityRejectedBecauseToLow", false);
-//					}
 					log("lastAmbiguityValue", latestAmbiguity);
 					boolean ambiguityExceeded = result.targets.size() == 1 && latestAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
 					if (ambiguityExceeded) {

@@ -250,7 +250,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 	
 	private void mapDefaultCommands() {
 		drivetrain.setDefaultCommand(
-			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
+			drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, false)
 		);
 		elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
 		coralIntake.setDefaultCommand(coralIntake.idleCmd());
