@@ -47,20 +47,26 @@ public class RobotCommands {
 	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
 	 */
 	public Command moveTo(Setpoint setpoint) {
-		return Commands.sequence(
-			Commands.runOnce(() -> GlobalLog.log("setpoint", setpoint.name())),
-			coralIntakePivot.setAngleCmd(Setpoint.Limits.WRIST_LIMIT)
-                .until(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Radians)),
-			elevator.moveToHeightCmd(setpoint.elevatorHeight()),
-			coralIntakePivot.setAngleCmd(setpoint.wristTarget())
-		).withName("move to setpoint");
+		return Commands.runOnce(() -> GlobalLog.log("setpoint", setpoint.name()))
+			       .andThen(
+						coralIntakePivot.setAngleCmd(Setpoint.Limits.WRIST_LIMIT)
+			                .until(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Radians)),
+						coralIntakePivot.stopCmd(),
+						elevator.moveToHeightCmd(setpoint.elevatorHeight()),
+						coralIntakePivot.setAngleCmd(setpoint.wristTarget())
+			       )
+			       .withName("move to setpoint");
 	}
 	
 	/** Moves the elevator and pivot to a stow position. */
 	public Command stow() {
-		return moveTo(Setpoint.STOW_STEP_1)
-			       .andThen(moveTo(Setpoint.STOW_STEP_2))
-			       .withName("stow");
+		return Commands.parallel(
+			Commands.runOnce(() -> GlobalLog.log("setpoint", "stow")),
+			elevator.moveToHeightCmd(Setpoint.STOW.elevatorHeight()),
+			coralIntakePivot.setAngleCmd(Setpoint.Limits.STOW_WRIST_LIMIT)
+				.until(() -> coralIntakePivot.angleRads() <= Setpoint.Limits.STOW_WRIST_LIMIT.in(Radians))
+				.andThen(coralIntakePivot.setAngleCmd(Setpoint.STOW.wristTarget()))
+		).withName("stow");
 	}
 	
 	/**
@@ -85,7 +91,7 @@ public class RobotCommands {
 	
 	/** Moves the robot to the source intake position and runs the coral intake. */
 	public Command sourceIntake() {
-		return Commands.waitUntil(() -> elevator.heightMeters() < Setpoint.Limits.INTAKE_MIN_HEIGHT.in(Meters))
+		return Commands.waitUntil(() -> elevator.heightMeters() < Setpoint.Limits.MIN_HEIGHT_BEFORE_INTAKE.in(Meters))
 			       .andThen(Commands.parallel(moveTo(Setpoint.INTAKE), coralIntake.intakeCmd()))
 			       .withName("source intake(no aim)");
 	}
