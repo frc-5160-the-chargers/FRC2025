@@ -1,6 +1,7 @@
 package frc.robot;
 
 import choreo.auto.AutoChooser;
+import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
@@ -132,6 +133,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		GlobalLog.enableCommandLogging();
 		logMetadata();
 		URCL.start();
+		SignalLogger.stop();
 		ExtrasLogger.start(this, null);
 		
 		mapTriggers();
@@ -312,7 +314,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		);
 		testModeChooser.addCmd(
 			"Align(repulsor)",
-			() -> drivetrain.pathfindCmd(drivetrain::getDemoPose, setpointGen)
+			() -> drivetrain.pathfindCmd(() -> targetPoses.reefBlue[8], setpointGen)
 		);
 		testModeChooser.addCmd(
 			"Align(basic)",

@@ -55,6 +55,7 @@ public class RobotCommands {
 						elevator.moveToHeightCmd(setpoint.elevatorHeight()),
 						coralIntakePivot.setAngleCmd(setpoint.wristTarget())
 			       )
+			       .withTimeout(3.5)
 			       .withName("move to setpoint");
 	}
 	
@@ -75,7 +76,6 @@ public class RobotCommands {
 	 */
 	public Command scoreSequence(int scoringLevel) {
 		return moveTo(Setpoint.score(scoringLevel))
-			       .withTimeout(3.5)
 			       .andThen(
 					   Commands.deadline(
 						   Commands.waitUntil(() -> drivetrain.getOverallSpeedMPS() < 0.15)

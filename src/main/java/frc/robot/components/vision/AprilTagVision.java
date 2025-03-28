@@ -11,7 +11,6 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.Timer;
 import frc.chargers.utils.Tracer;
 import frc.robot.CompetitionRobot.SharedState;
 import frc.robot.subsystems.swerve.SwerveConfigurator;
@@ -36,6 +35,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
+import static frc.chargers.utils.UtilMethods.toDoubleArray;
+import static frc.chargers.utils.UtilMethods.toIntArray;
 
 // TODO add anti-slipping for source!
 // DO NOT CHANGE THIS FOR A LONG WHILE
@@ -43,10 +44,11 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
 		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
 	private static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
-	private static final double MAX_SINGLE_TAG_AMBIGUITY = 0.18;
+	private static final double MAX_AMBIGUITY = 0.18;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
-	private static final double LINEAR_STD_DEV_BASELINE = 0.5; // was 0.5 when last tested - shouldn't be that high prob?
+	private static final double SINGLE_TAG_SCALAR = 1.3;
+	private static final double LINEAR_STD_DEV_BASELINE = 0.3;
 	private static final double ANGULAR_STD_DEV = 10000000;
 	
 	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
@@ -118,7 +120,6 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			this.stdDevFactor = stdDevFactor;
 			this.poseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCamera);
 			this.robotToCamera = robotToCamera;
-			poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 		}
 		
 		public PhotonCamConfig withSim(SimCameraProperties props) {
@@ -152,10 +153,10 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				log(name + "/largestAmbiguity", Collections.max(ambiguityData));
 			}
 			// FIXME array logging - slows down ascope to unbearable speed
-//			log(name + "/fiducialIds", toIntArray(fiducialIds));
+			log(name + "/fiducialIds", toIntArray(fiducialIds));
 			log(name + "/rejectionReasons", rejectionReasons.toArray(DUMMY_STRING_ARR));
-//			log(name + "/linearStdDevs", toDoubleArray(linearStdDevs));
-//			log(name + "/ambiguityData", toDoubleArray(ambiguityData));
+			log(name + "/linearStdDevs", toDoubleArray(linearStdDevs));
+			log(name + "/ambiguityData", toDoubleArray(ambiguityData));
 		}
 	}
 	
@@ -185,24 +186,33 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				cameraStats.logTo(config.photonCam.getName());
 				continue;
 			}
-			config.poseEstimator.setPrimaryStrategy(
-				DriverStation.isDisabled() ? PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
+			config.poseEstimator.setMultiTagFallbackStrategy(
+				DriverStation.isDisabled() ? PoseStrategy.LOWEST_AMBIGUITY : PoseStrategy.PNP_DISTANCE_TRIG_SOLVE
 			);
 			config.poseEstimator.addHeadingData(
 				sharedState.headingTimestampSecs.getAsDouble(),
 				sharedState.headingSupplier.get()
 			);
 			for (var result: config.photonCam.getAllUnreadResults()) {
-				// TODO fix bad ambiguity at large distances with recalibration
 				// ignores result if ambiguity is exceeded or if there is no targets.
-				if (result.targets.size() == 1) {
-					double latestAmbiguity = result.targets.get(0).poseAmbiguity;
-					log("lastAmbiguityValue", latestAmbiguity);
-					boolean ambiguityExceeded = result.targets.size() == 1 && latestAmbiguity > MAX_SINGLE_TAG_AMBIGUITY;
-					if (ambiguityExceeded) {
-						cameraStats.rejectionReasons.add("ambiguity exceeded(ambiguity not logged)");
-						continue;
-					}
+				if (result.targets.isEmpty()) {
+					cameraStats.rejectionReasons.add("no targets in result");
+					continue;
+				}
+				boolean ambiguityExceeded = true;
+				// Computes the standard deviations of the pose estimate,
+				// scaling off distance from the target, z error, and # of targets.
+				double tagDistSum = 0.0;
+				double tagAreaSum = 0.0;
+				for (var target: result.targets) {
+					ambiguityExceeded = ambiguityExceeded && target.poseAmbiguity > MAX_AMBIGUITY;
+					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
+					tagAreaSum += target.area;
+					cameraStats.ambiguityData.add(target.poseAmbiguity);
+				}
+				if (ambiguityExceeded) {
+					cameraStats.rejectionReasons.add("ambiguity exceeded");
+					continue;
 				}
 				
 				// updates the pose estimate, and makes sure that the estimated pose
@@ -222,21 +232,13 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 				cameraStats.acceptedPoses.add(pose);
 				cameraStats.fiducialIds.addAll(result.targets.stream().map(it -> it.fiducialId).toList());
 				
-				// Computes the standard deviations of the pose estimate,
-				// scaling off distance from the target, z error, and # of targets.
-				double tagDistSum = 0.0;
-				double tagAreaSum = 0.0;
-				for (var target: result.targets) {
-					tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
-					tagAreaSum += target.area;
-					cameraStats.ambiguityData.add(target.poseAmbiguity);
-				}
+				double areaSumMultiplier = log(config.photonCam.getName() + "/areaSumMultiplier", Math.pow(result.targets.size() / Math.abs(tagAreaSum), 0.2));
 				double stdDevMultiplier = Math.pow(tagDistSum / result.targets.size(), 2) / result.targets.size();
 				stdDevMultiplier *= Math.pow(Z_ERROR_SCALAR, Math.abs(pose.getZ()));
-				double areaSumMultiplier = log(config.photonCam.getName() + "/areaSumMultiplier", Math.pow(result.targets.size() / Math.abs(tagAreaSum), 0.2));
 				stdDevMultiplier *= Math.max(areaSumMultiplier, 1);
-				cameraStats.linearStdDevs.add(stdDevMultiplier);
+				if (result.targets.size() <= 1) stdDevMultiplier *= SINGLE_TAG_SCALAR;
 				double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * config.stdDevFactor;
+				cameraStats.linearStdDevs.add(linearStdDev);
 				
 				// Registers the pose estimate.
 				globalEstimateConsumer.accept(

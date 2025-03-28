@@ -32,7 +32,7 @@ public class SwerveConfigurator {
 	public static final Current DRIVE_CURRENT_LIMIT = Amps.of(80);
 	public static final Current DRIVE_STATOR_CURRENT_LIMIT = Amps.of(120);
 	public static final MomentOfInertia BODY_MOI = KilogramSquareMeters.of(5.883);
-	public static final double ODOMETRY_FREQUENCY_HZ = 200;
+	public static final double ODOMETRY_FREQUENCY_HZ = 250;
 	private static final boolean USE_REMOTE_CANCODER = true;
 	public static final ModuleType MODULE_TYPE = ModuleType.SwerveX2L2P11;
 	
