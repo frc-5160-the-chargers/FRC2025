@@ -63,7 +63,8 @@ public class RobotCommands {
 	public Command stow() {
 		return Commands.parallel(
 			Commands.runOnce(() -> GlobalLog.log("setpoint", "stow")),
-			elevator.moveToHeightCmd(Setpoint.STOW.elevatorHeight()),
+			Commands.waitSeconds(0.5)
+				.andThen(elevator.moveToHeightCmd(Setpoint.STOW.elevatorHeight())),
 			coralIntakePivot.setAngleCmd(Setpoint.Limits.STOW_WRIST_LIMIT)
 				.until(() -> coralIntakePivot.angleRads() <= Setpoint.Limits.STOW_WRIST_LIMIT.in(Radians))
 				.andThen(coralIntakePivot.setAngleCmd(Setpoint.STOW.wristTarget()))

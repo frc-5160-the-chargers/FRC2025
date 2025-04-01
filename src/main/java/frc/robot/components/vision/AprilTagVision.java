@@ -39,16 +39,15 @@ import static frc.chargers.utils.UtilMethods.toDoubleArray;
 import static frc.chargers.utils.UtilMethods.toIntArray;
 
 // TODO add anti-slipping for source!
-// DO NOT CHANGE THIS FOR A LONG WHILE
 public class AprilTagVision implements AutoCloseable, LogLocal {
 	private static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
 		RobotBase.isSimulation() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
 	private static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
-	private static final double MAX_AMBIGUITY = 0.18;
+	private static final double MAX_AMBIGUITY = 0.2;
 	private static final Distance MAX_Z_ERROR = Meters.of(0.1);
 	private static final double Z_ERROR_SCALAR = 100.0;
 	private static final double SINGLE_TAG_SCALAR = 1.3;
-	private static final double LINEAR_STD_DEV_BASELINE = 0.3;
+	private static final double LINEAR_STD_DEV_BASELINE = 0.4;
 	private static final double ANGULAR_STD_DEV = 10000000;
 	
 	private static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
