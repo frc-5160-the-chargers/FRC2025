@@ -12,6 +12,7 @@ import static edu.wpi.first.units.Units.*;
  */
 public final class ChoreoVars {
     public static final LinearAcceleration hi = MetersPerSecondPerSecond.of(5.0);
+    public static final MomentOfInertia helloTHere = KilogramSquareMeters.of(5.0);
     public static final double numTest = 500.0;
     public static final Distance offset = Meters.of(0.15239999999999998);
     public static final AngularVelocity sdfsdf = RadiansPerSecond.of(5.0);

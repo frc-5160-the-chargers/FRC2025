@@ -56,6 +56,8 @@ class Internals {
                     case "AngAcc" -> new UnitData("AngularAcceleration", "RadiansPerSecond");
                     case "Time" -> new UnitData("Time", "Seconds");
                     case "Mass" -> new UnitData("Mass", "Kilograms");
+                    case "Torque" -> new UnitData("Torque", "NewtonMeters");
+                    case "MoI" -> new UnitData("MomentOfInertia", "KilogramSquareMeters");
                     case "Number" -> new UnitData("Number", "");
                     default -> null;
                 }

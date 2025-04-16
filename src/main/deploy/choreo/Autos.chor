@@ -4,6 +4,13 @@
  "type":"Swerve",
  "variables":{
   "expressions":{
+   "helloTHere":{
+    "dimension":"MoI",
+    "var":{
+     "exp":"5 kg * m ^ 2",
+     "val":5.0
+    }
+   },
    "hi":{
     "dimension":"LinAcc",
     "var":{
