@@ -1,0 +1,43 @@
+plugins {
+    // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
+    id 'java-gradle-plugin'
+    id 'base'
+}
+
+repositories {
+    // Use Maven Central for resolving dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    mavenCentral()
+}
+
+dependencies {
+    // Use JUnit test framework for unit tests
+    testImplementation 'junit:junit:4.13'
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+}
+
+gradlePlugin {
+    // Define the plugin
+    plugins {
+        genChoreo {
+            id = "choreo.choreo-plugin"
+            implementationClass = "choreo.ChoreoPlugin"
+        }
+    }
+}
+
+// Add a source set and a task for a functional test suite
+def functionalTest = sourceSets.create('functionalTest')
+gradlePlugin.testSourceSets(functionalTest)
+
+configurations[functionalTest.implementationConfigurationName].extendsFrom(configurations.testImplementation)
+
+def functionalTestTask = tasks.register('functionalTest', Test) {
+    testClassesDirs = functionalTest.output.classesDirs
+    classpath = configurations[functionalTest.runtimeClasspathConfigurationName] + functionalTest.output
+}
+
+tasks.check.configure {
+    // Run the functional tests as part of `check`
+    dependsOn(functionalTestTask)
+}

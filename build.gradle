@@ -93,6 +93,8 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0"
     annotationProcessor wpi.java.deps.wpilibAnnotations()
 
+    api 'edu.wpi.first:native-utils:2025.9.1'
+
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)
 
