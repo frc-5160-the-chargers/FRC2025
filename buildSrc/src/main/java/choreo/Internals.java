@@ -9,31 +9,23 @@ import java.io.PrintWriter;
 import java.util.Optional;
 
 class Internals {
-    static void writeDouble(
-        PrintWriter out,
-        JSONObject choreoConfig,
-        String jsonKey,
-        String propertyName
-    ) {
-        double value = readVal(choreoConfig, jsonKey);
+    static void write(PrintWriter out, String propertyName, double value) {
         out.println(
-                String.format("    public static final double %s = %s;", propertyName, value)
+            String.format("    public static final double %s = %s;", propertyName, value)
         );
     }
 
-    static void writeMeasure(
+    static void write(
         PrintWriter out,
-        JSONObject choreoConfig,
-        String jsonKey,
         String propertyName,
+        double siValue,
         String type,
-        String unit
+        String siUnit
     ) {
-        double value = readVal(choreoConfig, jsonKey);
-        out.println(String.format("    public static final %s %s = %s.of(%s);", type, propertyName, unit, value));
+        out.println(String.format("    public static final %s %s = %s.of(%s);", type, propertyName, siUnit, siValue));
     }
 
-    static double readVal(JSONObject parent, String jsonKey) {
+    static double readNum(JSONObject parent, String jsonKey) {
         return (Double) ((JSONObject) parent.get(jsonKey)).get("val");
     }
 
@@ -53,7 +45,7 @@ class Internals {
     }
 
     record UnitData(String dimension, String baseUnit) {
-        public static Optional<UnitData> from(String choreoDimensionName) {
+         static Optional<UnitData> from(String choreoDimensionName) {
             return Optional.ofNullable(
                 switch (choreoDimensionName) {
                     case "LinAcc" -> new UnitData("LinearAcceleration", "MetersPerSecondPerSecond");

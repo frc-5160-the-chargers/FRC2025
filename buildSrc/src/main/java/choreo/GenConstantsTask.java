@@ -62,24 +62,36 @@ public abstract class GenConstantsTask extends DefaultTask {
              */
             public final class ChoreoConsts {""");
 
-            writeDouble(out, config, "gearing", "gearing");
-            writeDouble(out, config, "cof", "frictionCoefficient");
-            writeMeasure(out, config, "radius", "wheelRadius", "Distance", "Meters");
-            writeMeasure(out, config, "inertia", "moi", "MomentOfInertia", "KilogramSquareMeters");
-            writeMeasure(out, config, "vmax", "maxVel", "AngularVelocity", "RadiansPerSecond");
-            writeMeasure(out, config, "mass", "mass", "Mass", "Kilograms");
-            writeMeasure(out, config, "tmax", "maxTorque", "Torque", "NewtonMeters");
+            double gearing = readNum(config, "gearing");
+            double mass = readNum(config, "mass");
+            double cof = readNum(config, "cof");
+            double wheelRadius = readNum(config, "radius");
+            double vmax = readNum(config, "vmax");
+            double tmax = readNum(config, "tmax");
+            double moi = readNum(config, "inertia");
+            double maxLinearVel = vmax / gearing * wheelRadius;
+            double maxWheelForce = tmax * gearing * 4 / wheelRadius;
+            double maxLinearAccel = maxWheelForce / mass;
+
+            write(out, "gearing", gearing);
+            write(out, "frictionCoefficient", cof);
+            write(out, "wheelRadius", wheelRadius, "Distance", "Meters");
+            write(out, "moi", moi, "MomentOfInertia", "KilogramSquareMeters");
+            write(out, "mass", mass, "Mass", "Kilograms");
+            write(out, "driveMotorMaxTorque", tmax, "Torque", "NewtonMeters");
+
             var bumperConfig = (JSONObject) config.get("bumper");
-            double front = readVal(bumperConfig, "front");
-            double back = readVal(bumperConfig, "back");
-            double side = readVal(bumperConfig, "side");
-            out.println("    public static final Distance wheelBaseWithBumpers = Meters.of(" + (front + back) + ");");
-            out.println("    public static final Distance trackWidthWithBumpers = Meters.of(" + (side * 2) + ");");
+            double front = readNum(bumperConfig, "front");
+            double back = readNum(bumperConfig, "back");
+            double side = readNum(bumperConfig, "side");
+            write(out, "wheelBaseWithBumpers", front + back, "Distance", "Meters");
+            write(out, "trackWidthWithBumpers", side * 2, "Distance", "Meters");
+
             if (isSwerve) {
-                double frontLeftX = readVal((JSONObject) config.get("frontLeft"), "x");
-                double frontLeftY = readVal((JSONObject) config.get("frontLeft"), "y");
-                double backLeftX = readVal((JSONObject) config.get("backLeft"), "x");
-                double backLeftY = readVal((JSONObject) config.get("backLeft"), "y");
+                double frontLeftX = readNum((JSONObject) config.get("frontLeft"), "x");
+                double frontLeftY = readNum((JSONObject) config.get("frontLeft"), "y");
+                double backLeftX = readNum((JSONObject) config.get("backLeft"), "x");
+                double backLeftY = readNum((JSONObject) config.get("backLeft"), "y");
                 out.println(String.format("""
                     public static final Translation2d[] moduleTranslations = {
                         new Translation2d(%s, %s),
@@ -88,10 +100,21 @@ public abstract class GenConstantsTask extends DefaultTask {
                         new Translation2d(%s, %s),
                     };
                 """, frontLeftX, frontLeftY, frontLeftX, -frontLeftY, backLeftX, backLeftY, backLeftX, -backLeftY));
+
+                double drivebaseRadius = Math.hypot(frontLeftX, frontLeftY);
+                double frictionFloorForce = mass * 9.81 * cof;
+                double minLinearForce = Math.min(frictionFloorForce, maxWheelForce);
+                double maxAngularVel = maxLinearVel / drivebaseRadius;
+                double maxAngularAccel = minLinearForce * drivebaseRadius / moi; // I * alpha = F x R -> alpha = F x R / I
+                write(out, "maxAngularVel", maxAngularVel, "AngularVelocity", "RadiansPerSecond");
+                write(out, "maxAngularAccel", maxAngularAccel, "AngularAcceleration", "RadiansPerSecondPerSecond");
             } else {
-                writeMeasure(out, config, "differentialTrackWidth", "trackWidth", "Distance", "Meters");
+                write(out, "trackWidth", readNum(config, "differentialTrackWidth"), "Distance", "Meters");
                 out.println();
             }
+            write(out, "maxLinearVel", maxLinearVel, "LinearVelocity", "MetersPerSecond");
+            write(out, "maxLinearAccel", maxLinearAccel, "LinearAcceleration", "MetersPerSecondPerSecond");
+            out.println();
             out.println("    private ChoreoConsts() {}");
             out.println("}");
         } catch (FileNotFoundException e) {
@@ -128,10 +151,10 @@ public abstract class GenConstantsTask extends DefaultTask {
                 var unitData = UnitData.from(expJson.get("dimension").toString());
                 if (unitData.isEmpty()) continue;
                 if (unitData.get().dimension().equals("Number")) {
-                    writeDouble(out, expJson, "var", expName.toString());
+                    write(out, expName.toString(), readNum(expJson, "var"));
                 } else {
-                    writeMeasure(
-                        out, expJson, "var", expName.toString(),
+                    write(
+                        out, expName.toString(), readNum(expJson, "var"),
                         unitData.get().dimension(), unitData.get().baseUnit()
                     );
                 }
@@ -140,9 +163,9 @@ public abstract class GenConstantsTask extends DefaultTask {
             out.println("    public static final class Poses {");
             for (var poseName: poses.keySet()) {
                 var poseJson = (JSONObject) poses.get(poseName);
-                double x = readVal(poseJson, "x");
-                double y = readVal(poseJson, "y");
-                double headingRad = readVal(poseJson, "heading");
+                double x = readNum(poseJson, "x");
+                double y = readNum(poseJson, "y");
+                double headingRad = readNum(poseJson, "heading");
                 var headingExp = Math.abs(headingRad) < 1e-5
                         ? "Rotation2d.kZero"
                         : ("Rotation2d.fromRadians(" + headingRad + ")");
