@@ -4,7 +4,7 @@
  "type":"Swerve",
  "variables":{
   "expressions":{
-   "helloTHere":{
+   "helloThere":{
     "dimension":"MoI",
     "var":{
      "exp":"5 kg * m ^ 2",
@@ -16,6 +16,13 @@
     "var":{
      "exp":"5 m / s / s",
      "val":5.0
+    }
+   },
+   "justANum":{
+    "dimension":"Number",
+    "var":{
+     "exp":"3",
+     "val":3.0
     }
    },
    "numTest":{
@@ -261,8 +268,8 @@
    }
   },
   "mass":{
-   "exp":"116 lbs",
-   "val":52.61671492
+   "exp":"100 kg",
+   "val":100.0
   },
   "inertia":{
    "exp":"5.8 kg m ^ 2",
@@ -277,7 +284,7 @@
    "val":0.0508
   },
   "vmax":{
-   "exp":"6000 RPM",
+   "exp":"6000 rpm",
    "val":628.3185307179587
   },
   "tmax":{

@@ -73,7 +73,7 @@ public class CompetitionRobot extends TimedRobot implements LogLocal {
 		public DoubleSupplier headingTimestampSecs;
 		public Supplier<Rotation2d> headingSupplier;
 	}
-	
+
 	/* Subsystems/Components */
 	private final TunableBool fieldRelativeToggle = new TunableBool("swerveDrive/fieldRelative", true);
 	private final SharedState sharedState = new SharedState();

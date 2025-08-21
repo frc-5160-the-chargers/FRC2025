@@ -12,15 +12,55 @@ import java.io.*;
 
 import static choreo.Internals.*;
 
+/**
+ * Auto-generates java file(s) containing constants and variables from your .chor file.
+ */
 public abstract class GenConstantsTask extends DefaultTask {
-    @Input @Optional public abstract Property<String> getChorFileDir();
-    @Input @Optional public abstract Property<String> getOutputFilePackage();
-    @Input @Optional public abstract Property<Boolean> getGenVariablesFile();
-    @Input @Optional public abstract Property<String> getJavaRoot();
-    @Input public abstract Property<String> getChorFileName();
+    /**
+     * Constructor for the GenConstantsTask class.
+     */
+    public GenConstantsTask () {}
+
+    /**
+     * The directory containing the .chor file.
+     * @return a property representing the Choreo file directory
+     */
+    @Input @Optional
+    public abstract Property<String> getChorFileDir();
+
+    /**
+     * Gets the package name for the output file.
+     * @return a property representing the output file package
+     */
+    @Input @Optional
+    public abstract Property<String> getOutputFilePackage();
+
+    /**
+     * Determines whether to generate the variables file.
+     * @return a property representing the flag to generate the variables file
+     */
+    @Input @Optional
+    public abstract Property<Boolean> getGenVariablesFile();
+
+    /**
+     * Gets the root directory for Java source files.
+     * @return a property representing the Java root directory
+     */
+    @Input @Optional
+    public abstract Property<String> getJavaRoot();
+
+    /**
+     * Gets the name of the Choreo file.
+     * @return a property representing the Choreo file name
+     */
+    @Input
+    public abstract Property<String> getChorFileName();
 
     private final JSONParser jsonParser = new JSONParser();
 
+    /**
+     * Task action that generates constants and variables files based on the Choreo project JSON.
+     */
     @TaskAction
     public void run() {
         var chorFilePath = getChorFileDir().getOrElse("src/main/deploy/choreo") + "/" + getChorFileName().get();
