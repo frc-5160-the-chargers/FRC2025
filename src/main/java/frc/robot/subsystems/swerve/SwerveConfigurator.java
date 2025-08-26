@@ -38,7 +38,7 @@ public class SwerveConfigurator {
 	
 	public static final SwerveHardwareSpecs HARDWARE_SPECS =
 		new SwerveHardwareSpecs(
-			Inches.of(22.75), // trackwidth(width)
+			Inches.of(22), // trackwidth(width)
 			Inches.of(27.375), // wheelbase(height)
 			DCMotor.getKrakenX60(1), // drive motor type
 			DCMotor.getKrakenX60(1), // steer motor type
@@ -57,14 +57,14 @@ public class SwerveConfigurator {
 	
 	public static final SwerveControlsConfig CONTROLS_CONFIG =
 		new SwerveControlsConfig(
-			new PIDConstants(5, 0, 0.01), // azimuth pid - don't add d to this, it makes things weird
+			new PIDConstants(10, 0, 0.06), // azimuth pid - don't add d to this, it makes things weird
 			new PIDConstants(0.4, 0, 0), // velocity pid
 			new SimpleMotorFeedforward( // velocity feedforward
 				RobotBase.isSimulation() ? 0.015 : 0.17,
 				1 / (HARDWARE_SPECS.driveMotorType().KvRadPerSecPerVolt / MODULE_TYPE.driveGearRatio)
 			),
-			new PIDConstants(10, 0, 0.1), // path translation pid
-			new PIDConstants(12, 0, 0.1), // path rotation pid,
+			new PIDConstants(8, 0, 0), // path translation pid
+			new PIDConstants(8, 0, 0), // path rotation pid,
 			0.0 // kT
 		);
 	
