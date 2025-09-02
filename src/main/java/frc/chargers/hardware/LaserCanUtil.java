@@ -6,7 +6,6 @@ import au.grapplerobotics.LaserCan;
 import edu.wpi.first.epilogue.CustomLoggerFor;
 import edu.wpi.first.epilogue.logging.ClassSpecificLogger;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
-import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 
 public class LaserCanUtil {
 	private LaserCanUtil() {}
@@ -15,7 +14,6 @@ public class LaserCanUtil {
 	public static void setup(boolean useTcp) {
 		GrappleJNI.forceLoad();
 		if (useTcp) CanBridge.runTCP();
-		new ElevatorSim()
 	}
 
 	/** A null-op measurement, used in place of null values retreived from a laser can. */
