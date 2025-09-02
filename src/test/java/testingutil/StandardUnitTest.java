@@ -5,7 +5,7 @@ import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.chargers.utils.data.StatusSignalRefresher;
+import frc.chargers.hardware.CTREUtil;
 import org.ironmaple.simulation.SimulatedArena;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +37,7 @@ public abstract class StandardUnitTest {
 	public static void fastForward(@Nullable CommandScheduler scheduler, int ticks) {
 		for (int i = 0; i < ticks; i++) {
 			HAL.simPeriodicBefore();
-			StatusSignalRefresher.periodic();
+			CTREUtil.refreshSignals();
 			Timer.delay(0.02);
 			if (scheduler != null) scheduler.run();
 			SimulatedArena.getInstance().simulationPeriodic();

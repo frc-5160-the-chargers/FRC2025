@@ -6,7 +6,9 @@ import com.revrobotics.REVLibError;
 public sealed interface MotorError {
     /** Represents no motor error. */
     None NONE = new None();
-    record None() implements MotorError {}
+    final class None implements MotorError {
+        private None() {}
+    }
 
     /** Represents an error from a Spark motor. */
     record REV(REVLibError err) implements MotorError {}

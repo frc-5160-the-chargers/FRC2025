@@ -13,8 +13,16 @@ public class TriggerUtil {
 	public static void bind(Alert alert, BooleanSupplier condition) {
 		if (condition.getAsBoolean()) alert.set(true); // covers initial condition
 		new Trigger(condition)
-			.onTrue(Commands.runOnce(() -> alert.set(true)).ignoringDisable(true))
-			.onFalse(Commands.runOnce(() -> alert.set(false)).ignoringDisable(true));
+			.onTrue(
+				Commands.runOnce(() -> alert.set(true))
+					.ignoringDisable(true)
+					.withName("[Enable Alert] " + alert.getText())
+			)
+			.onFalse(
+				Commands.runOnce(() -> alert.set(false))
+					.ignoringDisable(true)
+					.withName("[Disable Alert] " + alert.getText())
+			);
 	}
 	
 	/**
