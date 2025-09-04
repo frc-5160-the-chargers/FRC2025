@@ -1,5 +1,7 @@
 package frc.robot.subsystems.intake;
 
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.chargers.hardware.MotorInputsAutoLogged;
 import frc.chargers.hardware.SimUtil;
@@ -8,8 +10,11 @@ public class SimIntakeHardware extends IntakeHardware {
     private final DCMotorSim sim;
     private double inputTorqueCurrent = 0;
 
-    public SimIntakeHardware(DCMotorSim sim) {
-        this.sim = sim;
+    public SimIntakeHardware(DCMotor motorKind, double moi, double reduction) {
+        this.sim = new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(motorKind, moi, reduction),
+            motorKind
+        );
     }
 
     @Override

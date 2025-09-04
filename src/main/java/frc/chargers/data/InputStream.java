@@ -8,8 +8,6 @@ import org.littletonrobotics.junction.Logger;
 import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
 
-import static monologue.Monologue.GlobalLog;
-
 /** A functional interface to aid in modifying double suppliers, such as from a joystick. */
 @SuppressWarnings("all")
 @FunctionalInterface

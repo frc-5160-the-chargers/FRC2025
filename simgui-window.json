@@ -6,13 +6,13 @@
     "GLOBAL": {
       "font": "Proggy Dotted",
       "fps": "120",
-      "height": "1444",
-      "maximized": "0",
+      "height": "1459",
+      "maximized": "1",
       "style": "0",
       "userScale": "2",
-      "width": "1276",
-      "xpos": "2",
-      "ypos": "58"
+      "width": "2560",
+      "xpos": "0",
+      "ypos": "45"
     }
   },
   "Table": {
@@ -20,12 +20,23 @@
       "Column 0  Width": "466",
       "Column 1  Width": "555",
       "RefScale": "25"
+    },
+    "0x965B9C9E,2": {
+      "Column 0  Width": "250",
+      "Column 1  Weight": "1.0000",
+      "RefScale": "25"
+    },
+    "0xE56EC1C2,4": {
+      "Column 0  Weight": "1.0000",
+      "Column 1  Weight": "1.0000",
+      "Column 2  Weight": "1.0000",
+      "Column 3  Weight": "1.0000"
     }
   },
   "Window": {
     "###/SmartDashboard/Alerts": {
       "Collapsed": "0",
-      "Pos": "937,187",
+      "Pos": "1050,207",
       "Size": "597,895"
     },
     "###/SmartDashboard/AutoChooser": {
@@ -45,7 +56,7 @@
     },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
       "Collapsed": "0",
-      "Pos": "331,361",
+      "Pos": "681,631",
       "Size": "1401,671"
     },
     "###FMS": {
@@ -56,7 +67,7 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "937,601",
-      "Size": "1270,336"
+      "Size": "1516,336"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -64,8 +75,8 @@
       "Size": "397,433"
     },
     "###NetworkTables": {
-      "Collapsed": "1",
-      "Pos": "937,19",
+      "Collapsed": "0",
+      "Pos": "513,423",
       "Size": "1480,1458"
     },
     "###NetworkTables Info": {

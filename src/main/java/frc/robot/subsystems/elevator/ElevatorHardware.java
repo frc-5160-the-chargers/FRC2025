@@ -14,7 +14,7 @@ public class ElevatorHardware {
         data.positionRad = posRequest;
     }
     
-    public void setAngularPosition(double radians, double feedforward) {
+    public void setRadians(double radians, double feedforwardV) {
         posRequest = radians;
     }
     

@@ -10,14 +10,19 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 public class SimUtil {
     private SimUtil() {}
 
-    public static double addCurrentLimit(
+    /**
+     * Applies a current limit to an input voltage
+     * to a physics sim.
+     * @return the current-limited voltage
+     */
+    public static double currentLimitVoltage(
         double inputVoltage,
         DCMotor gearbox,
         Current currentLimit,
         AngularVelocity mechanismVel,
-        double gearRatio
+        double reduction
     ) {
-        double motorCurrentVelocityRadPerSec = mechanismVel.in(RadiansPerSecond) * gearRatio;
+        double motorCurrentVelocityRadPerSec = mechanismVel.in(RadiansPerSecond) * reduction;
         double currentLimitAmps = currentLimit.in(Amps);
         double currentAtRequestedVoltageAmps = gearbox.getCurrent(motorCurrentVelocityRadPerSec, inputVoltage);
         double limitedVoltage = inputVoltage;

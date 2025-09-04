@@ -23,14 +23,9 @@ import static edu.wpi.first.units.Units.Meters;
  * Note that a gear ratio should be configured with the motor so that the data here
  * is accurate.
  * <h3>IMPORTANT:</h3>
- * If you extend this class, extend MotorData and NOT MotorDataAutoLogged.
- * <pre>{@code
- * // Allowed
- * @AutoLog
- * public class ElevatorData extends MotorData {}
- * // DO NOT DO:
- * public class ElevatorData extends MotorDataAutoLogged {}
- * }</pre>
+ * Do not use the raw MotorInputs class - instead, use MotorInputsAutoLogged,
+ * which extends this class and adds logging support via Logger.processInputs(). <br />
+ * The only exception is if you are extending this class(in that case, do not use MotorInputsAutoLogged).
  */
 @AutoLog
 public class MotorInputs {
@@ -41,6 +36,18 @@ public class MotorInputs {
     public double[] appliedVoltage = new double[0];
     public double[] torqueCurrent = new double[0];
     protected String error = "[None]"; // Is a string for logging purposes
+
+    public MotorError getError() {
+        if (error.startsWith("[REV] ")) {
+            String errStr = error.substring(6);
+            return new MotorError.REV(REVLibError.valueOf(errStr));
+        } else if (error.startsWith("[CTRE] ")) {
+            String errStr = error.substring(7);
+            return new MotorError.CTRE(StatusCode.valueOf(errStr));
+        } else {
+            return MotorError.NONE;
+        }
+    }
 
     private double getVal(BaseStatusSignal signal) {
         var status = signal.getStatus();
@@ -102,18 +109,6 @@ public class MotorInputs {
         velocityRadPerSec = sim.getVelocityMetersPerSecond() / drumRadius.in(Meters);
         supplyCurrent[0] = sim.getCurrentDrawAmps();
         appliedVoltage[0] = sim.getInput(0);
-    }
-
-    public MotorError getError() {
-        if (error.startsWith("[REV] ")) {
-            String errStr = error.substring(6);
-            return new MotorError.REV(REVLibError.valueOf(errStr));
-        } else if (error.startsWith("[CTRE] ")) {
-            String errStr = error.substring(7);
-            return new MotorError.CTRE(StatusCode.valueOf(errStr));
-        } else {
-            return MotorError.NONE;
-        }
     }
 
     private void setNumMotors(int length) {

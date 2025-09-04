@@ -3,11 +3,10 @@ package frc.robot.subsystems.elevator;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import frc.chargers.hardware.MotorInputsAutoLogged;
+import frc.chargers.hardware.SimUtil;
 
-import static edu.wpi.first.units.Units.Kilograms;
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.elevator.ElevatorConsts.*;
-
 
 public class SimElevatorHardware extends ElevatorHardware {
     private final ElevatorSim sim = new ElevatorSim(
@@ -31,8 +30,8 @@ public class SimElevatorHardware extends ElevatorHardware {
     }
 
     @Override
-    public void setAngularPosition(double radians, double feedforwardV) {
-        sim.setInputVoltage(
+    public void setRadians(double radians, double feedforwardV) {
+        setVolts(
             pidController.calculate(
                 sim.getPositionMeters() / RADIUS.in(Meters),
                 radians
@@ -42,6 +41,13 @@ public class SimElevatorHardware extends ElevatorHardware {
 
     @Override
     public void setVolts(double volts) {
+        volts = SimUtil.currentLimitVoltage(
+            volts, MOTOR_KIND, Amps.of(CURRENT_LIMIT),
+            RadiansPerSecond.of(
+                sim.getVelocityMetersPerSecond() / RADIUS.in(Meters)
+            ),
+            REDUCTION
+        );
         sim.setInputVoltage(volts);
     }
 

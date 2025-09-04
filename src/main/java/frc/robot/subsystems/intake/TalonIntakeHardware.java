@@ -34,12 +34,12 @@ public class TalonIntakeHardware extends IntakeHardware {
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.MotorOutput.Inverted = invert ? InvertedValue.CounterClockwise_Positive : InvertedValue.Clockwise_Positive;
         retryFor(
-                4, leader + " didn't configure",
-                () -> leader.getConfigurator().apply(config)
+            4, leader + " didn't configure",
+            () -> leader.getConfigurator().apply(config)
         );
         retryFor(
-                4, leader + " didn't optimize bus util",
-                leader::optimizeBusUtilization
+            4, leader + " didn't optimize bus util",
+            leader::optimizeBusUtilization
         );
     }
 

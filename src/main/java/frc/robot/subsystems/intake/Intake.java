@@ -24,12 +24,12 @@ public class Intake extends SubsystemBase {
 
     public Command setVoltageCmd(Voltage voltage) {
         return this.run(() -> io.setVolts(voltage.in(Volts)))
-                .withName("Set Voltage (" + voltage + ", " + name + ")");
+            .withName("Set Voltage (" + voltage + ", " + name + ")");
     }
 
     public Command setTorqueCurrentCmd(Current current) {
         return this.run(() -> io.setAmps(current.in(Amps)))
-                .withName("Set Current (" + current + ", " + name + ")");
+            .withName("Set Current (" + current + ", " + name + ")");
     }
 
     public Trigger supplyCurrentExceeds(Current threshold) {
