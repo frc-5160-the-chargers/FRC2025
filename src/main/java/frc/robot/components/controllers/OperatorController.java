@@ -25,11 +25,11 @@ public class OperatorController extends CommandXboxController implements Subsyst
 	}
 	
 	public final InputStream manualElevatorInput =
-		InputStream.of(this::getLeftY)
+		InputStream.of(this::getRightY)
 			.deadband(0.1, 1)
 			.times(-0.25);
 	public final InputStream manualPivotInput =
-		InputStream.of(this::getRightY)
+		InputStream.of(this::getLeftY)
 			.deadband(0.1, 1)
 			.times(-0.15);
 	public final InputStream climbUpInput =
