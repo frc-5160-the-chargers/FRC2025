@@ -1,6 +1,6 @@
 package frc.robot.subsystems.elevator;
 
-import frc.chargers.hardware.MotorInputsAutoLogged;
+import frc.chargers.hardware.MotorDataAutoLogged;
 
 /**
  * A class that controls the hardware powering the elevator(motors and encoders).
@@ -10,7 +10,7 @@ import frc.chargers.hardware.MotorInputsAutoLogged;
 public class ElevatorHardware {
     private double posRequest = 0;
 
-    public void refreshData(MotorInputsAutoLogged data) {
+    public void refreshData(MotorDataAutoLogged data) {
         data.positionRad = posRequest;
     }
     

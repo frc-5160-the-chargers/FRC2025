@@ -7,11 +7,13 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import frc.chargers.hardware.MotorInputsAutoLogged;
+import frc.chargers.hardware.MotorDataAutoLogged;
+import frc.chargers.hardware.SparkSignals;
+import frc.chargers.misc.Retry;
+
 import static com.revrobotics.spark.SparkBase.PersistMode.kPersistParameters;
 import static com.revrobotics.spark.SparkBase.ResetMode.kResetSafeParameters;
 import static com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless;
-import static frc.chargers.hardware.REVUtil.retryFor;
 import static frc.robot.subsystems.elevator.ElevatorConsts.*;
 
 public class RealElevatorHardware extends ElevatorHardware {
@@ -33,16 +35,19 @@ public class RealElevatorHardware extends ElevatorHardware {
     private final SparkClosedLoopController pid = leader.getClosedLoopController();
     private final SparkMax follower = new SparkMax(FOLLOWER_MOTOR_ID, kBrushless);
 
+    // define signals
+    private final SparkSignals signals = new SparkSignals(encoder, leader, follower);
+
     public RealElevatorHardware() {
         configureLeader();
-        retryFor(
+        Retry.revConfig(
             4, "Elevator follower motor didn't configure",
             () -> follower.configure(followerConfig, kResetSafeParameters, kPersistParameters)
         );
     }
 
     private void configureLeader() {
-        retryFor(
+        Retry.revConfig(
             4, "Elevator lead motor didn't configure",
             () -> leader.configure(leaderConfig, kResetSafeParameters, kPersistParameters)
         );
@@ -55,8 +60,8 @@ public class RealElevatorHardware extends ElevatorHardware {
     }
 
     @Override
-    public void refreshData(MotorInputsAutoLogged data) {
-        data.refresh(leader, encoder, follower);
+    public void refreshData(MotorDataAutoLogged data) {
+        signals.refresh(data);
     }
 
     @Override
@@ -76,6 +81,6 @@ public class RealElevatorHardware extends ElevatorHardware {
 
     @Override
     public void zeroEncoder() {
-        retryFor(4, "Elevator encoder didn't zero", () -> encoder.setPosition(0));
+        Retry.revConfig(4, "Elevator encoder didn't zero", () -> encoder.setPosition(0));
     }
 }

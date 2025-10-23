@@ -1,11 +1,17 @@
 package frc.robot.subsystems.wrist;
 
-import frc.chargers.hardware.MotorInputsAutoLogged;
+import frc.chargers.hardware.MotorDataAutoLogged;
 
 public class WristHardware {
-    public void refreshData(MotorInputsAutoLogged data) {}
+    private double radians = 0;
 
-    public void setRadians(double radians, double feedforwardV) {}
+    public void refreshData(MotorDataAutoLogged data) {
+        data.positionRad = radians;
+    }
+
+    public void setRadians(double radians, double feedforwardV) {
+        this.radians = radians;
+    }
 
     public void setVolts(double volts) {}
 

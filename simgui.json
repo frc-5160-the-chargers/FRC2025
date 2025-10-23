@@ -8,6 +8,9 @@
   },
   "NTProvider": {
     "types": {
+      "/AdvantageKit/RealOutputs/Alerts": "Alerts",
+      "/AdvantageKit/RealOutputs/Choreo Alerts": "Alerts",
+      "/AdvantageKit/RealOutputs/PhotonAlerts": "Alerts",
       "/AutoChoices/AutoChooser": "String Chooser",
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Alerts": "Alerts",
@@ -85,10 +88,28 @@
     }
   },
   "NetworkTables": {
+    "Retained Values": {
+      "open": false
+    },
     "transitory": {
       "AdvantageKit": {
         "RealOutputs": {
+          "SwerveDrive": {
+            "open": true
+          },
           "Test": {
+            "open": true
+          },
+          "open": true
+        },
+        "SwerveDrive": {
+          "Modules": {
+            "BL": {
+              "Drive": {
+                "open": true
+              },
+              "open": true
+            },
             "open": true
           },
           "open": true
@@ -283,10 +304,8 @@
         "VisionSystemSim-main": {
           "Sim Field": {
             "open": true
-          },
-          "open": true
-        },
-        "open": true
+          }
+        }
       },
       "SystemStats": {
         "open": true

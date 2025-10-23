@@ -6,18 +6,14 @@ import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
-import frc.chargers.hardware.MotorInputsAutoLogged;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static frc.chargers.hardware.CTREUtil.retryFor;
+import frc.chargers.hardware.MotorDataAutoLogged;
+import frc.chargers.hardware.TalonSignals;
+import frc.chargers.misc.Retry;
 
 public class TalonIntakeHardware extends IntakeHardware {
     private final TalonFX leader;
-    private final boolean isCanivore;
     private final TalonFXConfiguration config;
-    private final List<TalonFX> followers = new ArrayList<>();
+    private final TalonSignals signals;
     private final VoltageOut voltageOut = new VoltageOut(0).withUpdateFreqHz(0);
     private final TorqueCurrentFOC torqueOut = new TorqueCurrentFOC(0).withUpdateFreqHz(0);
 
@@ -25,19 +21,18 @@ public class TalonIntakeHardware extends IntakeHardware {
         int motorId, int currentLimit,
         boolean invert, boolean isCanivore, double reduction
     ) {
-        this.isCanivore = isCanivore;
         this.leader = new TalonFX(motorId);
+        signals = new TalonSignals(isCanivore, leader);
+        signals.setUpdateFreqForAll(50);
+
         voltageOut.EnableFOC = true;
         config = new TalonFXConfiguration();
         config.Feedback.SensorToMechanismRatio = reduction;
         config.CurrentLimits.SupplyCurrentLimit = currentLimit;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.MotorOutput.Inverted = invert ? InvertedValue.CounterClockwise_Positive : InvertedValue.Clockwise_Positive;
-        retryFor(
-            4, leader + " didn't configure",
-            () -> leader.getConfigurator().apply(config)
-        );
-        retryFor(
+        Retry.ctreConfig(4, leader, config);
+        Retry.ctreConfig(
             4, leader + " didn't optimize bus util",
             leader::optimizeBusUtilization
         );
@@ -45,12 +40,12 @@ public class TalonIntakeHardware extends IntakeHardware {
 
     public TalonIntakeHardware withFollower(int id, boolean invert) {
         var follower = new TalonFX(id);
-        retryFor(
+        Retry.ctreConfig(
             4, follower + " didn't configure",
             () -> follower.getConfigurator().apply(config)
         );
         follower.setControl(new Follower(leader.getDeviceID(), invert));
-        followers.add(follower);
+        signals.addMotor(follower);
         return this;
     }
 
@@ -65,7 +60,7 @@ public class TalonIntakeHardware extends IntakeHardware {
     }
 
     @Override
-    public void refreshData(MotorInputsAutoLogged data) {
-        data.refresh(isCanivore, leader, followers.toArray(new TalonFX[0]));
+    public void refreshData(MotorDataAutoLogged data) {
+        signals.refresh(data);
     }
 }

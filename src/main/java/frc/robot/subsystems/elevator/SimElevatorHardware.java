@@ -2,8 +2,8 @@ package frc.robot.subsystems.elevator;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
-import frc.chargers.hardware.MotorInputsAutoLogged;
-import frc.chargers.hardware.SimUtil;
+import frc.chargers.hardware.MotorDataAutoLogged;
+import frc.chargers.misc.SimUtil;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.elevator.ElevatorConsts.*;
@@ -15,8 +15,8 @@ public class SimElevatorHardware extends ElevatorHardware {
         true,
         0
     );
-
     private final PIDController pidController = new PIDController(0, 0, 0);
+    private double inputV = 0;
 
     @Override
     public void setPDGains(double p, double d) {
@@ -24,9 +24,12 @@ public class SimElevatorHardware extends ElevatorHardware {
     }
 
     @Override
-    public void refreshData(MotorInputsAutoLogged data) {
+    public void refreshData(MotorDataAutoLogged data) {
         sim.update(0.02);
-        data.refresh(sim, RADIUS);
+        data.positionRad = sim.getPositionMeters() / RADIUS.in(Meters);
+        data.velocityRadPerSec = sim.getVelocityMetersPerSecond() / RADIUS.in(Meters);
+        data.supplyCurrent[0] = sim.getCurrentDrawAmps();
+        data.appliedVolts = inputV;
     }
 
     @Override
@@ -41,14 +44,14 @@ public class SimElevatorHardware extends ElevatorHardware {
 
     @Override
     public void setVolts(double volts) {
-        volts = SimUtil.currentLimitVoltage(
+        inputV = SimUtil.currentLimitVoltage(
             volts, MOTOR_KIND, Amps.of(CURRENT_LIMIT),
             RadiansPerSecond.of(
                 sim.getVelocityMetersPerSecond() / RADIUS.in(Meters)
             ),
             REDUCTION
         );
-        sim.setInputVoltage(volts);
+        sim.setInputVoltage(inputV);
     }
 
     @Override
