@@ -15,6 +15,7 @@ package frc.robot.subsystems.drive;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import edu.wpi.first.wpilibj.RobotController;
+import frc.chargers.hardware.SignalBatchRefresher;
 import frc.robot.constants.TunerConstants;
 
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ public class OdoThread extends Thread {
 
     /** Registers a Phoenix signal to be read from the thread. */
     public Queue<Double> register(BaseStatusSignal signal) {
+        SignalBatchRefresher.unregister(signal);
         Queue<Double> queue = new ArrayBlockingQueue<>(20);
         signalsLock.lock();
         updatesLock.lock();

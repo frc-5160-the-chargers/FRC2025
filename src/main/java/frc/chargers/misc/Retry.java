@@ -65,7 +65,7 @@ public class Retry {
     ) {
         return ctreConfig(
             maxAttempts,
-            motor + " didn't configure",
+            "TalonFX " + motor.getDeviceID() + " didn't configure",
             () -> motor.getConfigurator().apply(config, 0.025)
         );
     }
@@ -77,7 +77,7 @@ public class Retry {
     ) {
         return revConfig(
             maxAttempts,
-            motor + " didn't configure",
+            "Spark " + motor.getDeviceId() + " didn't configure",
             () -> motor.configure(config, kResetSafeParameters, kPersistParameters)
         );
     }

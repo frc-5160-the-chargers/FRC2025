@@ -28,6 +28,11 @@ public class SignalBatchRefresher {
         }
     }
 
+    public static void unregister(BaseStatusSignal... signals) {
+        canivoreSignals.removeAll(Set.of(signals));
+        rioSignals.removeAll(Set.of(signals));
+    }
+
     /**
      * Refreshes all signals. This must be called in robotPeriodic().
      */

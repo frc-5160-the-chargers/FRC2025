@@ -39,6 +39,7 @@ import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.misc.Retry;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.drive.OdoThread;
+import org.littletonrobotics.junction.Logger;
 
 import java.util.Queue;
 
@@ -77,6 +78,7 @@ public class RealModuleHardware extends ModuleHardware {
     public RealModuleHardware(
             SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants) {
         boolean isCanivore = TunerConstants.kCANBus.isNetworkFD();
+        Logger.recordOutput("Canivore", isCanivore);
         String bus = TunerConstants.DrivetrainConstants.CANBusName;
         this.constants = constants;
         driveTalon = new TalonFX(constants.DriveMotorId, bus);
@@ -104,7 +106,7 @@ public class RealModuleHardware extends ModuleHardware {
     }
 
     @Override
-    public void refreshData(ModuleData data) {
+    public void refreshData(ModuleDataAutoLogged data) {
         driveSignals.refresh(data.drive);
         steerSignals.refresh(data.steer);
 
@@ -123,7 +125,6 @@ public class RealModuleHardware extends ModuleHardware {
 
     @Override
     public void setDriveOpenLoop(double output) {
-        System.out.println(output);
         driveTalon.setControl(
                 switch (constants.DriveMotorClosedLoopOutput) {
                     case Voltage -> voltageReq.withOutput(output);

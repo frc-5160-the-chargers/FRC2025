@@ -49,21 +49,10 @@ public class SimModuleHardware extends RealModuleHardware {
             constants
                 // Disable encoder offsets
                 .withEncoderOffset(0)
-                // Disable motor inversions for drive and steer motors
+                // Disable inversions
                 .withDriveMotorInverted(false)
                 .withSteerMotorInverted(false)
-                // Disable CanCoder inversion
                 .withEncoderInverted(false)
-                // Adjust steer motor PID gains for simulation
-                .withSteerMotorGains(new Slot0Configs()
-                    .withKP(70)
-                    .withKI(0)
-                    .withKD(4.5)
-                    .withKS(0)
-                    .withKV(1.91)
-                    .withKA(0)
-                    .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign))
-                .withSteerMotorGearRatio(16.0)
                 // Adjust friction voltages
                 .withDriveFrictionVoltage(Volts.of(0.1))
                 .withSteerFrictionVoltage(Volts.of(0.05))
@@ -77,7 +66,7 @@ public class SimModuleHardware extends RealModuleHardware {
     }
 
     @Override
-    public void refreshData(ModuleData inputs) {
+    public void refreshData(ModuleDataAutoLogged inputs) {
         super.refreshData(inputs);
         inputs.odoTimestamps = SimUtil.simulateOdoTimestamps();
         inputs.odoDrivePositionsRad = Arrays.stream(simulation.getCachedDriveWheelFinalPositions())
@@ -98,7 +87,6 @@ public class SimModuleHardware extends RealModuleHardware {
             motor.getSimState().setSupplyVoltage(12);
             motor.getSimState().setRawRotorPosition(encoderAngle);
             motor.getSimState().setRotorVelocity(encoderVelocity);
-            motor.getSimState().setSupplyVoltage(SimulatedBattery.getBatteryVoltage());
             if (encoder != null) {
                 encoder.getSimState().setRawPosition(mechanismAngle);
                 encoder.getSimState().setVelocity(mechanismVelocity);

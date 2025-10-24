@@ -6,6 +6,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.chargers.commands.NonBlockingCmds;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.misc.Tracer;
+import frc.robot.subsystems.drive.SwerveDrive;
 import frc.robot.subsystems.drive.module.SwerveModule;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.junction.LogFileUtil;
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestRobot extends LoggedRobot {
     private static final boolean IS_REPLAY = false;
+    private final SwerveDrive drivetrain = new SwerveDrive();
 
     public TestRobot() {
         setUseTiming(false);
@@ -31,6 +33,7 @@ public class TestRobot extends LoggedRobot {
         Logger.addDataReceiver(new WPILOGWriter());
         LoggedPowerDistribution.getInstance();
         Logger.start();
+        drivetrain.setDefaultCommand(drivetrain.runDriveMotors());
     }
 
     @Override

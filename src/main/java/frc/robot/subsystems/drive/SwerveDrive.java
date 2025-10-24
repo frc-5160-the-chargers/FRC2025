@@ -127,6 +127,7 @@ public class SwerveDrive extends ChargerSubsystem {
         this.rotationController.setTolerance(ROTATION_TOLERANCE);
 
         SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
+        OdoThread.getInstance().start();
 
         bind(
             new Alert("Gyro has error", kError),
@@ -181,26 +182,17 @@ public class SwerveDrive extends ChargerSubsystem {
             this,
             (trajectory, isStart) -> {
                 Logger.recordOutput(
-                    "CurrentTraj/samples",
-                    SwerveSample.struct,
-                    trajectory.samples().toArray(new SwerveSample[0])
+                    "CurrentTraj/samples", trajectory.samples().toArray(new SwerveSample[0])
                 );
                 Logger.recordOutput("CurrentTraj/name", trajectory.name());
             }
         );
     }
 
-    public Command runFirstMod() {
-        return this.run(() -> {
-
-        }).withName("Yo");
-    }
-
     public Command runDriveMotors() {
         return this.run(() -> {
-            double driveVolts = DEMO_DRIVE_VOLTS.get();
             for (var mod: swerveModules) {
-                mod.driveStraight(driveVolts);
+                mod.driveStraight(0.1);
             }
         }).withName("RunDriveMotors");
     }
@@ -336,29 +328,33 @@ public class SwerveDrive extends ChargerSubsystem {
             double[] sampleTimestamps = swerveModules[0].getOdoTimestamps(); // All signals are sampled together
             int sampleCount = sampleTimestamps.length;
             for (int i = 0; i < sampleCount; i++) {
-                // Read wheel positions and deltas from each module
-                SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-                SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
-                for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
-                    modulePositions[moduleIndex] = swerveModules[moduleIndex].getOdometryFrames()[i];
-                    moduleDeltas[moduleIndex] = new SwerveModulePosition(
-                        modulePositions[moduleIndex].distanceMeters - measuredModulePositions[moduleIndex].distanceMeters,
-                        modulePositions[moduleIndex].angle);
-                    measuredModulePositions[moduleIndex] = modulePositions[moduleIndex];
-                }
+                try {
+                    // Read wheel positions and deltas from each module
+                    SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
+                    SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
+                    for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
+                        modulePositions[moduleIndex] = swerveModules[moduleIndex].getOdometryFrames()[i];
+                        moduleDeltas[moduleIndex] = new SwerveModulePosition(
+                            modulePositions[moduleIndex].distanceMeters - measuredModulePositions[moduleIndex].distanceMeters,
+                            modulePositions[moduleIndex].angle);
+                        measuredModulePositions[moduleIndex] = modulePositions[moduleIndex];
+                    }
 
-                // Update gyro angle
-                if (gyroInputs.connected) {
-                    // Use the real gyro angle
-                    rawGyroRotation = gyroInputs.odoYawValues[i];
-                } else {
-                    // Use the angle delta from the kinematics and module deltas
-                    Twist2d twist = kinematics.toTwist2d(moduleDeltas);
-                    rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
-                }
+                    // Update gyro angle
+                    if (gyroInputs.connected) {
+                        // Use the real gyro angle
+                        rawGyroRotation = gyroInputs.odoYawValues[i];
+                    } else {
+                        // Use the angle delta from the kinematics and module deltas
+                        Twist2d twist = kinematics.toTwist2d(moduleDeltas);
+                        rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
+                    }
 
-                // Apply update
-                poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+                    // Apply update
+                    poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    System.out.println("Array out of bounds");
+                }
             }
         });
     }

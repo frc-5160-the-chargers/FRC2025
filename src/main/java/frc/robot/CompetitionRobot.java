@@ -77,6 +77,8 @@ public class CompetitionRobot extends LoggedRobot {
         mapAutoModes();
         mapTestCommands();
 
+        if (RobotMode.get() == RobotMode.SIM) drivetrain.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+
         CommandScheduler.getInstance().onCommandInitialize(c -> Logger.recordOutput("Commands/" + c.getName(), true));
         CommandScheduler.getInstance().onCommandFinish(c -> Logger.recordOutput("Commands/" + c.getName(), false));
 
@@ -108,9 +110,9 @@ public class CompetitionRobot extends LoggedRobot {
     }
 
     private void mapDefaultCommands() {
-//        drivetrain.setDefaultCommand(
-//            drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
-//        );
+        drivetrain.setDefaultCommand(
+            drivetrain.driveCmd(driver.forwardOutput, driver.strafeOutput, driver.rotationOutput, true)
+        );
         elevator.setDefaultCommand(elevator.setPowerCmd(operator.manualElevatorInput));
         intake.setDefaultCommand(intake.idleCmd());
         wrist.setDefaultCommand(wrist.setPowerCmd(operator.manualPivotInput));
@@ -193,7 +195,6 @@ public class CompetitionRobot extends LoggedRobot {
     }
 
     private void mapTestCommands() {
-        testModeChooser.addCmd("Simple Test", drivetrain::runFirstMod);
         testModeChooser.addCmd("Simple Path", autoCommands::simplePath);
         testModeChooser.addCmd("Simple Path w/ rotate", autoCommands::simplePathWithRotate);
 
@@ -227,6 +228,10 @@ public class CompetitionRobot extends LoggedRobot {
         testModeChooser.addCmd(
             "Set Steer angles",
             () -> drivetrain.setSteerAngles(Rotation2d.k180deg.plus(Rotation2d.kCW_90deg))
+        );
+        testModeChooser.addCmd(
+            "Drive Steer Motors",
+            drivetrain::runTurnMotors
         );
         testModeChooser.addCmd(
             "HelloThere",

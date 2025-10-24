@@ -29,7 +29,7 @@ public class ModuleHardware {
         public Rotation2d[] odoSteerPositions = {};
     }
 
-    public void refreshData(ModuleData data) {}
+    public void refreshData(ModuleDataAutoLogged data) {}
 
     /** Run the drive motor at the specified open loop value. */
     public void setDriveOpenLoop(double output) {}

@@ -25,6 +25,13 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
  * Most constants related to swerve are found in the TunerConstants file.
  */
 public class SwerveConsts {
+    public static final double ODO_FREQUENCY_HZ = 250.0;
+    public static final DCMotor DRIVE_MOTOR_TYPE = DCMotor.getKrakenX60(1);
+    public static final DCMotor STEER_MOTOR_TYPE = new DCMotor(
+        12.0, 4.05, 275, 1.4,
+        RPM.of(7530).in(RadiansPerSecond), 1
+    ); // kraken x44
+
     static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
         new ChassisSpeeds(),
         new SwerveModuleState[]{
@@ -43,14 +50,7 @@ public class SwerveConsts {
         DEMO_DRIVE_VOLTS = new TunableNum("swerve/demoDriveVolts", 3),
         DEMO_STEER_VOLTS = new TunableNum("swerve/demoSteerVolts", 3);
 
-    public static final double ODO_FREQUENCY_HZ = 200.0;
-
-    public static final DCMotor DRIVE_MOTOR_TYPE = DCMotor.getKrakenX60(1);
-    public static final DCMotor STEER_MOTOR_TYPE = new DCMotor(
-        12.0, 4.05, 275, 1.4,
-        RPM.of(7530).in(RadiansPerSecond), 1
-    ); // kraken x44
-
+    static final Distance BUMPER_WIDTH = Inches.of(3.5);
     static final Mass ROBOT_MASS = Pounds.of(116);
     static final MomentOfInertia ROBOT_BODY_MOI = KilogramSquareMeters.of(6.283);
     static final double FORCE_KT = 0;
@@ -64,11 +64,14 @@ public class SwerveConsts {
     static final DriveTrainSimulationConfig MAPLESIM_CONFIG = DriveTrainSimulationConfig.Default()
         .withRobotMass(ROBOT_MASS)
         .withCustomModuleTranslations(MODULE_TRANSLATIONS)
-        .withBumperSize(Inches.of(3.5), Inches.of(3.5))
         .withGyro(COTS.ofPigeon2())
+        .withBumperSize(
+            Meters.of(2 * (TunerConstants.FrontLeft.LocationX + BUMPER_WIDTH.in(Meters))),
+            Meters.of(2 * (TunerConstants.FrontLeft.LocationY + BUMPER_WIDTH.in(Meters)))
+        )
         .withSwerveModule(new SwerveModuleSimulationConfig(
-            DCMotor.getKrakenX60(1),
-            DCMotor.getFalcon500(1),
+            DRIVE_MOTOR_TYPE,
+            STEER_MOTOR_TYPE,
             TunerConstants.FrontLeft.DriveMotorGearRatio,
             TunerConstants.FrontLeft.SteerMotorGearRatio,
             Volts.of(TunerConstants.FrontLeft.DriveFrictionVoltage),
@@ -84,7 +87,7 @@ public class SwerveConsts {
             TunerConstants.FrontLeft.WheelRadius,
             TunerConstants.kSpeedAt12Volts.in(MetersPerSecond),
             DEFAULT_NEOPRENE_TREAD.cof,
-            DCMotor.getKrakenX60Foc(1).withReduction(TunerConstants.FrontLeft.DriveMotorGearRatio),
+            DRIVE_MOTOR_TYPE.withReduction(TunerConstants.FrontLeft.DriveMotorGearRatio),
             TunerConstants.FrontLeft.SlipCurrent,
             1
         ),
