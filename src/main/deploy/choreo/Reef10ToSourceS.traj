@@ -14,7 +14,7 @@
  "params":{
   "waypoints":[
     {"x":{"exp":"reef10.x", "val":3.856378194520223}, "y":{"exp":"reef10.y", "val":2.661288644431714}, "heading":{"exp":"reef10.heading", "val":1.047197551196598}, "intervals":62, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
-    {"x":{"exp":"southSource.x", "val":1.5917405154734423}, "y":{"exp":"southSource.y", "val":0.8619509473501505}, "heading":{"exp":"southSource.heading", "val":-2.198922871295136}, "intervals":95, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
+    {"x":{"exp":"westSource.x", "val":1.5917405154734423}, "y":{"exp":"westSource.y", "val":0.8619509473501505}, "heading":{"exp":"westSource.heading", "val":-2.198922871295136}, "intervals":95, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
   "constraints":[
     {"from":"first", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},
     {"from":"last", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},

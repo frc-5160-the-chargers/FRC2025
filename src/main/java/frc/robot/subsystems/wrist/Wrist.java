@@ -32,8 +32,8 @@ public class Wrist extends SubsystemBase {
     @AutoLogOutput private double feedforwardV = 0.0;
 
     @AutoLogOutput
-    public final Trigger
-        atTarget = new Trigger(() -> Math.abs(inputs.positionRad - target.in(Radians)) < TOLERANCE.in(Radians));
+    public final Trigger atTarget =
+        new Trigger(() -> Math.abs(inputs.positionRad - target.in(Radians)) < TOLERANCE.in(Radians));
 
     public Wrist(GlobalState globalState) {
         this.globalState = globalState;

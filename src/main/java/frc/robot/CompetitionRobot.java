@@ -59,6 +59,8 @@ public class CompetitionRobot extends LoggedRobot {
     private final AutoChooser autoChooser = new AutoChooser();
     private final AutoChooser testModeChooser = new AutoChooser();
 
+    private final RobotVisualization viz = new RobotVisualization(drivetrain, intake, wrist, elevator);
+
     public CompetitionRobot() {
         setUseTiming(!IS_REPLAY);
         DriverStation.silenceJoystickConnectionWarning(true);
@@ -70,6 +72,7 @@ public class CompetitionRobot extends LoggedRobot {
         Logger.addDataReceiver(new WPILOGWriter());
         LoggedPowerDistribution.getInstance();
         Logger.start();
+        Tracer.enableSingleThreadedMode();
 
         logMetadata();
         mapTriggers();
@@ -99,6 +102,7 @@ public class CompetitionRobot extends LoggedRobot {
         if (RobotMode.get() == RobotMode.SIM) {
             Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
         }
+        viz.periodic();
     }
 
     private void updateOdometry() {

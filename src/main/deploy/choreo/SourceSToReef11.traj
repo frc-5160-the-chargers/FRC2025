@@ -14,7 +14,7 @@
  },
  "params":{
   "waypoints":[
-    {"x":{"exp":"southSource.x", "val":1.5917405154734423}, "y":{"exp":"southSource.y", "val":0.8619509473501505}, "heading":{"exp":"-2.198922871295136 rad", "val":-2.198922871295136}, "intervals":58, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
+    {"x":{"exp":"westSource.x", "val":1.5917405154734423}, "y":{"exp":"westSource.y", "val":0.8619509473501505}, "heading":{"exp":"-2.198922871295136 rad", "val":-2.198922871295136}, "intervals":58, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
     {"x":{"exp":"3.190673589706421 m", "val":3.190673589706421}, "y":{"exp":"2.3226122856140137 m", "val":2.3226122856140137}, "heading":{"exp":"reef11.heading", "val":1.047197551196598}, "intervals":17, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
     {"x":{"exp":"reef11.x", "val":3.571780422996481}, "y":{"exp":"reef11.y", "val":2.825601244431714}, "heading":{"exp":"1.047197551196598 rad", "val":1.047197551196598}, "intervals":15, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
   "constraints":[

@@ -6,7 +6,7 @@ import frc.chargers.data.CurrAlliance;
 
 import java.util.List;
 
-import static choreo.ChoreoVars.Poses.*;
+import static frc.robot.constants.ChoreoVars.Poses.*;
 import static choreo.util.ChoreoAllianceFlipUtil.flip;
 
 /** Calculates the closest reef pose to the robot. */

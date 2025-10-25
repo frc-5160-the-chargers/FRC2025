@@ -150,10 +150,10 @@ tasks.withType(JavaCompile) {
 
 tasks.register("genConstants", GenConstantsTask) {
     chorFileName = "Autos.chor"
-    outputFilePackage = "choreo"
+    outputFilePackage = "frc.robot.constants"
     genVariablesFile = true
 }
-tasks.build.dependsOn(genConstants)
+project.compileJava.dependsOn(genConstants)
 
 spotless {
 }

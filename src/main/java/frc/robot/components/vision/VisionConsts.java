@@ -12,6 +12,7 @@ import frc.robot.constants.TunerConstants;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
 
+import java.util.List;
 import java.util.Optional;
 
 import static edu.wpi.first.units.Units.*;
@@ -39,8 +40,8 @@ public class VisionConsts {
         )
     );
 
-    static final Optional<VisionSystemSim> VISION_SYSTEM_SIM = Optional.empty();
-//        RobotMode.get() == RobotMode.SIM ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
+    static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
+        RobotMode.get() == RobotMode.SIM ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
     static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
     static final double MAX_AMBIGUITY = 0.2;
     static final Distance MAX_Z_ERROR = Meters.of(0.1);
@@ -49,17 +50,25 @@ public class VisionConsts {
     static final double LINEAR_STD_DEV_BASELINE = 0.4;
     static final double ANGULAR_STD_DEV = 10000000;
 
-    static final AprilTagFieldLayout ALL_TAGS_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
-    static final AprilTagFieldLayout REEF_TAGS_ONLY_LAYOUT =
+    static final AprilTagFieldLayout ALL_TAGS = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark);
+    static final AprilTagFieldLayout REEF_TAGS =
         new AprilTagFieldLayout(
-            ALL_TAGS_LAYOUT.getTags()
+            ALL_TAGS.getTags()
                 .stream()
                 .filter(it -> (it.ID >= 17 && it.ID <= 22) || (it.ID >= 6 && it.ID <= 11))
                 .toList(),
-            ALL_TAGS_LAYOUT.getFieldLength(),
-            ALL_TAGS_LAYOUT.getFieldWidth()
+            ALL_TAGS.getFieldLength(),
+            ALL_TAGS.getFieldWidth()
         );
-    static final AprilTagFieldLayout FIELD_LAYOUT = REEF_TAGS_ONLY_LAYOUT;
+    static final AprilTagFieldLayout SOURCE_TAGS =
+        new AprilTagFieldLayout(
+            ALL_TAGS.getTags()
+                .stream()
+                .filter(it -> List.of(1, 2, 12, 13).contains(it.ID))
+                .toList(),
+            ALL_TAGS.getFieldLength(),
+            ALL_TAGS.getFieldWidth()
+        );
 
     static final Pose3d[] DUMMY_POSE_ARR = new Pose3d[0];
     static final String[] DUMMY_STRING_ARR = new String[0];
@@ -70,6 +79,6 @@ public class VisionConsts {
         ARDUCAM_SIM_PROPERTIES.setAvgLatencyMs(35);
         ARDUCAM_SIM_PROPERTIES.setLatencyStdDevMs(5);
         ARDUCAM_SIM_PROPERTIES.setFPS(20);
-        VISION_SYSTEM_SIM.ifPresent(it -> it.addAprilTags(FIELD_LAYOUT));
+        VISION_SYSTEM_SIM.ifPresent(it -> it.addAprilTags(ALL_TAGS));
     }
 }

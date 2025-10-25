@@ -96,9 +96,9 @@ public class SwerveConsts {
 
     static final Distance DRIVEBASE_RADIUS = Meters.of(MODULE_TRANSLATIONS[0].getNorm());
 
-    static final double TRANSLATION_KP = 0.0;
+    static final double TRANSLATION_KP = 8;
     static final double TRANSLATION_TOLERANCE = 0.014;
-    static final double ROTATION_KP = 0.0;
-    static final double ROTATION_KD = 0.0;
+    static final double ROTATION_KP = 8;
+    static final double ROTATION_KD = 0.01;
     static final double ROTATION_TOLERANCE = 0.05;
 }

@@ -1,5 +1,6 @@
 package frc.robot.components.vision;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -34,13 +35,13 @@ public class AprilTagVision {
 
     public AprilTagVision(Supplier<Pose2d> simPoseSupplier) {
         this.simPoseSupplier = simPoseSupplier;
-        addCamera(new Camera("Chargers-FrontRight", 1, FR_CAM_TRANSFORM));
-        addCamera(new Camera("Chargers-FrontLeft", 1, FL_CAM_TRANSFORM));
+        addCamera(REEF_TAGS, new Camera("Chargers-FrontRight", 1, FR_CAM_TRANSFORM));
+        addCamera(REEF_TAGS, new Camera("Chargers-FrontLeft", 1, FL_CAM_TRANSFORM));
     }
 
-    private void addCamera(Camera camera) {
+    private void addCamera(AprilTagFieldLayout tags, Camera camera) {
         var est = new PhotonPoseEstimator(
-            FIELD_LAYOUT, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, camera.robotToCamera
+            tags, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, camera.robotToCamera
         );
         est.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
         poseEstimators.put(camera, est);
@@ -105,9 +106,9 @@ public class AprilTagVision {
                 var timestamp = poseEstimate.get().timestampSeconds;
                 if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters)
                     || pose.getX() < 0.0
-                    || pose.getX() > FIELD_LAYOUT.getFieldLength()
+                    || pose.getX() > ALL_TAGS.getFieldLength()
                     || pose.getY() < 0.0
-                    || pose.getY() > FIELD_LAYOUT.getFieldWidth()) {
+                    || pose.getY() > ALL_TAGS.getFieldWidth()) {
                     errHighCount++;
                     continue;
                 }
@@ -127,10 +128,10 @@ public class AprilTagVision {
             }
 
             // logs relevant data
-//            LoggingUtil.logIntList(cam.logKey("fiducialIds"), fiducialIds);
-//            Logger.recordOutput(cam.logKey("numAmbiguityExceeded"), ambHighCount);
-//            Logger.recordOutput(cam.logKey("numErrExceeded"), errHighCount);
-//            Logger.recordOutput(cam.logKey("poses"), poses.toArray(new Pose3d[0]));
+            LoggingUtil.logIntList(cam.logKey("fiducialIds"), fiducialIds);
+            Logger.recordOutput(cam.logKey("numAmbiguityExceeded"), ambHighCount);
+            Logger.recordOutput(cam.logKey("numErrExceeded"), errHighCount);
+            Logger.recordOutput(cam.logKey("poses"), poses.toArray(new Pose3d[0]));
         }
         Tracer.endTrace();
         return poseEstimates;

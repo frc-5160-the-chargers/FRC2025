@@ -94,6 +94,9 @@
     "transitory": {
       "AdvantageKit": {
         "RealOutputs": {
+          "Elevator": {
+            "open": true
+          },
           "SwerveDrive": {
             "open": true
           },

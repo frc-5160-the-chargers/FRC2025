@@ -33,7 +33,7 @@ public class Camera {
 
     /** Fetches a relative log path for this camera. */
     public String logKey(String path) {
-        return "Cameras/" + photonCam.getName() + "/";
+        return "Cameras/" + photonCam.getName() + "/" + path;
     }
 
     /** Must be called periodically(updates the necessary data) */
