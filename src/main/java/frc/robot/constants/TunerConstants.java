@@ -1,7 +1,6 @@
 package frc.robot.constants;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.subsystems.drive.SwerveConsts.DRIVE_MOTOR_TYPE;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.*;
@@ -25,7 +24,7 @@ public class TunerConstants {
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     private static final Slot0Configs driveGains = new Slot0Configs()
-        .withKP(0).withKI(0).withKD(0)
+        .withKP(0.1).withKI(0).withKD(0)
         .withKS(0).withKV(0);
 
     // The closed-loop output type to use for the steer motors;
@@ -79,17 +78,11 @@ public class TunerConstants {
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    private static final double kCoupleRatio = 3.090909090909091;
+    private static final double kCoupleRatio = 0;
 
     private static final double kDriveGearRatio = 6.2;
     private static final double kSteerGearRatio = 12.1 * 0.775;
     private static final Distance kWheelRadius = Inches.of(2);
-
-    static {
-        if (driveGains.kV == 0) {
-            driveGains.kV = 1 / (DRIVE_MOTOR_TYPE.KvRadPerSecPerVolt / 2 * Math.PI / kDriveGearRatio);
-        }
-    }
 
     private static final boolean kInvertLeftSide = false;
     private static final boolean kInvertRightSide = true;

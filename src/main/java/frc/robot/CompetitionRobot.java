@@ -60,7 +60,7 @@ public class CompetitionRobot extends LoggedRobot {
     private final AutoChooser testModeChooser = new AutoChooser();
 
     public CompetitionRobot() {
-        setUseTiming(false);
+        setUseTiming(!IS_REPLAY);
         DriverStation.silenceJoystickConnectionWarning(true);
         if (IS_REPLAY) {
             Logger.setReplaySource(new WPILOGReader(LogFileUtil.findReplayLog()));

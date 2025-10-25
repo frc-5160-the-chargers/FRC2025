@@ -14,11 +14,9 @@
 package frc.robot.subsystems.drive.module;
 
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
-import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -28,7 +26,6 @@ import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.ironmaple.simulation.motorsims.SimulatedBattery;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
-import org.littletonrobotics.junction.Logger;
 
 import java.util.Arrays;
 
@@ -56,8 +53,6 @@ public class SimModuleHardware extends RealModuleHardware {
                 // Adjust friction voltages
                 .withDriveFrictionVoltage(Volts.of(0.1))
                 .withSteerFrictionVoltage(Volts.of(0.05))
-                // Adjust steer inertia
-                .withSteerInertia(KilogramSquareMeters.of(0.05))
         );
 
         this.simulation = simulation;
@@ -73,7 +68,6 @@ public class SimModuleHardware extends RealModuleHardware {
             .mapToDouble(angle -> angle.in(Radians))
             .toArray();
         inputs.odoSteerPositions = simulation.getCachedSteerAbsolutePositions();
-        Logger.recordOutput("Maple sim pos", simulation.getDriveWheelFinalPosition());
     }
 
     private record TalonFXSim(TalonFX motor, @Nullable CANcoder encoder) implements SimulatedMotorController {
@@ -84,7 +78,7 @@ public class SimModuleHardware extends RealModuleHardware {
             Angle encoderAngle,
             AngularVelocity encoderVelocity
         ) {
-            motor.getSimState().setSupplyVoltage(12);
+            motor.getSimState().setSupplyVoltage(SimulatedBattery.getBatteryVoltage());
             motor.getSimState().setRawRotorPosition(encoderAngle);
             motor.getSimState().setRotorVelocity(encoderVelocity);
             if (encoder != null) {

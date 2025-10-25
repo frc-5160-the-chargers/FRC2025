@@ -106,16 +106,16 @@ public class RealModuleHardware extends ModuleHardware {
     }
 
     @Override
-    public void refreshData(ModuleDataAutoLogged data) {
-        driveSignals.refresh(data.drive);
-        steerSignals.refresh(data.steer);
+    public void refreshData(ModuleDataAutoLogged inputs) {
+        driveSignals.refresh(inputs.drive);
+        steerSignals.refresh(inputs.steer);
 
-        data.steerAbsolutePos = Rotation2d.fromRotations(steerAbsolutePosition.getValueAsDouble());
-        data.odoTimestamps = timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
-        data.odoDrivePositionsRad = drivePositionQueue.stream()
+        inputs.steerAbsolutePos = Rotation2d.fromRotations(steerAbsolutePosition.getValueAsDouble());
+        inputs.odoTimestamps = timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
+        inputs.odoDrivePositionsRad = drivePositionQueue.stream()
                 .mapToDouble(Units::rotationsToRadians)
                 .toArray();
-        data.odoSteerPositions = steerPositionQueue.stream()
+        inputs.odoSteerPositions = steerPositionQueue.stream()
                 .map(Rotation2d::fromRotations)
                 .toArray(Rotation2d[]::new);
         timestampQueue.clear();
@@ -165,7 +165,11 @@ public class RealModuleHardware extends ModuleHardware {
         var driveConfig = constants.DriveMotorInitialConfigs;
         driveConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         driveConfig.Slot0 = constants.DriveMotorGains;
-        System.out.println("DRIVE CONFIG GAINS: " + driveConfig.Slot0);
+        if (driveConfig.Slot0.kV == 0) {
+            // Use a calculated optimistic default if no KV set
+            double driveRatio = TunerConstants.FrontLeft.DriveMotorGearRatio;
+            driveConfig.Slot0.kV = 1 / (DRIVE_MOTOR_TYPE.KvRadPerSecPerVolt / (2 * Math.PI) / driveRatio);
+        }
         driveConfig.Feedback.SensorToMechanismRatio = constants.DriveMotorGearRatio;
         driveConfig.TorqueCurrent.PeakForwardTorqueCurrent = constants.SlipCurrent;
         driveConfig.TorqueCurrent.PeakReverseTorqueCurrent = -constants.SlipCurrent;

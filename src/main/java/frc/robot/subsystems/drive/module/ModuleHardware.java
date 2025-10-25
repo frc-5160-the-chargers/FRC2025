@@ -29,7 +29,8 @@ public class ModuleHardware {
         public Rotation2d[] odoSteerPositions = {};
     }
 
-    public void refreshData(ModuleDataAutoLogged data) {}
+    /** Updates the data related to the swerve module hardware. */
+    public void refreshData(ModuleDataAutoLogged inputs) {}
 
     /** Run the drive motor at the specified open loop value. */
     public void setDriveOpenLoop(double output) {}
