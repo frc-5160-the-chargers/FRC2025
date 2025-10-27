@@ -1,4 +1,4 @@
-package frc.robot.commands;
+package frc.robot;
 
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.data.CurrAlliance;
 import frc.robot.constants.ReefPoses;
+import frc.robot.subsystems.Superstructure;
 import frc.robot.subsystems.drive.SwerveDrive;
 import frc.robot.subsystems.intake.Intake;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ import static choreo.util.ChoreoAllianceFlipUtil.flip;
 
 @RequiredArgsConstructor
 public class AutoCommands {
-    private final RobotCommands botCommands;
+    private final Superstructure botCommands;
     private final AutoFactory autoFactory;
     private final Intake coralIntake;
     private final SwerveDrive drivetrain;

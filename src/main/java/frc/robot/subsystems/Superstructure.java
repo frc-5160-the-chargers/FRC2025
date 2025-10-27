@@ -1,4 +1,4 @@
-package frc.robot.commands;
+package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -15,17 +15,9 @@ import static edu.wpi.first.units.Units.*;
 
 /**
  * Competition robot-specific commands that need more than one subsystem.
- * Example usage:
- * <pre><code>
- * RobotCommands botCommands = new RobotCommands(...);
- * botCommands.moveTo(Setpoint.score(3)) // moves arm and elevator to L3
- * botCommands.scoreSequence(3) // moves arm and elevator to L3, auto-outtakes, and stows. Only used in auto
- * // pathfind to reef position 4, then move arm + elevator
- * botCommands.pathfindAndMoveTo(Setpoint.score(3), pathfindingPoses.reefBlue[4])
- * </code></pre>
  */
 @RequiredArgsConstructor
-public class RobotCommands {
+public class Superstructure {
     private final SwerveDrive drivetrain;
     private final Intake intake;
     private final Wrist wrist;

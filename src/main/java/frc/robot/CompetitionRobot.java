@@ -12,8 +12,7 @@ import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.data.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.chargers.misc.TunableValues.TunableBool;
-import frc.robot.commands.AutoCommands;
-import frc.robot.commands.RobotCommands;
+import frc.robot.subsystems.Superstructure;
 import frc.robot.constants.ReefPoses;
 import frc.robot.constants.ReefPoses.ReefSide;
 import frc.robot.components.controllers.DriverController;
@@ -53,8 +52,8 @@ public class CompetitionRobot extends LoggedRobot {
     private final Wrist wrist = new Wrist(globalState);
     private final Intake intake = new Intake(globalState);
 
-    private final RobotCommands botCommands = new RobotCommands(drivetrain, intake, wrist, elevator);
-    private final AutoCommands autoCommands = new AutoCommands(botCommands, drivetrain.createAutoFactory(), intake, drivetrain);
+    private final Superstructure superstructure = new Superstructure(drivetrain, intake, wrist, elevator);
+    private final AutoCommands autoCommands = new AutoCommands(superstructure, drivetrain.createAutoFactory(), intake, drivetrain);
 
     private final AutoChooser autoChooser = new AutoChooser();
     private final AutoChooser testModeChooser = new AutoChooser();
@@ -157,17 +156,17 @@ public class CompetitionRobot extends LoggedRobot {
         operator.povDown()
             .whileTrue(intake.intakeForeverCmd());
         operator.rightBumper()
-            .whileTrue(botCommands.sourceIntake());
+            .whileTrue(superstructure.sourceIntake());
         operator.leftBumper()
-            .whileTrue(botCommands.stow());
+            .whileTrue(superstructure.stow());
         operator.a()
-            .whileTrue(botCommands.moveTo(Setpoint.score(1)));
+            .whileTrue(superstructure.moveTo(Setpoint.score(1)));
         operator.b()
-            .whileTrue(botCommands.moveTo(Setpoint.score(2)));
+            .whileTrue(superstructure.moveTo(Setpoint.score(2)));
         operator.y()
-            .whileTrue(botCommands.moveTo(Setpoint.score(3)));
+            .whileTrue(superstructure.moveTo(Setpoint.score(3)));
         operator.x()
-            .whileTrue(botCommands.moveTo(Setpoint.score(4)));
+            .whileTrue(superstructure.moveTo(Setpoint.score(4)));
         doubleClicked(operator.start())
             .onTrue(Commands.runOnce(() -> drivetrain.resetPose(drivetrain.getDemoPose())).ignoringDisable(true));
     }
@@ -202,21 +201,21 @@ public class CompetitionRobot extends LoggedRobot {
         testModeChooser.addCmd("Simple Path", autoCommands::simplePath);
         testModeChooser.addCmd("Simple Path w/ rotate", autoCommands::simplePathWithRotate);
 
-        testModeChooser.addCmd("MoveL4", () -> botCommands.moveTo(Setpoint.score(4)));
-        testModeChooser.addCmd("MoveToDemoSetpoint", botCommands::moveToDemoSetpoint);
+        testModeChooser.addCmd("MoveL4", () -> superstructure.moveTo(Setpoint.score(4)));
+        testModeChooser.addCmd("MoveToDemoSetpoint", superstructure::moveToDemoSetpoint);
         testModeChooser.addCmd("MoveToCoralSetpoint", () -> wrist.setPowerCmd(() -> 1));
         testModeChooser.addCmd(
             "Outtake",
             () -> intake.setHasCoralInSimCmd(true).andThen(intake.outtakeCmd())
         );
-        testModeChooser.addCmd("Score L4", () -> botCommands.scoreSequence(4));
+        testModeChooser.addCmd("Score L4", () -> superstructure.scoreSequence(4));
         if (RobotMode.get() == RobotMode.SIM) {
             testModeChooser.addCmd(
                 "Stow and simulate coral",
-                () -> intake.setHasCoralInSimCmd(true).andThen(botCommands.stow())
+                () -> intake.setHasCoralInSimCmd(true).andThen(superstructure.stow())
             );
         }
-        testModeChooser.addCmd("Move to L3", () -> botCommands.moveTo(Setpoint.score(3)));
+        testModeChooser.addCmd("Move to L3", () -> superstructure.moveTo(Setpoint.score(3)));
         testModeChooser.addCmd(
             "Wheel radius characterization",
             drivetrain::wheelRadiusCharacterization
