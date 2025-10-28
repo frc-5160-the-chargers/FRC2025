@@ -29,7 +29,7 @@ public record Setpoint(Distance elevatorHeight, Angle wristTarget, String name) 
 	public static final Setpoint ALGAE_PREP_L3 = new Setpoint(Meters.of(0.88), Degrees.of(15), "algae prep L3");
 	public static final Setpoint ALGAE_POP_L2 = new Setpoint(Meters.of(0.45), Degrees.of(15), "algae pop L2");
 	public static final Setpoint ALGAE_POP_L3 = new Setpoint(Meters.of(0.83), Degrees.of(15),"algae pop L3");
-	public static final Setpoint STOW = new Setpoint(Meters.zero(), Degrees.of(-40), "stow");
+	public static final Setpoint STOW = new Setpoint(Meters.zero(), Degrees.of(-38), "stow");
 	
 	public static class Limits {
 		// The wrist has to be extended this much to not hit the elevator
