@@ -95,12 +95,10 @@ public class Elevator extends StandardSubsystem {
 	);
 	private TrapezoidProfile.State currentSetpoint = new TrapezoidProfile.State();
 	private final SharedState sharedState;
-	
-	@Logged public final Trigger movingUp;
-	@Logged public final Trigger atLowPosition;
-	@Logged public final Trigger atLowerLimit;
-	@Logged public final Trigger atUpperLimit;
-	
+
+	@Logged
+	public final Trigger movingUp, atLowPosition, atLowerLimit, atUpperLimit, canMovePivotIn;
+
 	public Elevator(SharedState sharedState) {
 		this(false, sharedState);
 	}
@@ -119,6 +117,7 @@ public class Elevator extends StandardSubsystem {
 		atLowPosition = new Trigger(() -> heightMeters() < COG_LOW_BOUNDARY.in(Meters));
 		atLowerLimit = new Trigger(() -> heightMeters() < MIN_HEIGHT.in(Meters) && leaderMotor.outputVoltage() < 0);
 		atUpperLimit = new Trigger(() -> heightMeters() > MAX_HEIGHT.in(Meters) && leaderMotor.outputVoltage() > 0);
+		canMovePivotIn = new Trigger(() -> heightMeters() < 0.3);
 		
 		setGearRatioAndPID();
 		KP.onChange(this::setGearRatioAndPID);

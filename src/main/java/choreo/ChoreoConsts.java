@@ -14,7 +14,7 @@ public final class ChoreoConsts {
     public static final double frictionCoefficient = 1.5;
     public static final Distance wheelRadius = Meters.of(0.0508);
     public static final MomentOfInertia moi = KilogramSquareMeters.of(5.8);
-    public static final Mass mass = Kilograms.of(52.61671492);
+    public static final Mass mass = Kilograms.of(100.0);
     public static final Torque driveMotorMaxTorque = NewtonMeters.of(0.4);
     public static final Distance wheelBaseWithBumpers = Meters.of(1.0032999999999999);
     public static final Distance trackWidthWithBumpers = Meters.of(0.8636);
@@ -28,7 +28,7 @@ public final class ChoreoConsts {
     public static final AngularVelocity maxAngularVel = RadiansPerSecond.of(9.593976477189083);
     public static final AngularAcceleration maxAngularAccel = RadiansPerSecondPerSecond.of(18.066466002427948);
     public static final LinearVelocity maxLinearVel = MetersPerSecond.of(5.1481582839471445);
-    public static final LinearAcceleration maxLinearAccel = MetersPerSecondPerSecond.of(3.711284348482871);
+    public static final LinearAcceleration maxLinearAccel = MetersPerSecondPerSecond.of(1.9527559055118116);
 
     private ChoreoConsts() {}
 }

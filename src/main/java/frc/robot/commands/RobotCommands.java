@@ -5,6 +5,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.constants.Setpoint;
 import frc.robot.subsystems.CoralIntake;
 import frc.robot.subsystems.CoralIntakePivot;
+import frc.robot.subsystems.CoralIntakePivot.PivotAccel;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.swerve.SwerveDrive;
 import lombok.RequiredArgsConstructor;
@@ -41,15 +42,20 @@ public class RobotCommands {
 				.and(elevator.movingUp.negate())
 		).withName("wait until ready");
 	}
+
+	public Command moveTo(Setpoint setpoint) {
+		return moveTo(setpoint, PivotAccel.FAST);
+	}
 	
 	/**
 	 * Moves the elevator and pivot to a certain position.
 	 * @param setpoint the setpoint to move to - specifies elevator height and pivot angle.
+	 * @param pivotAccel whether to move the pivot with a fast or slow acceleration.
 	 */
-	public Command moveTo(Setpoint setpoint) {
+	public Command moveTo(Setpoint setpoint, PivotAccel pivotAccel) {
 		return Commands.runOnce(() -> GlobalLog.log("setpoint", setpoint.name()))
 			       .andThen(
-						coralIntakePivot.setAngleCmd(Setpoint.Limits.WRIST_LIMIT)
+						coralIntakePivot.setAngleCmd(Setpoint.Limits.WRIST_LIMIT, pivotAccel)
 			                .until(() -> coralIntakePivot.angleRads() >= Setpoint.Limits.WRIST_LIMIT.in(Radians)),
 						coralIntakePivot.stopCmd(),
 						elevator.moveToHeightCmd(setpoint.elevatorHeight()),
@@ -63,9 +69,13 @@ public class RobotCommands {
 	public Command stow() {
 		return Commands.runOnce(() -> GlobalLog.log("setpoint", "stow"))
 			.andThen(
-				coralIntakePivot.setAngleCmd(Setpoint.Limits.STOW_WRIST_LIMIT),
-				elevator.moveToHeightCmd(Setpoint.STOW.elevatorHeight()),
-				coralIntakePivot.setAngleCmd(Setpoint.STOW.wristTarget())
+				coralIntakePivot.setAngleCmd(Setpoint.Limits.STOW_WRIST_LIMIT, PivotAccel.SLOW),
+				Commands.parallel(
+					elevator.moveToHeightCmd(Setpoint.STOW.elevatorHeight()),
+					coralIntakePivot.idleCmd()
+						.until(elevator.canMovePivotIn)
+						.andThen(coralIntakePivot.setAngleCmd(Setpoint.STOW.wristTarget()))
+				)
 			)
 			.withName("stow");
 	}
@@ -91,9 +101,15 @@ public class RobotCommands {
 	
 	/** Moves the robot to the source intake position and runs the coral intake. */
 	public Command sourceIntake() {
-		return Commands.waitUntil(() -> elevator.heightMeters() < Setpoint.Limits.MIN_HEIGHT_BEFORE_INTAKE.in(Meters))
-			       .andThen(Commands.parallel(moveTo(Setpoint.INTAKE), coralIntake.intakeCmd()))
-			       .withName("source intake(no aim)");
+		return coralIntakePivot.idleCmd()
+			.until(() -> elevator.heightMeters() < Setpoint.Limits.MIN_HEIGHT_BEFORE_INTAKE.in(Meters))
+			.andThen(
+				Commands.parallel(
+					moveTo(Setpoint.INTAKE, PivotAccel.SLOW),
+					coralIntake.intakeCmd()
+				)
+			)
+			.withName("source intake(no aim)");
 	}
 	
 	/** Moves to a setpoint specified by tunable dashboard values. */

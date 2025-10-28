@@ -30,6 +30,11 @@ import static edu.wpi.first.units.Units.*;
 
 // Currently, a positive angle means pointing down, and a negative one is pointing up
 public class CoralIntakePivot extends StandardSubsystem {
+	/** Represents the desired acceleration for the pivot. */
+	public enum PivotAccel {
+		SLOW, FAST;
+	}
+
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeo550(1);
 	private static final int MOTOR_ID = 13;
 	private static final Angle TOLERANCE = Degrees.of(1);
@@ -44,7 +49,8 @@ public class CoralIntakePivot extends StandardSubsystem {
 	
 	// In rad/sec and rad/sec^2
 	private static final double MAX_VEL = (12 - FF_EQUATION.getKs()) / KV;
-	private static final double MAX_ACCEL = 40;
+	private static final double MAX_ACCEL_FAST = 20;
+	private static final double MAX_ACCEL_SLOW = 10;
 	
 	private static final TunableNum KP = new TunableNum("coralIntakePivot/kP", 0.64);
 	private static final TunableNum KD = new TunableNum("coralIntakePivot/kD", 0.01);
@@ -65,7 +71,8 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 	
 	private final SharedState sharedState;
-	private final TrapezoidProfile motionProfile = new TrapezoidProfile(new Constraints(MAX_VEL, MAX_ACCEL));
+	private final TrapezoidProfile slowProfile = new TrapezoidProfile(new Constraints(MAX_VEL, MAX_ACCEL_SLOW));
+	private final TrapezoidProfile fastProfile = new TrapezoidProfile(new Constraints(MAX_VEL, MAX_ACCEL_FAST));
 	private TrapezoidProfile.State profileState = new TrapezoidProfile.State();
 	@Logged private final Motor motor = new ChargerSpark(MOTOR_ID, Model.SPARK_MAX, MOTOR_CONFIG)
 		                                    .withAbsoluteEncoder()
@@ -100,14 +107,19 @@ public class CoralIntakePivot extends StandardSubsystem {
 	}
 
 	public Command setAngleCmd(Angle target) {
+		return setAngleCmd(target, PivotAccel.FAST);
+	}
+
+	public Command setAngleCmd(Angle target, PivotAccel accel) {
 		var goalState = new TrapezoidProfile.State(target.in(Radians), 0);
+		var profile = accel == PivotAccel.SLOW ? slowProfile : fastProfile;
 		return Commands.runOnce(() -> {
 			profileState = new TrapezoidProfile.State(angleRads(), motor.encoder().velocityRadPerSec());
 			this.target = target;
 		})
 	       .andThen(
 			   this.run(() -> {
-				   profileState = motionProfile.calculate(0.02, profileState, goalState);
+				   profileState = profile.calculate(0.02, profileState, goalState);
 				   log("profileState/position", profileState.position);
 				   log("profileState/velocity", profileState.velocity);
 				   feedforwardV = FF_EQUATION.calculate(profileState.velocity);

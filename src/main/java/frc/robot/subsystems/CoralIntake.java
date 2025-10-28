@@ -31,7 +31,7 @@ public class CoralIntake extends StandardSubsystem {
 	private static final DCMotor MOTOR_KIND = DCMotor.getNeoVortex(1);
 	
 	private static final double DISTANCE_TOLERANCE_MM = 50;
-	private static final double OUTTAKE_VOLTAGE = 3;
+	private static final double OUTTAKE_VOLTAGE = 2;
 	private static final double INTAKE_VOLTAGE = -6;
 	private static final double OUTTAKE_DELAY_SECS = 1;
 	private static final SparkBaseConfig MOTOR_CONFIG =
