@@ -71,8 +71,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			"Chargers-FrontRight",
 			1.0,
 			new Transform3d(
-				SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.6)),
-				SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(-2).plus(Centimeters.of(10.1)),
+				Inches.of(32.5 / 2).minus(Centimeters.of(2.6)),
+				Inches.of(-13.5).plus(Centimeters.of(10.1)),
 				Inches.of(7.375),
 				new Rotation3d(
 					Degrees.zero(),
@@ -85,8 +85,8 @@ public class AprilTagVision implements AutoCloseable, LogLocal {
 			"Chargers-FrontLeft",
 			1.0,
 			new Transform3d(
-				SwerveConfigurator.HARDWARE_SPECS.wheelBase().div(2).minus(Centimeters.of(2.6)),
-				SwerveConfigurator.HARDWARE_SPECS.trackWidth().div(2).minus(Centimeters.of(10)),
+				Inches.of(32.5 / 2).minus(Centimeters.of(2.6)),
+				Inches.of(13.5).minus(Centimeters.of(10)),
 				Inches.of(7.375),
 				new Rotation3d(
 					Degrees.zero(),

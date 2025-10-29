@@ -31,7 +31,7 @@ public class OperatorController extends CommandXboxController implements Subsyst
 	public final InputStream manualPivotInput =
 		InputStream.of(this::getLeftY)
 			.deadband(0.1, 1)
-			.times(-0.15);
+			.times(-0.1);
 	public final InputStream climbUpInput =
 		InputStream.of(this::getRightTriggerAxis)
 			.deadband(0.1, 1)
