@@ -12,6 +12,8 @@ import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.data.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.chargers.misc.TunableValues.TunableBool;
+import frc.robot.subsystems.RobotVisualizer;
+import frc.robot.subsystems.GlobalState;
 import frc.robot.subsystems.Superstructure;
 import frc.robot.constants.ReefPoses;
 import frc.robot.constants.ReefPoses.ReefSide;
@@ -58,8 +60,6 @@ public class CompetitionRobot extends LoggedRobot {
     private final AutoChooser autoChooser = new AutoChooser();
     private final AutoChooser testModeChooser = new AutoChooser();
 
-    private final RobotVisualization viz = new RobotVisualization(drivetrain, intake, wrist, elevator);
-
     public CompetitionRobot() {
         setUseTiming(!IS_REPLAY);
         DriverStation.silenceJoystickConnectionWarning(true);
@@ -101,7 +101,7 @@ public class CompetitionRobot extends LoggedRobot {
         if (RobotMode.get() == RobotMode.SIM) {
             Tracer.trace("maple sim", SimulatedArena.getInstance()::simulationPeriodic);
         }
-        viz.periodic();
+        superstructure.visualizationPeriodic();
     }
 
     private void updateOdometry() {

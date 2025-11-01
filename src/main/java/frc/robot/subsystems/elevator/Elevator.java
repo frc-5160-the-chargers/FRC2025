@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.data.InputStream;
 import frc.chargers.hardware.MotorDataAutoLogged;
 import frc.chargers.data.RobotMode;
-import frc.robot.GlobalState;
+import frc.robot.subsystems.GlobalState;
 import frc.robot.subsystems.ChargerSubsystem;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
