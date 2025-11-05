@@ -126,7 +126,9 @@ public class SwerveDrive extends ChargerSubsystem {
         this.yPoseController.setTolerance(TRANSLATION_TOLERANCE);
         this.rotationController.setTolerance(ROTATION_TOLERANCE);
 
-        SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
+        if (RobotBase.isSimulation()) {
+            SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
+        }
         OdoThread.getInstance().start();
 
         bind(

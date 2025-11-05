@@ -26,8 +26,4 @@ public class Intake extends ChargerSubsystem{
     public Command intakeFor3Seconds() {
         return this.run(() -> {});
     }
-
-    public static void main(String[] args) {
-        Intake i = new Intake();
-    }
 }

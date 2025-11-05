@@ -3,12 +3,14 @@ package frc.chargers.hardware;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.traits.CommonTalon;
+import edu.wpi.first.wpilibj.Alert;
 import frc.chargers.misc.Retry;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
+import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 
 /**
  * A utility class that reduces boilerplate around refreshing MotorInputs
@@ -23,6 +25,8 @@ public class TalonSignals {
         motorTemp = new ArrayList<>(),
         supplyCurrent = new ArrayList<>(),
         torqueCurrent = new ArrayList<>();
+
+    private final Alert noRefreshAlert = new Alert("You might not be calling SignalBatchRefresher.refreshAll().", kError);
 
     public TalonSignals(boolean isCanivore, CommonTalon leader, CommonTalon... followers) {
         this.isCanivore = isCanivore;
@@ -46,14 +50,15 @@ public class TalonSignals {
         int numMotors = motorTemp.size();
         inputs.setNumMotors(numMotors);
         inputs.errorAsString = "";
-        inputs.appliedVolts = refresh(voltage, inputs);
-        inputs.positionRad = rotationsToRadians(refresh(position, inputs));
-        inputs.velocityRadPerSec = rotationsToRadians(refresh(velocity, inputs));
+        inputs.appliedVolts = getValue(voltage, inputs);
+        inputs.positionRad = rotationsToRadians(getValue(position, inputs));
+        inputs.velocityRadPerSec = rotationsToRadians(getValue(velocity, inputs));
         for (int i = 0; i < numMotors; i++) {
-            inputs.supplyCurrent[i] = refresh(supplyCurrent.get(i), inputs);
-            inputs.tempCelsius[i] = refresh(motorTemp.get(i), inputs);
-            inputs.torqueCurrent[i] = refresh(torqueCurrent.get(i), inputs);
+            inputs.supplyCurrent[i] = getValue(supplyCurrent.get(i), inputs);
+            inputs.tempCelsius[i] = getValue(motorTemp.get(i), inputs);
+            inputs.torqueCurrent[i] = getValue(torqueCurrent.get(i), inputs);
         }
+        noRefreshAlert.set(inputs.tempCelsius[0] == 0.0);
     }
 
     /** Adds a follower motor to the signals. */
@@ -78,7 +83,7 @@ public class TalonSignals {
         );
     }
 
-    private double refresh(BaseStatusSignal signal, MotorDataAutoLogged inputs) {
+    private double getValue(BaseStatusSignal signal, MotorDataAutoLogged inputs) {
         var status = signal.getStatus();
         if (status != StatusCode.OK) inputs.errorAsString += (status.toString() + ",");
         return signal.getValueAsDouble();
