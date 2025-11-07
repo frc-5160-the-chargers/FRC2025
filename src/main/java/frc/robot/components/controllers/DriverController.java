@@ -23,15 +23,15 @@ public class DriverController extends CommandPS5Controller { // does not have a 
     @AutoLogOutput
     public final InputStream
         forwardOutput = InputStream.of(this::getLeftY)
-            .deadband(0.2, 1)
+            .deadband(0.2, 0.5)
             .times(slowModeOutput)
             .negate(),
         strafeOutput = InputStream.of(this::getLeftX)
-            .deadband(0.2, 1)
+            .deadband(0.2, 0.5)
             .times(slowModeOutput)
             .negate(),
         rotationOutput = InputStream.of(this::getRightX)
-            .deadband(0.2, 1)
+            .deadband(0.2, 0.5)
             .times(slowModeOutput)
             .negate();
 }
