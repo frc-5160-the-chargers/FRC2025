@@ -13,6 +13,7 @@
 
 package frc.robot.subsystems.drive.module;
 
+import com.ctre.phoenix6.Orchestra;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
@@ -75,6 +76,11 @@ public class SwerveModule {
                 inputs.odoSteerPositions[i]
             );
         }
+    }
+
+    /** For rickrolling purposes */
+    public void addInstruments(Orchestra orchestra) {
+        io.addInstruments(orchestra);
     }
 
     /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */

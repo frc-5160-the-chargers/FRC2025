@@ -14,6 +14,7 @@
 package frc.robot.subsystems.drive.module;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.Orchestra;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -158,6 +159,13 @@ public class RealModuleHardware extends ModuleHardware {
                     case Voltage -> positionVoltageReq.withPosition(rotation.getRotations());
                     case TorqueCurrentFOC -> positionTorqueCurrentRequest.withPosition(rotation.getRotations());
                 });
+    }
+
+    @Override
+    public void addInstruments(Orchestra orchestra) {
+        orchestra.addInstrument(driveTalon);
+        orchestra.addInstrument(steerTalon);
+        orchestra.addInstrument(cancoder);
     }
 
     private void configureDevices() {

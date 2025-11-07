@@ -2,6 +2,7 @@ package frc.robot.subsystems.drive;
 
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
+import com.ctre.phoenix6.Orchestra;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.controller.PIDController;
@@ -126,7 +127,7 @@ public class SwerveDrive extends ChargerSubsystem {
         this.yPoseController.setTolerance(TRANSLATION_TOLERANCE);
         this.rotationController.setTolerance(ROTATION_TOLERANCE);
 
-        if (RobotBase.isSimulation()) {
+        if (RobotMode.get() == RobotMode.SIM) {
             SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
         }
         OdoThread.getInstance().start();
@@ -135,6 +136,19 @@ public class SwerveDrive extends ChargerSubsystem {
             new Alert("Gyro has error", kError),
             () -> !gyroInputs.connected
         );
+    }
+
+    public Command rickRollCmd() {
+        var orchestra = new Orchestra();
+        for (var mod: swerveModules) {
+            mod.addInstruments(orchestra);
+        }
+        return Commands.runOnce(() -> {
+            var status = orchestra.loadMusic("NeverGonnaGiveYouUp.chrp");
+            if (status.isOK()) orchestra.play();
+        })
+            .andThen(Commands.idle())
+            .finallyDo(orchestra::stop);
     }
 
     /** Obtains desired module states from a ChassisSpeeds target. */
@@ -241,11 +255,11 @@ public class SwerveDrive extends ChargerSubsystem {
      */
     @AutoLogOutput(key = "SwerveDrive/actualPose(if run in sim)")
     public Pose2d bestPose() {
-        return RobotBase.isSimulation() ? mapleSim.getSimulatedDriveTrainPose() : poseEstimate();
+        return RobotMode.get() == RobotMode.SIM ? mapleSim.getSimulatedDriveTrainPose() : poseEstimate();
     }
 
     public void resetPose(Pose2d pose) {
-        if (RobotBase.isSimulation()) {
+        if (RobotMode.get() == RobotMode.SIM) {
             // don't reset rotation in sim, as maple sim's value has already changed
             poseEstimator.resetTranslation(pose.getTranslation());
             mapleSim.setSimulationWorldPose(pose);

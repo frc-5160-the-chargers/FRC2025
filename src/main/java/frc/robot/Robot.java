@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.chargers.data.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.robot.components.controllers.DriverController;
 import frc.robot.subsystems.drive.SwerveDrive;
@@ -23,12 +24,15 @@ public class Robot extends LoggedRobot {
             drive.driveCmd(controller.forwardOutput, controller.strafeOutput, controller.rotationOutput, true)
         );
         drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+        controller.triangle().whileTrue(drive.rickRollCmd());
     }
 
     @Override
     public void robotPeriodic() {
         SignalBatchRefresher.refreshAll();
         CommandScheduler.getInstance().run();
-        SimulatedArena.getInstance().simulationPeriodic();
+        if (RobotMode.get() == RobotMode.SIM) {
+            SimulatedArena.getInstance().simulationPeriodic();
+        }
     }
 }

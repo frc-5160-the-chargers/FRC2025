@@ -13,6 +13,7 @@
 
 package frc.robot.subsystems.drive.module;
 
+import com.ctre.phoenix6.Orchestra;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.chargers.hardware.MotorDataAutoLogged;
 import org.littletonrobotics.junction.AutoLog;
@@ -43,4 +44,7 @@ public class ModuleHardware {
 
     /** Run the turn motor to the specified rotation. */
     public void setSteerPosition(Rotation2d rotation) {}
+
+    /** For rick rolling ppl */
+    public void addInstruments(Orchestra orchestra) {}
 }
