@@ -34,13 +34,13 @@ public class ModuleHardware {
     public void refreshData(ModuleDataAutoLogged inputs) {}
 
     /** Run the drive motor at the specified open loop value. */
-    public void setDriveOpenLoop(double output) {}
+    public void setDriveOpenLoop(double voltsOrAmps) {}
 
     /** Run the turn motor at the specified open loop value. */
-    public void setSteerOpenLoop(double output) {}
+    public void setSteerOpenLoop(double voltsOrAmps) {}
 
     /** Run the drive motor at the specified velocity. */
-    public void setDriveVelocity(double velocityRadPerSec) {}
+    public void setDriveVelocity(double radPerSec) {}
 
     /** Run the turn motor to the specified rotation. */
     public void setSteerPosition(Rotation2d rotation) {}

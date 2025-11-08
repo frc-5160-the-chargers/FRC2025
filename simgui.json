@@ -113,6 +113,18 @@
               },
               "open": true
             },
+            "BR": {
+              "open": true
+            },
+            "FR": {
+              "Drive": {
+                "open": true
+              },
+              "Steer": {
+                "open": true
+              },
+              "open": true
+            },
             "open": true
           },
           "open": true

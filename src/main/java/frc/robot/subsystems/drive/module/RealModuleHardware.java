@@ -132,26 +132,26 @@ public class RealModuleHardware extends ModuleHardware {
     }
 
     @Override
-    public void setDriveOpenLoop(double output) {
+    public void setDriveOpenLoop(double voltsOrAmps) {
         driveTalon.setControl(
                 switch (constants.DriveMotorClosedLoopOutput) {
-                    case Voltage -> voltageReq.withOutput(output);
-                    case TorqueCurrentFOC -> torqueCurrentRequest.withOutput(output);
+                    case Voltage -> voltageReq.withOutput(voltsOrAmps);
+                    case TorqueCurrentFOC -> torqueCurrentRequest.withOutput(voltsOrAmps);
                 });
     }
 
     @Override
-    public void setSteerOpenLoop(double output) {
+    public void setSteerOpenLoop(double voltsOrAmps) {
         steerTalon.setControl(
                 switch (constants.SteerMotorClosedLoopOutput) {
-                    case Voltage -> voltageReq.withOutput(output);
-                    case TorqueCurrentFOC -> torqueCurrentRequest.withOutput(output);
+                    case Voltage -> voltageReq.withOutput(voltsOrAmps);
+                    case TorqueCurrentFOC -> torqueCurrentRequest.withOutput(voltsOrAmps);
                 });
     }
 
     @Override
-    public void setDriveVelocity(double velocityRadPerSec) {
-        double velocityRotPerSec = Units.radiansToRotations(velocityRadPerSec);
+    public void setDriveVelocity(double radPerSec) {
+        double velocityRotPerSec = Units.radiansToRotations(radPerSec);
         driveTalon.setControl(
                 switch (constants.DriveMotorClosedLoopOutput) {
                     case Voltage -> velocityVoltageReq.withVelocity(velocityRotPerSec);

@@ -1,7 +1,10 @@
 package frc.robot;
 
+import com.ctre.phoenix6.hardware.Pigeon2;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.chargers.data.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
@@ -18,6 +21,7 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 public class Robot extends LoggedRobot {
     private final SwerveDrive drive = new SwerveDrive();
     private final DriverController controller = new DriverController();
+    private final Pigeon2 dummyPigeon = new Pigeon2(0);
 
     public Robot() {
         setUseTiming(true);

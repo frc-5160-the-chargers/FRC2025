@@ -85,10 +85,8 @@ public class SwerveModule {
 
     /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */
     public void runSetpoint(SwerveModuleState state) {
-        io.setDriveOpenLoop(state.speedMetersPerSecond / constants.SpeedAt12Volts);
-//        io.setDriveVelocity(state.speedMetersPerSecond / constants.WheelRadius);
+        io.setDriveVelocity(state.speedMetersPerSecond / constants.WheelRadius);
         io.setSteerPosition(state.angle);
-        Logger.recordOutput("SwerveModules/" + name + "/targetAngle", state.angle);
     }
 
     /** Runs the module with the specified output while controlling to zero degrees. */
