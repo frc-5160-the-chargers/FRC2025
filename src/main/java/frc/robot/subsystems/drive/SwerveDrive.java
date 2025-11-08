@@ -300,7 +300,7 @@ public class SwerveDrive extends ChargerSubsystem {
                 rotationOutput.get() * maxSpeedMps,
                 rotation
             );
-            driveCallback(speeds, true);
+            driveCallback(speeds, false);
         }).withName("SwerveDriveCmd(Open Loop)");
     }
 

@@ -32,6 +32,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
@@ -111,7 +112,13 @@ public class RealModuleHardware extends ModuleHardware {
         driveSignals.refresh(inputs.drive);
         steerSignals.refresh(inputs.steer);
 
-        inputs.steerAbsolutePos = Rotation2d.fromRotations(steerAbsolutePosition.getValueAsDouble());
+        inputs.steerAbsolutePos = Rotation2d.fromRotations(
+            MathUtil.inputModulus(
+                steerAbsolutePosition.getValueAsDouble(),
+                -0.5,
+                0.5
+            )
+        );
         inputs.odoTimestamps = timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
         inputs.odoDrivePositionsRad = drivePositionQueue.stream()
                 .mapToDouble(Units::rotationsToRadians)
