@@ -21,7 +21,7 @@ public class Robot extends LoggedRobot {
         Logger.addDataReceiver(new NT4Publisher());
         Logger.start();
         drive.setDefaultCommand(
-            drive.driveCmd(controller.forwardOutput, controller.strafeOutput, controller.rotationOutput, true)
+            drive.driveCmd(controller.forwardOutput, controller.strafeOutput, controller.rotationOutput, false)
         );
         drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
         controller.triangle().whileTrue(drive.rickRollCmd());

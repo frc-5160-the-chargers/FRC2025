@@ -382,6 +382,15 @@ public class SwerveDrive extends ChargerSubsystem {
     }
 
     @AutoLogOutput
+    public SwerveModuleState[] measuredStates() {
+        var arr = new SwerveModuleState[4];
+        for (int i = 0; i < 4; i++) {
+            arr[i] = swerveModules[i].getState();
+        }
+        return arr;
+    }
+
+    @AutoLogOutput
     public double overallSpeedMps() {
         var speeds = robotRelativeSpeeds();
         return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
