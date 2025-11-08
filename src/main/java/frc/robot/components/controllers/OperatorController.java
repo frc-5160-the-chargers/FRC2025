@@ -12,8 +12,6 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kWarning;
 import static frc.chargers.commands.TriggerUtil.bind;
 
-// Implements the Subsystem interface(and doesn't extend ChargerSubsystem)
-// Because this already inherits from CommandXboxController
 public class OperatorController extends CommandXboxController implements Subsystem {
     public OperatorController() {
         super(1);

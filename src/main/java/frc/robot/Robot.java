@@ -31,7 +31,7 @@ public class Robot extends LoggedRobot {
     public void robotPeriodic() {
         SignalBatchRefresher.refreshAll();
         CommandScheduler.getInstance().run();
-        if (RobotMode.get() == RobotMode.SIM) {
+        if (RobotMode.isSim()) {
             SimulatedArena.getInstance().simulationPeriodic();
         }
     }

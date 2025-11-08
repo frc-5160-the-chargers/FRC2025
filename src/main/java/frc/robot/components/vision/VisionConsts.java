@@ -41,7 +41,7 @@ public class VisionConsts {
     );
 
     static final Optional<VisionSystemSim> VISION_SYSTEM_SIM =
-        RobotMode.get() == RobotMode.SIM ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
+        RobotMode.isSim() ? Optional.of(new VisionSystemSim("main")) : Optional.empty();
     static final SimCameraProperties ARDUCAM_SIM_PROPERTIES = new SimCameraProperties();
     static final double MAX_AMBIGUITY = 0.2;
     static final Distance MAX_Z_ERROR = Meters.of(0.1);

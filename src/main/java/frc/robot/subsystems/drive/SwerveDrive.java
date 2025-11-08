@@ -17,7 +17,6 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -127,7 +126,7 @@ public class SwerveDrive extends ChargerSubsystem {
         this.yPoseController.setTolerance(TRANSLATION_TOLERANCE);
         this.rotationController.setTolerance(ROTATION_TOLERANCE);
 
-        if (RobotMode.get() == RobotMode.SIM) {
+        if (RobotMode.isSim()) {
             SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
         }
         OdoThread.getInstance().start();
@@ -255,11 +254,11 @@ public class SwerveDrive extends ChargerSubsystem {
      */
     @AutoLogOutput(key = "SwerveDrive/actualPose(if run in sim)")
     public Pose2d bestPose() {
-        return RobotMode.get() == RobotMode.SIM ? mapleSim.getSimulatedDriveTrainPose() : poseEstimate();
+        return RobotMode.isSim() ? mapleSim.getSimulatedDriveTrainPose() : poseEstimate();
     }
 
     public void resetPose(Pose2d pose) {
-        if (RobotMode.get() == RobotMode.SIM) {
+        if (RobotMode.isSim()) {
             // don't reset rotation in sim, as maple sim's value has already changed
             poseEstimator.resetTranslation(pose.getTranslation());
             mapleSim.setSimulationWorldPose(pose);
