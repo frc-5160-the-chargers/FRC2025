@@ -18,7 +18,7 @@ public class TunableValues {
 		private DoubleConsumer onChange = null;
 
 		public TunableNum(String key, double defaultValue) {
-			super("TunableValues/" + key, defaultValue);
+			super(key, defaultValue);
 			this.defaultValue = defaultValue;
 		}
 
@@ -49,7 +49,7 @@ public class TunableValues {
 		private BooleanConsumer onChange = null;
 
 		public TunableBool(String key, boolean defaultValue) {
-			super("TunableValues/" + key, defaultValue);
+			super(key, defaultValue);
 			this.defaultValue = defaultValue;
 		}
 

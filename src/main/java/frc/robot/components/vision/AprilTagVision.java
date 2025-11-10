@@ -18,7 +18,7 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import java.util.*;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.components.vision.VisionConsts.*;
 
 public class AprilTagVision {

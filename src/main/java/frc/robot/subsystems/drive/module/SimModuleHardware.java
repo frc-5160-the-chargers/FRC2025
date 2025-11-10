@@ -29,7 +29,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.Volts;
 
 /**
  * Physics sim implementation of module IO. The sim models are configured using a set of module constants from Phoenix.

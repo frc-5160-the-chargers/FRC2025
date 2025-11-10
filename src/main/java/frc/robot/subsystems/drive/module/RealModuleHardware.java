@@ -15,15 +15,9 @@ package frc.robot.subsystems.drive.module;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.Orchestra;
-import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.PositionVoltage;
-import com.ctre.phoenix6.controls.TorqueCurrentFOC;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.VelocityVoltage;
-import com.ctre.phoenix6.controls.VoltageOut;
+import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -32,20 +26,18 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.Angle;
-import frc.chargers.hardware.TalonSignals;
 import frc.chargers.hardware.SignalBatchRefresher;
+import frc.chargers.hardware.TalonSignals;
 import frc.chargers.misc.Retry;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.drive.OdoThread;
-import org.littletonrobotics.junction.Logger;
 
 import java.util.Queue;
 
-import static frc.robot.subsystems.drive.SwerveConsts.*;
+import static frc.robot.subsystems.drive.SwerveConsts.DRIVE_MOTOR_TYPE;
+import static frc.robot.subsystems.drive.SwerveConsts.ODO_FREQUENCY_HZ;
 
 /**
  * Module IO implementation for Talon FX drive motor controller, Talon FX steer motor controller, and CANcoder.
@@ -62,25 +54,24 @@ public class RealModuleHardware extends ModuleHardware {
 
     // Voltage control requests
     private final VoltageOut voltageReq = new VoltageOut(0);
-    private final PositionVoltage positionVoltageReq = new PositionVoltage(0.0);
-    private final VelocityVoltage velocityVoltageReq = new VelocityVoltage(0.0);
+    private final PositionVoltage positionVoltageReq = new PositionVoltage(0);
+    private final VelocityVoltage velocityVoltageReq = new VelocityVoltage(0);
 
     // Torque-current control requests
-    private final TorqueCurrentFOC torqueCurrentRequest = new TorqueCurrentFOC(0);
-    private final PositionTorqueCurrentFOC positionTorqueCurrentRequest = new PositionTorqueCurrentFOC(0.0);
-    private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest = new VelocityTorqueCurrentFOC(0.0);
+    private final TorqueCurrentFOC torqueCurrentReq = new TorqueCurrentFOC(0);
+    private final PositionTorqueCurrentFOC positionTorqueCurrentReq = new PositionTorqueCurrentFOC(0);
+    private final VelocityTorqueCurrentFOC velocityTorqueCurrentReq = new VelocityTorqueCurrentFOC(0);
 
     // Odometry thread queues
     private final Queue<Double> timestampQueue, drivePositionQueue, steerPositionQueue;
 
     // Signals
     private final TalonSignals driveSignals, steerSignals;
-    private final StatusSignal<Angle> steerAbsolutePosition;
+    private final BaseStatusSignal steerAbsPos;
 
     public RealModuleHardware(
             SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants) {
         boolean isCanivore = TunerConstants.kCANBus.isNetworkFD();
-        Logger.recordOutput("Canivore", isCanivore);
         String bus = TunerConstants.DrivetrainConstants.CANBusName;
         this.constants = constants;
         driveTalon = new TalonFX(constants.DriveMotorId, bus);
@@ -95,14 +86,17 @@ public class RealModuleHardware extends ModuleHardware {
         timestampQueue = OdoThread.getInstance().makeTimestampQueue();
         drivePositionQueue = OdoThread.getInstance().register(driveSignals.position);
         steerPositionQueue = OdoThread.getInstance().register(steerSignals.position);
-        steerAbsolutePosition = cancoder.getAbsolutePosition();
-        SignalBatchRefresher.register(isCanivore, steerAbsolutePosition);
+        steerAbsPos = cancoder.getAbsolutePosition();
+        SignalBatchRefresher.register(isCanivore, steerAbsPos);
 
         // Configure periodic frames
-        driveSignals.setUpdateFreqForAll(50.0);
-        steerSignals.setUpdateFreqForAll(50.0);
-        BaseStatusSignal.setUpdateFrequencyForAll(
-            ODO_FREQUENCY_HZ, driveSignals.position, steerSignals.position
+        driveSignals.setUpdateFrequency(50.0);
+        steerSignals.setUpdateFrequency(50.0);
+        Retry.ctreConfig(
+            4, "Position signals were not set to 250hz",
+            () -> BaseStatusSignal.setUpdateFrequencyForAll(
+                ODO_FREQUENCY_HZ, driveSignals.position, steerSignals.position
+            )
         );
         ParentDevice.optimizeBusUtilizationForAll(driveTalon, steerTalon);
     }
@@ -112,13 +106,7 @@ public class RealModuleHardware extends ModuleHardware {
         driveSignals.refresh(inputs.drive);
         steerSignals.refresh(inputs.steer);
 
-        inputs.steerAbsolutePos = Rotation2d.fromRotations(
-            MathUtil.inputModulus(
-                steerAbsolutePosition.getValueAsDouble(),
-                -0.5,
-                0.5
-            )
-        );
+        inputs.steerAbsolutePos = Rotation2d.fromRotations(steerAbsPos.getValueAsDouble());
         inputs.odoTimestamps = timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
         inputs.odoDrivePositionsRad = drivePositionQueue.stream()
                 .mapToDouble(Units::rotationsToRadians)
@@ -136,7 +124,7 @@ public class RealModuleHardware extends ModuleHardware {
         driveTalon.setControl(
                 switch (constants.DriveMotorClosedLoopOutput) {
                     case Voltage -> voltageReq.withOutput(voltsOrAmps);
-                    case TorqueCurrentFOC -> torqueCurrentRequest.withOutput(voltsOrAmps);
+                    case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
                 });
     }
 
@@ -145,7 +133,7 @@ public class RealModuleHardware extends ModuleHardware {
         steerTalon.setControl(
                 switch (constants.SteerMotorClosedLoopOutput) {
                     case Voltage -> voltageReq.withOutput(voltsOrAmps);
-                    case TorqueCurrentFOC -> torqueCurrentRequest.withOutput(voltsOrAmps);
+                    case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
                 });
     }
 
@@ -155,7 +143,7 @@ public class RealModuleHardware extends ModuleHardware {
         driveTalon.setControl(
                 switch (constants.DriveMotorClosedLoopOutput) {
                     case Voltage -> velocityVoltageReq.withVelocity(velocityRotPerSec);
-                    case TorqueCurrentFOC -> velocityTorqueCurrentRequest.withVelocity(velocityRotPerSec);
+                    case TorqueCurrentFOC -> velocityTorqueCurrentReq.withVelocity(velocityRotPerSec);
                 });
     }
 
@@ -164,7 +152,7 @@ public class RealModuleHardware extends ModuleHardware {
         steerTalon.setControl(
                 switch (constants.SteerMotorClosedLoopOutput) {
                     case Voltage -> positionVoltageReq.withPosition(rotation.getRotations());
-                    case TorqueCurrentFOC -> positionTorqueCurrentRequest.withPosition(rotation.getRotations());
+                    case TorqueCurrentFOC -> positionTorqueCurrentReq.withPosition(rotation.getRotations());
                 });
     }
 

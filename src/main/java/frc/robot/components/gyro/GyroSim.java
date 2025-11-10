@@ -1,10 +1,10 @@
 package frc.robot.components.gyro;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-
 import edu.wpi.first.math.util.Units;
 import frc.chargers.misc.SimUtil;
 import org.ironmaple.simulation.drivesims.GyroSimulation;
+
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 
 public class GyroSim extends Gyro {
     private final GyroSimulation gyroSimulation;

@@ -13,38 +13,37 @@ import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 
 /**
- * A utility class that reduces boilerplate around refreshing MotorInputs
- * for CTRE TalonFX and TalonFXS motors.
+ * A utility class that reduces boilerplate around refreshing {@link MotorDataAutoLogged}
+ * for TalonFX and TalonFXS motors.
  * To use this class, YOU MUST HAVE TalonSignalsRefresher.refreshAll() in robotPeriodic().
  */
 public class TalonSignals {
-    public final boolean isCanivore;
+    private static final Alert NO_REFRESH_ALERT = new Alert("You might not be calling SignalBatchRefresher.refreshAll().", kError);
+
     public final BaseStatusSignal position, velocity, voltage;
+
     private final List<BaseStatusSignal>
         all = new ArrayList<>(),
         motorTemp = new ArrayList<>(),
         supplyCurrent = new ArrayList<>(),
         torqueCurrent = new ArrayList<>();
 
-    private final Alert noRefreshAlert = new Alert("You might not be calling SignalBatchRefresher.refreshAll().", kError);
-
     public TalonSignals(boolean isCanivore, CommonTalon leader, CommonTalon... followers) {
-        this.isCanivore = isCanivore;
         position = leader.getPosition();
         velocity = leader.getVelocity();
         voltage = leader.getMotorVoltage();
         SignalBatchRefresher.register(isCanivore, position, velocity, voltage);
         all.addAll(List.of(position, velocity, voltage));
 
-        addMotor(leader);
+        addMotor(isCanivore, leader);
         for (var follower: followers) {
-            addMotor(follower);
+            addMotor(isCanivore, follower);
         }
     }
 
     /**
-     * Refreshes a MotorInputs object with data from the signals
-     * @param inputs the MotorInputs to refresh.
+     * Refreshes a {@link MotorDataAutoLogged} object with data from the signals
+     * @param inputs the motor data to refresh.
      */
     public void refresh(MotorDataAutoLogged inputs) {
         int numMotors = motorTemp.size();
@@ -58,23 +57,11 @@ public class TalonSignals {
             inputs.tempCelsius[i] = getValue(motorTemp.get(i), inputs);
             inputs.torqueCurrent[i] = getValue(torqueCurrent.get(i), inputs);
         }
-        noRefreshAlert.set(inputs.tempCelsius[0] == 0.0);
-    }
-
-    /** Adds a follower motor to the signals. */
-    public void addMotor(CommonTalon motor) {
-        BaseStatusSignal[] signals = {
-            motor.getDeviceTemp(), motor.getSupplyCurrent(), motor.getTorqueCurrent()
-        };
-        motorTemp.add(signals[0]);
-        supplyCurrent.add(signals[1]);
-        torqueCurrent.add(signals[2]);
-        SignalBatchRefresher.register(isCanivore, signals);
-        all.addAll(List.of(signals));
+        NO_REFRESH_ALERT.set(inputs.tempCelsius[0] == 0.0);
     }
 
     /** Sets the update frequency of all signals. */
-    public void setUpdateFreqForAll(double hz) {
+    public void setUpdateFrequency(double hz) {
         Retry.ctreConfig(
             4, "Status signal frequency set failed",
             () -> BaseStatusSignal.setUpdateFrequencyForAll(
@@ -87,5 +74,16 @@ public class TalonSignals {
         var status = signal.getStatus();
         if (status != StatusCode.OK) inputs.errorAsString += (status.toString() + ",");
         return signal.getValueAsDouble();
+    }
+
+    private void addMotor(boolean isCanivore, CommonTalon motor) {
+        BaseStatusSignal[] signals = {
+            motor.getDeviceTemp(), motor.getSupplyCurrent(), motor.getTorqueCurrent()
+        };
+        motorTemp.add(signals[0]);
+        supplyCurrent.add(signals[1]);
+        torqueCurrent.add(signals[2]);
+        SignalBatchRefresher.register(isCanivore, signals);
+        all.addAll(List.of(signals));
     }
 }

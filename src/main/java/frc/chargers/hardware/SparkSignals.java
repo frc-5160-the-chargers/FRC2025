@@ -12,26 +12,23 @@ import static edu.wpi.first.math.util.Units.rotationsPerMinuteToRadiansPerSecond
 import static edu.wpi.first.math.util.Units.rotationsToRadians;
 
 /**
- * A utility class that reduces boilerplate around refreshing MotorInputs
+ * A utility class that reduces boilerplate around refreshing {@link MotorDataAutoLogged}
  * for REV Spark Max and Spark Flex motors.
  */
 public class SparkSignals {
     private final List<SparkBase> motors = new ArrayList<>();
     private final Object encoder;
 
-    public SparkSignals(RelativeEncoder encoder, SparkBase... motors) {
-        this.motors.addAll(List.of(motors));
+    public SparkSignals(RelativeEncoder encoder, SparkBase leader, SparkBase... followers) {
+        motors.add(leader);
+        motors.addAll(List.of(followers));
         this.encoder = encoder;
     }
 
-    public SparkSignals(AbsoluteEncoder encoder, SparkBase... motors) {
-        this.motors.addAll(List.of(motors));
+    public SparkSignals(AbsoluteEncoder encoder, SparkBase leader, SparkBase... followers) {
+        motors.add(leader);
+        motors.addAll(List.of(followers));
         this.encoder = encoder;
-    }
-
-    /** Adds a follower motor to the signals. */
-    public void addMotor(SparkBase motor) {
-        this.motors.add(motor);
     }
 
     public void refresh(MotorDataAutoLogged inputs) {
@@ -40,9 +37,9 @@ public class SparkSignals {
         inputs.appliedVolts = motors.get(0).getAppliedOutput() * motors.get(0).getBusVoltage();
         for (int i = 0; i < motors.size(); i++) {
             var motor = motors.get(i);
-            var err = motor.getLastError();
             inputs.supplyCurrent[i] = motor.getOutputCurrent();
             inputs.tempCelsius[i] = motor.getMotorTemperature();
+            var err = motor.getLastError();
             if (err != REVLibError.kOk) {
                 errTxt.append(err).append(",");
             }

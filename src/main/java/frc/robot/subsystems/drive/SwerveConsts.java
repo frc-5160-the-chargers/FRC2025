@@ -18,7 +18,6 @@ import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.ironmaple.simulation.drivesims.configs.SwerveModuleSimulationConfig;
 
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.units.Units.KilogramSquareMeters;
 import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TREAD;
 
 /**

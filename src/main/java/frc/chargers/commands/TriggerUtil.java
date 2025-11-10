@@ -2,7 +2,7 @@ package frc.chargers.commands;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.RequiredArgsConstructor;
 
@@ -11,18 +11,8 @@ import java.util.function.BooleanSupplier;
 public class TriggerUtil {
 	/** "Binds" an alert to a trigger/boolean supplier; pushing it to the dashboard when the condition returns true. */
 	public static void bind(Alert alert, BooleanSupplier condition) {
-		if (condition.getAsBoolean()) alert.set(true); // covers initial condition
-		new Trigger(condition)
-			.onTrue(
-				Commands.runOnce(() -> alert.set(true))
-					.ignoringDisable(true)
-					.withName("[Enable Alert] " + alert.getText())
-			)
-			.onFalse(
-				Commands.runOnce(() -> alert.set(false))
-					.ignoringDisable(true)
-					.withName("[Disable Alert] " + alert.getText())
-			);
+		CommandScheduler.getInstance().getActiveButtonLoop()
+			.bind(() -> alert.set(condition.getAsBoolean()));
 	}
 	
 	/**

@@ -2,8 +2,6 @@ package frc.robot.constants;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.units.measure.*;
-import static edu.wpi.first.units.Units.*;
 
 /**
  * File containing variables created in choreo,

@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.units.Units.Degrees;
 
 public class VisionConsts {
     static final Transform3d FL_CAM_TRANSFORM = new Transform3d(

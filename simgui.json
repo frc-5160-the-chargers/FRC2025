@@ -94,6 +94,9 @@
     "transitory": {
       "AdvantageKit": {
         "RealOutputs": {
+          "DriverController": {
+            "open": true
+          },
           "Elevator": {
             "open": true
           },
@@ -101,6 +104,9 @@
             "open": true
           },
           "Test": {
+            "open": true
+          },
+          "Tracer": {
             "open": true
           },
           "open": true
