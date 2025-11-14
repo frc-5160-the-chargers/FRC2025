@@ -23,6 +23,8 @@
       "/SmartDashboard/TestChooser": "String Chooser",
       "/SmartDashboard/UNKNOWN/fieldViz": "Field2d",
       "/SmartDashboard/View Connection warnings": "Command",
+      "/SmartDashboard/VisionSystemSim-Chargers-FrontLeft/Sim Field": "Field2d",
+      "/SmartDashboard/VisionSystemSim-Chargers-FrontRight/Sim Field": "Field2d",
       "/SmartDashboard/VisionSystemSim-main/Sim Field": "Field2d",
       "Robot/Dummy Field": "PIDController",
       "Robot/autoChooser": "String Chooser",

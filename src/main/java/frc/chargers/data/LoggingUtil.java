@@ -4,6 +4,7 @@ import org.littletonrobotics.junction.Logger;
 
 import java.util.Collection;
 
+/** Provides utilities for logging java lists as outputs. */
 public class LoggingUtil {
     public static void logDoubleList(String key, Collection<Double> values) {
         var array = new double[values.size()];

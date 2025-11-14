@@ -1,7 +1,6 @@
 package frc.chargers.hardware;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import frc.chargers.misc.Tracer;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -37,13 +36,11 @@ public class SignalBatchRefresher {
      * Refreshes all signals. This must be called in robotPeriodic().
      */
     public static void refreshAll() {
-        Tracer.startTrace("Talon Signal Refresh");
         if (!rioSignals.isEmpty()) {
             BaseStatusSignal.refreshAll(rioSignals.toArray(new BaseStatusSignal[0]));
         }
         if (!canivoreSignals.isEmpty()) {
             BaseStatusSignal.refreshAll(canivoreSignals.toArray(new BaseStatusSignal[0]));
         }
-        Tracer.endTrace();
     }
 }

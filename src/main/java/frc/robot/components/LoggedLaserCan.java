@@ -31,14 +31,11 @@ public class LoggedLaserCan {
     
     private final LaserCan laserCan;
 
-    /** Stores data from this LaserCan. Refreshed with refreshData(). */
-    public final LaserCanDataAutoLogged inputs = new LaserCanDataAutoLogged();
-    
     public LoggedLaserCan(int canId) {
         this.laserCan = new LaserCan(canId);
     }
 
-    public void refreshData() {
+    public void refreshData(LaserCanDataAutoLogged inputs) {
         var measurement = laserCan.getMeasurement();
         if (measurement == null || measurement.status == -1) {
             inputs.status = LaserCanStatus.NOTHING_SEEN;

@@ -17,9 +17,7 @@ public class GyroSim extends Gyro {
     public void refreshData(GyroDataAutoLogged inputs) {
         inputs.connected = true;
         inputs.yaw = gyroSimulation.getGyroReading();
-        inputs.yawVelocityRadPerSec = Units.degreesToRadians(
-                gyroSimulation.getMeasuredAngularVelocity().in(RadiansPerSecond));
-
+        inputs.yawVelocityRadPerSec = gyroSimulation.getMeasuredAngularVelocity().in(RadiansPerSecond);
         inputs.odoYawTimestamps = SimUtil.simulateOdoTimestamps();
         inputs.odoYawValues = gyroSimulation.getCachedGyroReadings();
     }

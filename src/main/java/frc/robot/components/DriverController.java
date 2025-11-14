@@ -1,4 +1,4 @@
-package frc.robot.components.controllers;
+package frc.robot.components;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
@@ -23,15 +23,15 @@ public class DriverController extends CommandPS5Controller { // does not have a 
     @AutoLogOutput
     public final InputStream
         forwardOutput = InputStream.of(this::getLeftY)
-            .deadband(0.2, 0.5)
+            .deadband(0.2, 1)
             .times(slowModeOutput)
             .negate(),
         strafeOutput = InputStream.of(this::getLeftX)
-            .deadband(0.2, 0.5)
+            .deadband(0.2, 1)
             .times(slowModeOutput)
             .negate(),
         rotationOutput = InputStream.of(this::getRightX)
-            .deadband(0.2, 0.5)
+            .deadband(0.2, 1)
             .times(slowModeOutput)
             .negate();
 }

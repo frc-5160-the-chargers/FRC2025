@@ -1,20 +1,6 @@
-// Copyright 2021-2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 3 as published by the Free Software Foundation or
-// available in the root directory of this project.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 package frc.robot.subsystems.drive.module;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.Orchestra;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.*;
@@ -77,6 +63,7 @@ public class RealModuleHardware extends ModuleHardware {
         driveTalon = new TalonFX(constants.DriveMotorId, bus);
         steerTalon = new TalonFX(constants.SteerMotorId, bus);
         cancoder = new CANcoder(constants.EncoderId, bus);
+        // Custom utility classes for data updating
         driveSignals = new TalonSignals(isCanivore, driveTalon);
         steerSignals = new TalonSignals(isCanivore, steerTalon);
 
@@ -154,13 +141,6 @@ public class RealModuleHardware extends ModuleHardware {
                     case Voltage -> positionVoltageReq.withPosition(rotation.getRotations());
                     case TorqueCurrentFOC -> positionTorqueCurrentReq.withPosition(rotation.getRotations());
                 });
-    }
-
-    @Override
-    public void addInstruments(Orchestra orchestra) {
-        orchestra.addInstrument(driveTalon);
-        orchestra.addInstrument(steerTalon);
-        orchestra.addInstrument(cancoder);
     }
 
     private void configureDevices() {

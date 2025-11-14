@@ -2,7 +2,6 @@ package frc.robot.subsystems.drive;
 
 import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
-import com.ctre.phoenix6.Orchestra;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.controller.PIDController;
@@ -29,7 +28,7 @@ import frc.robot.components.gyro.Gyro;
 import frc.robot.components.gyro.GyroDataAutoLogged;
 import frc.robot.components.gyro.GyroPigeon2;
 import frc.robot.components.gyro.GyroSim;
-import frc.robot.components.vision.AprilTagVision.PoseEstimate;
+import frc.robot.components.vision.Structs.PoseEstimate;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.ChargerSubsystem;
 import frc.robot.subsystems.drive.module.SwerveModule;
@@ -103,7 +102,7 @@ public class SwerveDrive extends ChargerSubsystem {
             Volts.per(Second).of(0.5),
             Volts.of(3),
             Seconds.of(10),
-            state -> Logger.recordOutput("swerve/sysIdState", state.toString())
+            state -> Logger.recordOutput(key("SysIdState"), state.toString())
         ),
         new SysIdRoutine.Mechanism(
             voltage -> {
@@ -137,23 +136,9 @@ public class SwerveDrive extends ChargerSubsystem {
         );
     }
 
-    public Command rickRollCmd() {
-        var orchestra = new Orchestra();
-        for (var mod: swerveModules) {
-            mod.addInstruments(orchestra);
-        }
-        return Commands.runOnce(() -> {
-            var status = orchestra.loadMusic("NeverGonnaGiveYouUp.chrp");
-            if (status.isOK()) orchestra.play();
-        })
-            .andThen(Commands.idle())
-            .finallyDo(orchestra::stop);
-    }
-
-    /** Obtains desired module states from a ChassisSpeeds target. */
     private void driveCallback(ChassisSpeeds speeds, boolean useSetpointGen) {
-        Logger.recordOutput(key("desiredSpeeds"), speeds);
-        Logger.recordOutput(key("setpointGenUsed"), useSetpointGen);
+        Logger.recordOutput(key("DesiredSpeeds"), speeds);
+        Logger.recordOutput(key("SetpointGenUsed"), useSetpointGen);
         SwerveModuleState[] desiredStates;
         if (useSetpointGen) {
             setpoint = setpointGen.generateSetpoint(setpoint, speeds, 0.02);
@@ -164,7 +149,7 @@ public class SwerveDrive extends ChargerSubsystem {
             SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, TunerConstants.kSpeedAt12Volts);
             setpoint = new SwerveSetpoint(speeds, desiredStates, NULL_SETPOINT.feedforwards());
         }
-        Logger.recordOutput(key("desiredStates"), setpoint.moduleStates());
+        Logger.recordOutput(key("DesiredStates"), setpoint.moduleStates());
         for (int i = 0; i < 4; i++) {
             var currentAngle = swerveModules[i].getAngle();
             desiredStates[i].optimize(currentAngle);
@@ -197,9 +182,10 @@ public class SwerveDrive extends ChargerSubsystem {
             this,
             (trajectory, isStart) -> {
                 Logger.recordOutput(
-                    "CurrentTraj/samples", trajectory.samples().toArray(new SwerveSample[0])
+                    key("CurrentTraj/Samples"),
+                    trajectory.samples().toArray(new SwerveSample[0])
                 );
-                Logger.recordOutput("CurrentTraj/name", trajectory.name());
+                Logger.recordOutput(key("CurrentTraj/Name"), trajectory.name());
             }
         );
     }
@@ -311,7 +297,7 @@ public class SwerveDrive extends ChargerSubsystem {
     public Command pathfindCmd(Supplier<Pose2d> targetPoseSupplier) {
         double maxVelocityMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
         return this.run(() -> {
-            Tracer.startTrace("repulsor pathfinding");
+            Tracer.startTrace("Repulsor Pathfinding");
             goalToAlign = targetPoseSupplier.get();
             repulsor.setGoal(goalToAlign);
             var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
@@ -447,8 +433,8 @@ public class SwerveDrive extends ChargerSubsystem {
                     double wheelRadius =
                         (state.gyroDelta * DRIVEBASE_RADIUS.in(Meters)) / wheelDelta;
 
-                    Logger.recordOutput("wheelRadiusCharacterization/delta", wheelDelta);
-                    Logger.recordOutput("wheelRadiusCharacterization/found wheel radius(meters)", wheelRadius);
+                    Logger.recordOutput("WheelRadiusCharacterization/delta", wheelDelta);
+                    Logger.recordOutput("WheelRadiusCharacterization/found wheel radius(meters)", wheelRadius);
                 })
                     .finallyDo(() -> {
                         double[] positions = new double[4];

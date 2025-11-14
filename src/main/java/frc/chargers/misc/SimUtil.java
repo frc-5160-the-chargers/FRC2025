@@ -50,7 +50,7 @@ public class SimUtil {
     public static double[] simulateOdoTimestamps() {
         final double[] values = new double[SimulatedArena.getSimulationSubTicksIn1Period()];
         for (int i = 0; i < values.length; i++) {
-            values[i] = Timer.getFPGATimestamp()
+            values[i] = Timer.getTimestamp()
                 - 0.02
                 + i * SimulatedArena.getSimulationDt().in(Seconds);
         }

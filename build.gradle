@@ -1,5 +1,3 @@
-import choreo.GenConstantsTask
-
 plugins {
     id "java"
     id "com.peterabeles.gversion" version "1.10"
@@ -119,6 +117,14 @@ task(replayWatch, type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
 }
 
+simulateJavaRelease {
+    project.logger.lifecycle('Checking if replay mode...')
+    if (frc.project.hasProperty("replay")) {
+        project.logger.lifecycle('Replay mode activated!')
+        systemProperties "replayMode": "enabled"
+    }
+}
+
 test {
     useJUnitPlatform()
     systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
@@ -148,12 +154,37 @@ tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
 }
 
-tasks.register("genConstants", GenConstantsTask) {
-    chorFileName = "Autos.chor"
-    outputFilePackage = "frc.robot.constants"
-    genVariablesFile = true
+task(eventDeploy) {
+    doLast {
+        if (project.gradle.startParameter.taskNames.any({ it.toLowerCase().contains("deploy") })) {
+            def branchPrefix = "event"
+            def branch = 'git branch --show-current'.execute().text.trim()
+            def commitMessage = "Update at '${new Date().toString()}'"
+
+            if (branch.startsWith(branchPrefix)) {
+                exec {
+                    workingDir(projectDir)
+                    executable 'git'
+                    args 'add', '-A'
+                }
+                exec {
+                    workingDir(projectDir)
+                    executable 'git'
+                    args 'commit', '-m', commitMessage
+                    ignoreExitValue = true
+                }
+
+                println "Committed to branch: '$branch'"
+                println "Commit message: '$commitMessage'"
+            } else {
+                println "Not on an event branch, skipping commit"
+            }
+        } else {
+            println "Not running deploy task, skipping commit"
+        }
+    }
 }
-project.compileJava.dependsOn(genConstants)
+createVersionFile.dependsOn(eventDeploy)
 
 spotless {
 }

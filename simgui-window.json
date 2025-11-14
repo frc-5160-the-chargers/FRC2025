@@ -10,7 +10,7 @@
       "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "956",
+      "width": "467",
       "xpos": "2",
       "ypos": "58"
     }
@@ -42,17 +42,17 @@
     "###/SmartDashboard/AutoChooser": {
       "Collapsed": "0",
       "Pos": "27,1150",
-      "Size": "469,78"
+      "Size": "461,78"
     },
     "###/SmartDashboard/SwerveDrive/fieldViz": {
       "Collapsed": "1",
-      "Pos": "514,78",
+      "Pos": "448,78",
       "Size": "1511,884"
     },
     "###/SmartDashboard/TestChooser": {
       "Collapsed": "0",
       "Pos": "158,1150",
-      "Size": "469,78"
+      "Size": "461,78"
     },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
       "Collapsed": "0",
@@ -62,21 +62,21 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "362,166",
-      "Size": "314,304"
+      "Size": "461,212"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "383,968",
-      "Size": "950,336"
+      "Size": "461,336"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
-      "Pos": "937,164",
+      "Pos": "448,164",
       "Size": "397,433"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "184,411",
+      "Pos": "118,-10",
       "Size": "1480,1458"
     },
     "###NetworkTables Info": {
@@ -96,7 +96,7 @@
     },
     "###Timing": {
       "Collapsed": "0",
-      "Pos": "606,504",
+      "Pos": "448,504",
       "Size": "253,222"
     },
     "###field": {
