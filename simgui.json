@@ -10,6 +10,7 @@
     "types": {
       "/AdvantageKit/RealOutputs/Alerts": "Alerts",
       "/AdvantageKit/RealOutputs/Choreo Alerts": "Alerts",
+      "/AdvantageKit/RealOutputs/Commands/Flowchart": "Alerts",
       "/AdvantageKit/RealOutputs/PhotonAlerts": "Alerts",
       "/AutoChoices/AutoChooser": "String Chooser",
       "/FMSInfo": "FMSInfo",

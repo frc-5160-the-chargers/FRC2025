@@ -9,11 +9,9 @@ public class ModuleHardware {
     public static class ModuleData {
         public MotorDataAutoLogged steer = new MotorDataAutoLogged();
         public MotorDataAutoLogged drive = new MotorDataAutoLogged();
-        public Rotation2d steerAbsolutePos = new Rotation2d();
-
-        public double[] odoTimestamps = {};
-        public double[] odoDrivePositionsRad = {};
-        public Rotation2d[] odoSteerPositions = {};
+        public Rotation2d steerAbsolutePos = Rotation2d.kZero;
+        public double[] cachedDrivePositionsRad = {};
+        public Rotation2d[] cachedSteerPositions = {};
     }
 
     /** Updates the data related to the swerve module hardware. */

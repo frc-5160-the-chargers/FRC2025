@@ -8,7 +8,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import frc.chargers.misc.SimUtil;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.ironmaple.simulation.motorsims.SimulatedBattery;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
@@ -32,17 +31,13 @@ public class SimModuleHardware extends RealModuleHardware {
     ) {
         super(
             constants
-                // Disable encoder offsets
                 .withEncoderOffset(0)
-                // Disable inversions
                 .withDriveMotorInverted(false)
                 .withSteerMotorInverted(false)
                 .withEncoderInverted(false)
-                // Adjust friction voltages
                 .withDriveFrictionVoltage(Volts.of(0.1))
                 .withSteerFrictionVoltage(Volts.of(0.05))
         );
-
         this.simulation = simulation;
         simulation.useDriveMotorController(new TalonFXSim(super.driveTalon, null));
         simulation.useSteerMotorController(new TalonFXSim(super.steerTalon, super.cancoder));
@@ -51,11 +46,10 @@ public class SimModuleHardware extends RealModuleHardware {
     @Override
     public void refreshData(ModuleDataAutoLogged inputs) {
         super.refreshData(inputs);
-        inputs.odoTimestamps = SimUtil.simulateOdoTimestamps();
-        inputs.odoDrivePositionsRad = Arrays.stream(simulation.getCachedDriveWheelFinalPositions())
+        inputs.cachedDrivePositionsRad = Arrays.stream(simulation.getCachedDriveWheelFinalPositions())
             .mapToDouble(angle -> angle.in(Radians))
             .toArray();
-        inputs.odoSteerPositions = simulation.getCachedSteerAbsolutePositions();
+        inputs.cachedSteerPositions = simulation.getCachedSteerAbsolutePositions();
     }
 
     private record TalonFXSim(TalonFX motor, @Nullable CANcoder encoder) implements SimulatedMotorController {

@@ -3,6 +3,7 @@
 
 ### Java ###
 src/main/java/frc/robot/constants/BuildConstants.java
+src/main/java/frc/teaching/
 
 ### C++ ###
 # Prerequisites

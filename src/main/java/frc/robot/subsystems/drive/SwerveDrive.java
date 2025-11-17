@@ -130,10 +130,7 @@ public class SwerveDrive extends ChargerSubsystem {
         }
         OdoThread.getInstance().start();
 
-        bind(
-            new Alert("Gyro has error", kError),
-            () -> !gyroInputs.connected
-        );
+        bind(new Alert("Gyro has error", kError), () -> !gyroInputs.connected);
     }
 
     private void driveCallback(ChassisSpeeds speeds, boolean useSetpointGen) {
@@ -314,7 +311,7 @@ public class SwerveDrive extends ChargerSubsystem {
         Tracer.trace("Drivetrain Data Refresh", () -> {
             OdoThread.getInstance().updatesLock.lock(); // Prevents odometry updates while reading data
             gyro.refreshData(gyroInputs);
-            Logger.processInputs("SwerveDrive/Gyro", gyroInputs);
+            Logger.processInputs(key("Gyro"), gyroInputs);
             for (var module : swerveModules) module.periodic();
             OdoThread.getInstance().updatesLock.unlock();
         });
@@ -326,7 +323,7 @@ public class SwerveDrive extends ChargerSubsystem {
         }
 
         Tracer.trace("Odometry Update", () -> {
-            double[] sampleTimestamps = swerveModules[0].getOdoTimestamps(); // All signals are sampled together
+            double[] sampleTimestamps = gyroInputs.cachedTimestamps; // All signals are sampled together
             int sampleCount = sampleTimestamps.length;
             for (int i = 0; i < sampleCount; i++) {
                 try {
@@ -344,7 +341,7 @@ public class SwerveDrive extends ChargerSubsystem {
                     // Update gyro angle
                     if (gyroInputs.connected) {
                         // Use the real gyro angle
-                        rawGyroRotation = gyroInputs.odoYawValues[i];
+                        rawGyroRotation = gyroInputs.cachedYawValues[i];
                     } else {
                         // Use the angle delta from the kinematics and module deltas
                         Twist2d twist = kinematics.toTwist2d(moduleDeltas);
@@ -463,7 +460,6 @@ public class SwerveDrive extends ChargerSubsystem {
                                 + " inches");
                     })));
     }
-
 
     private static class WheelRadiusCharacterizationState {
         double[] positions = new double[4];

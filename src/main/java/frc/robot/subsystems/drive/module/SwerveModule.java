@@ -7,12 +7,12 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Alert;
-import edu.wpi.first.wpilibj.Alert.AlertType;
 import frc.chargers.data.RobotMode;
 import lombok.Getter;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.littletonrobotics.junction.Logger;
 
+import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 import static frc.chargers.commands.TriggerUtil.bind;
 
 public class SwerveModule {
@@ -40,12 +40,12 @@ public class SwerveModule {
         };
         this.constants = constants;
         bind(
-            new Alert("Drive Motor Error on module " + name + ".", AlertType.kError),
-            () -> !inputs.drive.ok()
+            new Alert("Drive Motor Error on module " + name + ".", kError),
+            inputs.drive::hasErr
         );
         bind(
-            new Alert("Turn Motor Error on module " + name + ".", AlertType.kError),
-            () -> !inputs.steer.ok()
+            new Alert("Turn Motor Error on module " + name + ".", kError),
+            inputs.steer::hasErr
         );
     }
 
@@ -54,12 +54,12 @@ public class SwerveModule {
         Logger.processInputs("SwerveDrive/Modules/" + name, inputs);
 
         // Calculate positions for odometry
-        int sampleCount = inputs.odoTimestamps.length; // All signals are sampled together
+        int sampleCount = inputs.cachedDrivePositionsRad.length;
         odometryFrames = new SwerveModulePosition[sampleCount];
         for (int i = 0; i < sampleCount; i++) {
             odometryFrames[i] = new SwerveModulePosition(
-                inputs.odoDrivePositionsRad[i] * constants.WheelRadius,
-                inputs.odoSteerPositions[i]
+                inputs.cachedDrivePositionsRad[i] * constants.WheelRadius,
+                inputs.cachedSteerPositions[i]
             );
         }
     }
@@ -107,11 +107,6 @@ public class SwerveModule {
             inputs.drive.velocityRadPerSec * constants.WheelRadius,
             getAngle()
         );
-    }
-
-    /** Returns the timestamps of the samples received this cycle. */
-    public double[] getOdoTimestamps() {
-        return inputs.odoTimestamps;
     }
 
     /** Fetches the raw angular position of the drive motor. */

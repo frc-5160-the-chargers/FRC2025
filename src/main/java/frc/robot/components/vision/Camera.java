@@ -5,7 +5,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import frc.chargers.data.LoggingUtil;
 import frc.chargers.data.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.vision.Structs.CameraConsts;
@@ -20,7 +19,6 @@ import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.components.vision.VisionConsts.*;
-
 
 public class Camera {
     private final CameraConsts consts;
@@ -70,7 +68,7 @@ public class Camera {
 
         int ambHighCount = 0;
         int errHighCount = 0;
-        var fiducialIds = new HashSet<Integer>();
+        var fiducialIds = new ArrayList<Integer>();
         var poses = new ArrayList<Pose3d>();
         for (var result: inputs.results) {
             // ignores result if ambiguity is exceeded or if there is no targets.
@@ -124,7 +122,11 @@ public class Camera {
         Tracer.endTrace();
 
         // logs relevant data
-        LoggingUtil.logIntList(logKey("fiducialIds"), fiducialIds);
+        int[] ids = new int[fiducialIds.size()];
+        for (int i = 0; i < fiducialIds.size(); i++) {
+            ids[i] = fiducialIds.get(i);
+        }
+        Logger.recordOutput(logKey("fiducialIds"), ids);
         Logger.recordOutput(logKey("numAmbiguityExceeded"), ambHighCount);
         Logger.recordOutput(logKey("numErrExceeded"), errHighCount);
         Logger.recordOutput(logKey("poses"), poses.toArray(new Pose3d[0]));

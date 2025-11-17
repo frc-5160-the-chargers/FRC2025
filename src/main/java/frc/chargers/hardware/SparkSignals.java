@@ -31,7 +31,11 @@ public class SparkSignals {
         this.encoder = encoder;
     }
 
-    public void refresh(MotorDataAutoLogged inputs) {
+    /**
+     * Refreshes a {@link MotorDataAutoLogged} object with data from the signals.
+     * @param inputs the motor data to refresh.
+     */
+    public void refresh(MotorData inputs) {
         var errTxt = new StringBuilder();
         inputs.setNumMotors(motors.size());
         inputs.appliedVolts = motors.get(0).getAppliedOutput() * motors.get(0).getBusVoltage();

@@ -42,10 +42,10 @@ public class TalonSignals {
     }
 
     /**
-     * Refreshes a {@link MotorDataAutoLogged} object with data from the signals
+     * Refreshes a {@link MotorDataAutoLogged} object with data from the signals.
      * @param inputs the motor data to refresh.
      */
-    public void refresh(MotorDataAutoLogged inputs) {
+    public void refresh(MotorData inputs) {
         int numMotors = motorTemp.size();
         inputs.setNumMotors(numMotors);
         inputs.errorAsString = "";
@@ -70,7 +70,7 @@ public class TalonSignals {
         );
     }
 
-    private double getValue(BaseStatusSignal signal, MotorDataAutoLogged inputs) {
+    private double getValue(BaseStatusSignal signal, MotorData inputs) {
         var status = signal.getStatus();
         if (status != StatusCode.OK) inputs.errorAsString += (status.toString() + ",");
         return signal.getValueAsDouble();

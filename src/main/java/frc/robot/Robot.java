@@ -1,9 +1,12 @@
 package frc.robot;
 
+import choreo.auto.AutoChooserAK;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
+import frc.chargers.commands.CmdLogger;
 import frc.chargers.data.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.misc.Tracer;
@@ -21,6 +24,8 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import java.util.List;
 
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+
 public class Robot extends LoggedRobot {
     private final SwerveDrive drive = new SwerveDrive();
     private final DriverController controller = new DriverController();
@@ -30,11 +35,12 @@ public class Robot extends LoggedRobot {
         new Camera(VisionConsts.FR_CONSTS, drive::bestPose)
     );
 
+    private final AutoChooserAK c = new AutoChooserAK("AutoChooser");
+
     public Robot() {
         if (RobotMode.get() == RobotMode.REPLAY) {
             setUseTiming(false);
             Logger.setReplaySource(new WPILOGReader(LogFileUtil.findReplayLog()));
-            Tracer.disableTracingForCurrentThread();
         } else {
             Logger.addDataReceiver(new NT4Publisher());
         }
@@ -45,6 +51,10 @@ public class Robot extends LoggedRobot {
         );
         drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
         DriverStation.silenceJoystickConnectionWarning(true);
+        c.addCmd("ABC", () -> Commands.run(() -> {}));
+        autonomous().whileTrue(
+            c.selectedCommandScheduler()
+        );
     }
 
     @Override
@@ -54,6 +64,7 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void robotPeriodic() {
+        CmdLogger.periodic(true);
         Tracer.trace("Signal Refresh", SignalBatchRefresher::refreshAll);
         Tracer.trace("Cmd Scheduler", CommandScheduler.getInstance()::run);
         if (RobotMode.isSim()) {

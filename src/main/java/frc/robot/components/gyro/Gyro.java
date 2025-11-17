@@ -19,11 +19,11 @@ import org.littletonrobotics.junction.AutoLog;
 public class Gyro {
     @AutoLog
     public static class GyroData {
-        public boolean connected = false;
-        public Rotation2d yaw = new Rotation2d();
+        public boolean connected = true;
+        public Rotation2d yaw = Rotation2d.kZero;
         public double yawVelocityRadPerSec = 0.0;
-        public double[] odoYawTimestamps = new double[] {};
-        public Rotation2d[] odoYawValues = new Rotation2d[] {};
+        public double[] cachedTimestamps = new double[] {};
+        public Rotation2d[] cachedYawValues = new Rotation2d[] {};
     }
 
     public void refreshData(GyroDataAutoLogged inputs) {}

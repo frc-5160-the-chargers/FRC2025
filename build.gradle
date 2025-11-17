@@ -4,11 +4,10 @@ plugins {
     id "edu.wpi.first.GradleRIO" version "2025.3.2"
     id "com.diffplug.spotless" version "7.0.0.BETA2"
     id "io.freefair.lombok" version "8.11"
+    id 'org.jetbrains.kotlin.jvm' version '2.1.10'
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
 }
 
 def ROBOT_MAIN_CLASS = "frc.robot.Main"
@@ -110,6 +109,7 @@ dependencies {
 
     def akitJson = new groovy.json.JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
     annotationProcessor "org.littletonrobotics.akit:akit-autolog:$akitJson.version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 task(replayWatch, type: JavaExec) {
@@ -190,4 +190,7 @@ spotless {
 }
 repositories {
     mavenCentral()
+}
+kotlin {
+    jvmToolchain(17)
 }

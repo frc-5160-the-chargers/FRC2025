@@ -22,32 +22,35 @@ public class NonBlockingCmds {
         for (var command: commands) {
             var requirementsToIdle = new HashSet<>(allReqs);
             requirementsToIdle.removeAll(command.getRequirements());
-            group.addCommands(command.deadlineFor(new IdleAll(requirementsToIdle)));
+            group.addCommands(
+                CmdLogger.logNestedCmd(command)
+                    .deadlineFor(new IdleAll(requirementsToIdle))
+            );
         }
-        return group.withName("NonBlockingSequentialCommandGroup");
+        return group.withName("NonBlockingSequence");
     }
 
     public static Command parallel(Command... commands) {
         var group = new ParallelCommandGroup();
         var numEnded = new AtomicInteger();
-        for (var cmd: commands) {
+        for (var command: commands) {
             group.addCommands(
-                cmd
+                CmdLogger.logNestedCmd(command)
                     .finallyDo(numEnded::getAndIncrement)
-                    .andThen(new IdleAll(cmd.getRequirements()))
+                    .andThen(new IdleAll(command.getRequirements()))
             );
         }
         return group
             .until(() -> numEnded.get() == commands.length)
-            .withName("NonBlockingParallelCommandGroup");
+            .withName("NonBlockingParallelGroup");
     }
 
     public static Command deadline(Command... commands) {
         var otherCmds = new Command[commands.length - 1];
         System.arraycopy(commands, 1, otherCmds, 1, commands.length - 1);
         return parallel(otherCmds)
-            .withDeadline(commands[0])
-            .withName("NonBlockingParallelDeadlineGroup");
+            .withDeadline(CmdLogger.logNestedCmd(commands[0]))
+            .withName("NonBlockingDeadlineGroup");
     }
 
     private static class IdleAll extends Command {

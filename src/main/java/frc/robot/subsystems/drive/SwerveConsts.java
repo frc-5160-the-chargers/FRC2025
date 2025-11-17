@@ -30,6 +30,23 @@ public class SwerveConsts {
         12.0, 4.05, 275, 1.4,
         RPM.of(7530).in(RadiansPerSecond), 1
     ); // kraken x44
+    static final Distance BUMPER_WIDTH = Inches.of(3.5);
+    static final Mass ROBOT_MASS = Pounds.of(116);
+    static final MomentOfInertia ROBOT_BODY_MOI = KilogramSquareMeters.of(6.283);
+
+    static final TunableNum
+        DEMO_POSE_X = new TunableNum("swerve/demoPose/x", 0),
+        DEMO_POSE_Y = new TunableNum("swerve/demoPose/y", 0),
+        DEMO_POSE_HEADING_DEG = new TunableNum("swerve/demoPose/headingDeg", 0),
+        DEMO_DRIVE_VOLTS = new TunableNum("swerve/demoDriveVolts", 3),
+        DEMO_STEER_VOLTS = new TunableNum("swerve/demoSteerVolts", 3);
+
+    static final double FORCE_KT = 0;
+    static final double TRANSLATION_KP = 8;
+    static final double TRANSLATION_TOLERANCE = 0.014;
+    static final double ROTATION_KP = 8;
+    static final double ROTATION_KD = 0.01;
+    static final double ROTATION_TOLERANCE = 0.05;
 
     static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
         new ChassisSpeeds(),
@@ -41,25 +58,13 @@ public class SwerveConsts {
         },
         DriveFeedforwards.zeros(4)
     );
-
-    static final TunableNum
-        DEMO_POSE_X = new TunableNum("swerve/demoPose/x", 0),
-        DEMO_POSE_Y = new TunableNum("swerve/demoPose/y", 0),
-        DEMO_POSE_HEADING_DEG = new TunableNum("swerve/demoPose/headingDeg", 0),
-        DEMO_DRIVE_VOLTS = new TunableNum("swerve/demoDriveVolts", 3),
-        DEMO_STEER_VOLTS = new TunableNum("swerve/demoSteerVolts", 3);
-
-    static final Distance BUMPER_WIDTH = Inches.of(3.5);
-    static final Mass ROBOT_MASS = Pounds.of(116);
-    static final MomentOfInertia ROBOT_BODY_MOI = KilogramSquareMeters.of(6.283);
-    static final double FORCE_KT = 0;
-
     static final Translation2d[] MODULE_TRANSLATIONS = {
         new Translation2d(TunerConstants.FrontLeft.LocationX, TunerConstants.FrontLeft.LocationY),
         new Translation2d(TunerConstants.FrontRight.LocationX, TunerConstants.FrontRight.LocationY),
         new Translation2d(TunerConstants.BackLeft.LocationX, TunerConstants.BackLeft.LocationY),
         new Translation2d(TunerConstants.BackRight.LocationX, TunerConstants.BackRight.LocationY)
     };
+    static final Distance DRIVEBASE_RADIUS = Meters.of(MODULE_TRANSLATIONS[0].getNorm());
     static final DriveTrainSimulationConfig MAPLESIM_CONFIG = DriveTrainSimulationConfig.Default()
         .withRobotMass(ROBOT_MASS)
         .withCustomModuleTranslations(MODULE_TRANSLATIONS)
@@ -92,12 +97,4 @@ public class SwerveConsts {
         ),
         MODULE_TRANSLATIONS
     );
-
-    static final Distance DRIVEBASE_RADIUS = Meters.of(MODULE_TRANSLATIONS[0].getNorm());
-
-    static final double TRANSLATION_KP = 8;
-    static final double TRANSLATION_TOLERANCE = 0.014;
-    static final double ROTATION_KP = 8;
-    static final double ROTATION_KD = 0.01;
-    static final double ROTATION_TOLERANCE = 0.05;
 }

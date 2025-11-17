@@ -49,7 +49,7 @@ public class RealModuleHardware extends ModuleHardware {
     private final VelocityTorqueCurrentFOC velocityTorqueCurrentReq = new VelocityTorqueCurrentFOC(0);
 
     // Odometry thread queues
-    private final Queue<Double> timestampQueue, drivePositionQueue, steerPositionQueue;
+    private final Queue<Double> drivePositionQueue, steerPositionQueue;
 
     // Signals
     private final TalonSignals driveSignals, steerSignals;
@@ -70,7 +70,6 @@ public class RealModuleHardware extends ModuleHardware {
         configureDevices();
 
         // We use queues for multithreaded odometry, since advantagekit forces a 0.02 sec cycle time for data updates
-        timestampQueue = OdoThread.getInstance().makeTimestampQueue();
         drivePositionQueue = OdoThread.getInstance().register(driveSignals.position);
         steerPositionQueue = OdoThread.getInstance().register(steerSignals.position);
         steerAbsPos = cancoder.getAbsolutePosition();
@@ -92,16 +91,13 @@ public class RealModuleHardware extends ModuleHardware {
     public void refreshData(ModuleDataAutoLogged inputs) {
         driveSignals.refresh(inputs.drive);
         steerSignals.refresh(inputs.steer);
-
         inputs.steerAbsolutePos = Rotation2d.fromRotations(steerAbsPos.getValueAsDouble());
-        inputs.odoTimestamps = timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
-        inputs.odoDrivePositionsRad = drivePositionQueue.stream()
+        inputs.cachedDrivePositionsRad = drivePositionQueue.stream()
                 .mapToDouble(Units::rotationsToRadians)
                 .toArray();
-        inputs.odoSteerPositions = steerPositionQueue.stream()
+        inputs.cachedSteerPositions = steerPositionQueue.stream()
                 .map(Rotation2d::fromRotations)
                 .toArray(Rotation2d[]::new);
-        timestampQueue.clear();
         drivePositionQueue.clear();
         steerPositionQueue.clear();
     }
