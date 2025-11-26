@@ -1,6 +1,7 @@
 package frc.chargers.commands;
 
 import edu.wpi.first.wpilibj2.command.*;
+import frc.chargers.misc.Tracer;
 import org.littletonrobotics.junction.Logger;
 
 import java.util.HashSet;
@@ -28,6 +29,7 @@ public class CmdLogger {
      * rather, see the RanAtLeastOnce field.
      */
     public static void periodic(boolean logDuplicateNames) {
+        Tracer.startTrace("Command Logger");
         if (!hasStarted) {
             start(logDuplicateNames);
             hasStarted = true;
@@ -45,6 +47,7 @@ public class CmdLogger {
             Logger.recordOutput("Commands/DuplicateNameMsgs", String.join("\n", duplicateMsgs));
             duplicateMsgs.clear();
         }
+        Tracer.endTrace();
     }
 
     /**

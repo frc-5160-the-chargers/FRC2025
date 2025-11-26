@@ -1,16 +1,17 @@
 package frc.chargers.hardware;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import frc.chargers.misc.Tracer;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A class that batch refreshes CTRE status signals to improve perf.
  */
 public class SignalBatchRefresher {
-    private static final Set<BaseStatusSignal> rioSignals = new HashSet<>();
-    private static final Set<BaseStatusSignal> canivoreSignals = new HashSet<>();
+    private static final List<BaseStatusSignal> rioSignals = new ArrayList<>();
+    private static final List<BaseStatusSignal> canivoreSignals = new ArrayList<>();
 
     /**
      * Adds signals to the signal refresher.
@@ -21,26 +22,24 @@ public class SignalBatchRefresher {
      */
     public static void register(boolean isCanivore, BaseStatusSignal... signals) {
         if (isCanivore) {
-            canivoreSignals.addAll(Set.of(signals));
+            canivoreSignals.addAll(List.of(signals));
         } else {
-            rioSignals.addAll(Set.of(signals));
+            rioSignals.addAll(List.of(signals));
         }
     }
 
     public static void unregister(BaseStatusSignal... signals) {
-        canivoreSignals.removeAll(Set.of(signals));
-        rioSignals.removeAll(Set.of(signals));
+        canivoreSignals.removeAll(List.of(signals));
+        rioSignals.removeAll(List.of(signals));
     }
 
     /**
      * Refreshes all signals. This must be called in robotPeriodic().
      */
     public static void refreshAll() {
-        if (!rioSignals.isEmpty()) {
-            BaseStatusSignal.refreshAll(rioSignals.toArray(new BaseStatusSignal[0]));
-        }
-        if (!canivoreSignals.isEmpty()) {
-            BaseStatusSignal.refreshAll(canivoreSignals.toArray(new BaseStatusSignal[0]));
-        }
+        Tracer.startTrace("Signal Refresh");
+        if (!rioSignals.isEmpty()) BaseStatusSignal.refreshAll(rioSignals);
+        if (!canivoreSignals.isEmpty()) BaseStatusSignal.refreshAll(canivoreSignals);
+        Tracer.endTrace();
     }
 }

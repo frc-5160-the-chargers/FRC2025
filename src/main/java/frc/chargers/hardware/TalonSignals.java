@@ -1,22 +1,21 @@
 package frc.chargers.hardware;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.traits.CommonTalon;
 import edu.wpi.first.wpilibj.Alert;
+import frc.chargers.misc.Convert;
 import frc.chargers.misc.Retry;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static edu.wpi.first.math.util.Units.rotationsToRadians;
 import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 
 /**
  * A utility class that reduces boilerplate around refreshing {@link MotorDataAutoLogged}
- * for TalonFX and TalonFXS motors.
- * To use this class, YOU MUST HAVE TalonSignalsRefresher.refreshAll() in robotPeriodic().
+ * for a group of TalonFX/TalonFXS motors moving the same mechanism.
  */
+@SuppressWarnings("StringConcatenationInLoop")
 public class TalonSignals {
     private static final Alert NO_REFRESH_ALERT = new Alert("You might not be calling SignalBatchRefresher.refreshAll().", kError);
 
@@ -28,16 +27,21 @@ public class TalonSignals {
         supplyCurrent = new ArrayList<>(),
         torqueCurrent = new ArrayList<>();
 
-    public TalonSignals(boolean isCanivore, CommonTalon leader, CommonTalon... followers) {
+    /**
+     * Creates a new TalonSignals object. To use this class,
+     * <b>YOU MUST CALL SignalBatchRefresher.refreshAll() in robotPeriodic().</b>
+     */
+    public TalonSignals(CommonTalon leader, CommonTalon... followers) {
+        boolean isCanivore = leader.getNetwork().isNetworkFD();
         position = leader.getPosition();
         velocity = leader.getVelocity();
         voltage = leader.getMotorVoltage();
         SignalBatchRefresher.register(isCanivore, position, velocity, voltage);
         all.addAll(List.of(position, velocity, voltage));
 
-        addMotor(isCanivore, leader);
+        addExtSignals(isCanivore, leader);
         for (var follower: followers) {
-            addMotor(isCanivore, follower);
+            addExtSignals(isCanivore, follower);
         }
     }
 
@@ -49,18 +53,25 @@ public class TalonSignals {
         int numMotors = motorTemp.size();
         inputs.setNumMotors(numMotors);
         inputs.errorAsString = "";
-        inputs.appliedVolts = getValue(voltage, inputs);
-        inputs.positionRad = rotationsToRadians(getValue(position, inputs));
-        inputs.velocityRadPerSec = rotationsToRadians(getValue(velocity, inputs));
+        inputs.appliedVolts = voltage.getValueAsDouble();
+        inputs.positionRad = position.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
+        inputs.velocityRadPerSec = velocity.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
         for (int i = 0; i < numMotors; i++) {
-            inputs.supplyCurrent[i] = getValue(supplyCurrent.get(i), inputs);
-            inputs.tempCelsius[i] = getValue(motorTemp.get(i), inputs);
-            inputs.torqueCurrent[i] = getValue(torqueCurrent.get(i), inputs);
+            inputs.supplyCurrent[i] = supplyCurrent.get(i).getValueAsDouble();
+            inputs.tempCelsius[i] = motorTemp.get(i).getValueAsDouble();
+            inputs.torqueCurrent[i] = torqueCurrent.get(i).getValueAsDouble();
+        }
+        for (var signal: all) {
+            if (signal.getStatus().isOK()) continue;
+            inputs.errorAsString += (signal.getStatus() + ",");
         }
         NO_REFRESH_ALERT.set(inputs.tempCelsius[0] == 0.0);
     }
 
-    /** Sets the update frequency of all signals. */
+    /**
+     * Sets the update frequency of all signals.
+     * @param hz The target frequency
+     */
     public void setUpdateFrequency(double hz) {
         Retry.ctreConfig(
             4, "Status signal frequency set failed",
@@ -70,13 +81,7 @@ public class TalonSignals {
         );
     }
 
-    private double getValue(BaseStatusSignal signal, MotorData inputs) {
-        var status = signal.getStatus();
-        if (status != StatusCode.OK) inputs.errorAsString += (status.toString() + ",");
-        return signal.getValueAsDouble();
-    }
-
-    private void addMotor(boolean isCanivore, CommonTalon motor) {
+    private void addExtSignals(boolean isCanivore, CommonTalon motor) {
         BaseStatusSignal[] signals = {
             motor.getDeviceTemp(), motor.getSupplyCurrent(), motor.getTorqueCurrent()
         };

@@ -1,11 +1,9 @@
 package frc.robot;
 
-import choreo.auto.AutoChooserAK;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.commands.CmdLogger;
 import frc.chargers.data.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
@@ -13,7 +11,9 @@ import frc.chargers.misc.Tracer;
 import frc.robot.components.DriverController;
 import frc.robot.components.vision.Camera;
 import frc.robot.components.vision.VisionConsts;
+import frc.robot.constants.BuildConstants;
 import frc.robot.subsystems.drive.SwerveDrive;
+import frc.robot.subsystems.elevator.Elevator;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -21,13 +21,16 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+import org.littletonrobotics.urcl.URCL;
 
 import java.util.List;
 
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 
 public class Robot extends LoggedRobot {
     private final SwerveDrive drive = new SwerveDrive();
+    private final Elevator elevator = new Elevator();
     private final DriverController controller = new DriverController();
 
     private final List<Camera> cameras = List.of(
@@ -35,26 +38,36 @@ public class Robot extends LoggedRobot {
         new Camera(VisionConsts.FR_CONSTS, drive::bestPose)
     );
 
-    private final AutoChooserAK c = new AutoChooserAK("AutoChooser");
-
     public Robot() {
+        initLogging();
+        drive.setDefaultCommand(
+            drive.driveCmd(controller.forwardOutput, controller.strafeOutput, controller.rotationOutput, false)
+        );
+        drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
+        DriverStation.silenceJoystickConnectionWarning(true);
+        autonomous().whileTrue(
+            elevator.moveToHeightCmd(Meters.of(1.2))
+        );
+        elevator.setDefaultCommand(elevator.idleCmd());
+    }
+
+    private void initLogging() {
         if (RobotMode.get() == RobotMode.REPLAY) {
             setUseTiming(false);
             Logger.setReplaySource(new WPILOGReader(LogFileUtil.findReplayLog()));
         } else {
             Logger.addDataReceiver(new NT4Publisher());
         }
-        Logger.addDataReceiver(new WPILOGWriter());
+        if (!RobotMode.isSim()) {
+            Logger.addDataReceiver(new WPILOGWriter());
+        }
+        Logger.registerURCL(URCL.startExternal());
         Logger.start();
-        drive.setDefaultCommand(
-            drive.driveCmd(controller.forwardOutput, controller.strafeOutput, controller.rotationOutput, false)
-        );
-        drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
-        DriverStation.silenceJoystickConnectionWarning(true);
-        c.addCmd("ABC", () -> Commands.run(() -> {}));
-        autonomous().whileTrue(
-            c.selectedCommandScheduler()
-        );
+
+        Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
+        Logger.recordMetadata("GitBranch", BuildConstants.GIT_BRANCH);
+        Logger.recordMetadata("GitDirty", String.valueOf(BuildConstants.DIRTY));
+        Logger.recordMetadata("GitDate", BuildConstants.GIT_DATE);
     }
 
     @Override
@@ -62,19 +75,23 @@ public class Robot extends LoggedRobot {
         Tracer.trace("Main", super::loopFunc);
     }
 
-    @Override
-    public void robotPeriodic() {
-        CmdLogger.periodic(true);
-        Tracer.trace("Signal Refresh", SignalBatchRefresher::refreshAll);
-        Tracer.trace("Cmd Scheduler", CommandScheduler.getInstance()::run);
-        if (RobotMode.isSim()) {
-            Tracer.trace("MapleSim", SimulatedArena.getInstance()::simulationPeriodic);
-        }
+    private void cameraPeriodic() {
         for (var cam: cameras) {
             var estimates = cam.update();
             for (var estimate: estimates) {
                 drive.addVisionData(estimate);
             }
+        }
+    }
+
+    @Override
+    public void robotPeriodic() {
+        SignalBatchRefresher.refreshAll();
+        CmdLogger.periodic(true);
+        Tracer.trace("Command Scheduler", CommandScheduler.getInstance()::run);
+        Tracer.trace("Camera Periodic", this::cameraPeriodic);
+        if (RobotMode.isSim()) {
+            Tracer.trace("MapleSim", SimulatedArena.getInstance()::simulationPeriodic);
         }
     }
 }

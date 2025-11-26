@@ -4,11 +4,14 @@ import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.chargers.misc.TunableValues.TunableNum;
@@ -26,20 +29,18 @@ import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TR
 public class SwerveConsts {
     public static final double ODO_FREQUENCY_HZ = 250.0;
     public static final DCMotor DRIVE_MOTOR_TYPE = DCMotor.getKrakenX60(1);
-    public static final DCMotor STEER_MOTOR_TYPE = new DCMotor(
-        12.0, 4.05, 275, 1.4,
-        RPM.of(7530).in(RadiansPerSecond), 1
-    ); // kraken x44
+    public static final DCMotor STEER_MOTOR_TYPE = DCMotor.getKrakenX44(1);
     static final Distance BUMPER_WIDTH = Inches.of(3.5);
     static final Mass ROBOT_MASS = Pounds.of(116);
     static final MomentOfInertia ROBOT_BODY_MOI = KilogramSquareMeters.of(6.283);
+    static final LinearVelocity MAX_ANTI_TIP_SPEED = MetersPerSecond.of(0.5);
 
     static final TunableNum
-        DEMO_POSE_X = new TunableNum("swerve/demoPose/x", 0),
-        DEMO_POSE_Y = new TunableNum("swerve/demoPose/y", 0),
-        DEMO_POSE_HEADING_DEG = new TunableNum("swerve/demoPose/headingDeg", 0),
-        DEMO_DRIVE_VOLTS = new TunableNum("swerve/demoDriveVolts", 3),
-        DEMO_STEER_VOLTS = new TunableNum("swerve/demoSteerVolts", 3);
+        DEMO_POSE_X = new TunableNum("Swerve/demoPose/x", 0),
+        DEMO_POSE_Y = new TunableNum("Swerve/demoPose/y", 0),
+        DEMO_POSE_HEADING_DEG = new TunableNum("Swerve/demoPose/headingDeg", 0),
+        DEMO_DRIVE_VOLTS = new TunableNum("Swerve/demoDriveVolts", 3),
+        DEMO_STEER_VOLTS = new TunableNum("Swerve/demoSteerVolts", 3);
 
     static final double FORCE_KT = 0;
     static final double TRANSLATION_KP = 8;
@@ -97,4 +98,11 @@ public class SwerveConsts {
         ),
         MODULE_TRANSLATIONS
     );
+
+    public static Pose2d getDemoPose() {
+        return new Pose2d(
+            DEMO_POSE_X.get(), DEMO_POSE_Y.get(),
+            Rotation2d.fromDegrees(DEMO_POSE_HEADING_DEG.get())
+        );
+    }
 }

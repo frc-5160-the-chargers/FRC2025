@@ -26,6 +26,9 @@ public class Camera {
     private final CameraIO io;
     private final RawCameraInputs inputs = new RawCameraInputs();
 
+    private final List<Integer> fiducialIds = new ArrayList<>();
+    private final List<Pose3d> poses = new ArrayList<>();
+
     public Camera(CameraConsts consts, Supplier<Pose2d> simPoseSupplier) {
         this.consts = consts;
         this.io = new CameraIO(consts, simPoseSupplier);
@@ -34,9 +37,10 @@ public class Camera {
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             consts.robotToCamera()
         );
+        Logger.recordOutput(key("HasDebugLogs"), DEBUG_LOGS);
     }
     
-    private String logKey(String path) {
+    private String key(String path) {
         return "Cameras/" + consts.name() + "/" + path;
     }
 
@@ -56,10 +60,10 @@ public class Camera {
 
     /** Fetches the latest pose estimates from this camera. */
     public List<PoseEstimate> update() {
-        Tracer.startTrace("Vision Update" + consts.name() + ")");
+        Tracer.startTrace("Vision Update (" + consts.name() + ")");
 
         io.refreshData(inputs);
-        Logger.processInputs(logKey(""), inputs);
+        Logger.processInputs(key(""), inputs);
 
         var poseEstimates = new ArrayList<PoseEstimate>();
         if (RobotMode.get() == RobotMode.REAL && !inputs.connected) {
@@ -68,8 +72,8 @@ public class Camera {
 
         int ambHighCount = 0;
         int errHighCount = 0;
-        var fiducialIds = new ArrayList<Integer>();
-        var poses = new ArrayList<Pose3d>();
+        fiducialIds.clear();
+        poses.clear();
         for (var result: inputs.results) {
             // ignores result if ambiguity is exceeded or if there is no targets.
             if (result.targets.isEmpty()) {
@@ -84,7 +88,7 @@ public class Camera {
                 ambiguityExceeded = ambiguityExceeded && target.poseAmbiguity > MAX_AMBIGUITY;
                 tagDistSum += target.bestCameraToTarget.getTranslation().getNorm();
                 tagAreaSum += target.area;
-                fiducialIds.add(target.fiducialId);
+                if (DEBUG_LOGS) fiducialIds.add(target.fiducialId);
             }
             if (ambiguityExceeded) {
                 ambHighCount++;
@@ -114,22 +118,23 @@ public class Camera {
             if (result.targets.size() <= 1) stdDevMultiplier *= SINGLE_TAG_SCALAR;
             double linearStdDev = stdDevMultiplier * LINEAR_STD_DEV_BASELINE * consts.stdDevFactor();
 
-            // Registers the pose pose.
-            poses.add(pose);
+            if (DEBUG_LOGS) poses.add(pose);
             var stdDevs = VecBuilder.fill(linearStdDev, linearStdDev, ANGULAR_STD_DEV);
             poseEstimates.add(new PoseEstimate(pose.toPose2d(), timestamp, stdDevs));
         }
         Tracer.endTrace();
 
         // logs relevant data
-        int[] ids = new int[fiducialIds.size()];
-        for (int i = 0; i < fiducialIds.size(); i++) {
-            ids[i] = fiducialIds.get(i);
+        if (DEBUG_LOGS) {
+            int[] ids = new int[fiducialIds.size()];
+            for (int i = 0; i < fiducialIds.size(); i++) {
+                ids[i] = fiducialIds.get(i);
+            }
+            Logger.recordOutput(key("fiducialIds"), ids);
+            Logger.recordOutput(key("numAmbiguityExceeded"), ambHighCount);
+            Logger.recordOutput(key("numErrExceeded"), errHighCount);
+            Logger.recordOutput(key("poses"), poses.toArray(new Pose3d[0]));
         }
-        Logger.recordOutput(logKey("fiducialIds"), ids);
-        Logger.recordOutput(logKey("numAmbiguityExceeded"), ambHighCount);
-        Logger.recordOutput(logKey("numErrExceeded"), errHighCount);
-        Logger.recordOutput(logKey("poses"), poses.toArray(new Pose3d[0]));
 
         return poseEstimates;
     }

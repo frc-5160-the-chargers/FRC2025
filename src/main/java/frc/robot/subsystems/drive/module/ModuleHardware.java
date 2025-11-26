@@ -6,7 +6,7 @@ import org.littletonrobotics.junction.AutoLog;
 
 public class ModuleHardware {
     @AutoLog
-    public static class ModuleData {
+    static class ModuleData {
         public MotorDataAutoLogged steer = new MotorDataAutoLogged();
         public MotorDataAutoLogged drive = new MotorDataAutoLogged();
         public Rotation2d steerAbsolutePos = Rotation2d.kZero;

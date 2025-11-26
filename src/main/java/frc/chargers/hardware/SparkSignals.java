@@ -4,17 +4,16 @@ import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.REVLibError;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
+import frc.chargers.misc.Convert;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static edu.wpi.first.math.util.Units.rotationsPerMinuteToRadiansPerSecond;
-import static edu.wpi.first.math.util.Units.rotationsToRadians;
-
 /**
  * A utility class that reduces boilerplate around refreshing {@link MotorDataAutoLogged}
- * for REV Spark Max and Spark Flex motors.
+ * for a group of REV spark max/spark flex motors moving the same mechanism.
  */
+@SuppressWarnings("StringConcatenationInLoop")
 public class SparkSignals {
     private final List<SparkBase> motors = new ArrayList<>();
     private final Object encoder;
@@ -36,8 +35,8 @@ public class SparkSignals {
      * @param inputs the motor data to refresh.
      */
     public void refresh(MotorData inputs) {
-        var errTxt = new StringBuilder();
         inputs.setNumMotors(motors.size());
+        inputs.errorAsString = "";
         inputs.appliedVolts = motors.get(0).getAppliedOutput() * motors.get(0).getBusVoltage();
         for (int i = 0; i < motors.size(); i++) {
             var motor = motors.get(i);
@@ -45,16 +44,15 @@ public class SparkSignals {
             inputs.tempCelsius[i] = motor.getMotorTemperature();
             var err = motor.getLastError();
             if (err != REVLibError.kOk) {
-                errTxt.append(err).append(",");
+                inputs.errorAsString += (err + ",");
             }
         }
-        inputs.errorAsString = errTxt.toString();
         if (encoder instanceof RelativeEncoder e) {
-            inputs.positionRad = rotationsToRadians(e.getPosition());
-            inputs.velocityRadPerSec = rotationsPerMinuteToRadiansPerSecond(e.getVelocity());
+            inputs.positionRad = e.getPosition() * Convert.ROTATIONS_TO_RADIANS;
+            inputs.velocityRadPerSec = e.getVelocity() * Convert.RPM_TO_RADIANS_PER_SECOND;
         } else if (encoder instanceof AbsoluteEncoder e) {
-            inputs.positionRad = rotationsToRadians(e.getPosition());
-            inputs.velocityRadPerSec = rotationsToRadians(e.getVelocity());
+            inputs.positionRad = e.getPosition() * Convert.ROTATIONS_TO_RADIANS;
+            inputs.velocityRadPerSec = e.getVelocity() * Convert.ROTATIONS_TO_RADIANS;
         }
     }
 }

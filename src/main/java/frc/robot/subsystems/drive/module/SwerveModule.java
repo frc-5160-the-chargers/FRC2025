@@ -51,7 +51,7 @@ public class SwerveModule {
 
     public void periodic() {
         io.refreshData(inputs);
-        Logger.processInputs("SwerveDrive/Modules/" + name, inputs);
+        Logger.processInputs("SwerveModules/" + name, inputs);
 
         // Calculate positions for odometry
         int sampleCount = inputs.cachedDrivePositionsRad.length;

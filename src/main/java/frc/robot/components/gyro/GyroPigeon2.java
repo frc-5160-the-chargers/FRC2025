@@ -17,7 +17,8 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.util.Units;
+import frc.chargers.hardware.SignalBatchRefresher;
+import frc.chargers.misc.Convert;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.drive.OdoThread;
 
@@ -28,26 +29,38 @@ import static frc.robot.subsystems.drive.SwerveConsts.ODO_FREQUENCY_HZ;
 /** IO implementation for Pigeon 2. */
 public class GyroPigeon2 extends Gyro {
     private final Pigeon2 pigeon =
-            new Pigeon2(TunerConstants.DrivetrainConstants.Pigeon2Id, TunerConstants.DrivetrainConstants.CANBusName);
-    private final BaseStatusSignal yaw = pigeon.getYaw();
-    private final BaseStatusSignal yawVelocity = pigeon.getAngularVelocityZWorld();
-    private final Queue<Double> yawPositionQueue = OdoThread.getInstance().makeTimestampQueue();
-    private final Queue<Double> timestampQueue = OdoThread.getInstance().register(pigeon.getYaw());
+            new Pigeon2(TunerConstants.DrivetrainConstants.Pigeon2Id, TunerConstants.kCANBus);
+    private final BaseStatusSignal
+        yaw = pigeon.getYaw(),
+        pitch = pigeon.getPitch(),
+        roll = pigeon.getRoll(),
+        yawVelocity = pigeon.getAngularVelocityZWorld();
+    private final Queue<Double>
+        yawPositionQueue = OdoThread.getInstance().makeTimestampQueue(),
+        timestampQueue = OdoThread.getInstance().register(pigeon.getYaw());
 
     public GyroPigeon2() {
-        pigeon.getConfigurator().apply(new Pigeon2Configuration());
+        var config = TunerConstants.DrivetrainConstants.Pigeon2Configs;
+        if (config == null) config = new Pigeon2Configuration();
+        pigeon.getConfigurator().apply(config);
         pigeon.getConfigurator().setYaw(0.0);
+
         yaw.setUpdateFrequency(ODO_FREQUENCY_HZ);
-        yawVelocity.setUpdateFrequency(50.0);
+        BaseStatusSignal.setUpdateFrequencyForAll(50.0, roll, pitch, yawVelocity);
+        SignalBatchRefresher.register(
+            TunerConstants.kCANBus.isNetworkFD(),
+            roll, pitch, yawVelocity // yaw is already automatically updated by odometry thread
+        );
         pigeon.optimizeBusUtilization();
     }
 
     @Override
     public void refreshData(GyroDataAutoLogged inputs) {
-        BaseStatusSignal.refreshAll(yawVelocity);
         inputs.connected = BaseStatusSignal.isAllGood(yaw, yawVelocity);
         inputs.yaw = Rotation2d.fromDegrees(yaw.getValueAsDouble());
-        inputs.yawVelocityRadPerSec = Units.degreesToRadians(yawVelocity.getValueAsDouble());
+        inputs.rollRad = roll.getValueAsDouble() * Convert.DEGREES_TO_RADIANS;
+        inputs.pitchRad = pitch.getValueAsDouble() * Convert.DEGREES_TO_RADIANS;
+        inputs.yawVelocityRadPerSec = yawVelocity.getValueAsDouble() * Convert.DEGREES_TO_RADIANS;
         inputs.cachedTimestamps =
                 timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
         inputs.cachedYawValues =

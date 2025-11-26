@@ -14,6 +14,8 @@ import java.util.Optional;
 import static edu.wpi.first.units.Units.*;
 
 public class VisionConsts {
+    static boolean DEBUG_LOGS = true;
+
     public static final AprilTagFieldLayout ALL_TAGS = AprilTagFieldLayout.loadField(
         AprilTagFields.k2025ReefscapeAndyMark
     );

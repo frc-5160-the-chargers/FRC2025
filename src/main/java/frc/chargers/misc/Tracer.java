@@ -184,7 +184,7 @@ public class Tracer {
 	}
 
 	/**
-	 * Traces a function.
+	 * Runs and traces a function.
 	 *
 	 * @param name the name of the trace, should be unique to the function.
 	 * @param runnable the function to trace.
@@ -201,7 +201,7 @@ public class Tracer {
 	}
 
 	/**
-	 * Traces a function.
+	 * Runs and traces a function.
 	 *
 	 * @param name the name of the trace, should be unique to the function.
 	 * @param supplier the function to trace.
@@ -216,7 +216,7 @@ public class Tracer {
 	}
 
 	/**
-	 * Traces the execute() method of a command.
+	 * Returns a command that has it's execute() method traced.
 	 *
 	 * @param name the name of the trace, should be unique to the function.
 	 * @param command the command to trace.

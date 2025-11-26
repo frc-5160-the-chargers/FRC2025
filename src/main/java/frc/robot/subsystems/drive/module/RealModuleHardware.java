@@ -13,9 +13,9 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.util.Units;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.hardware.TalonSignals;
+import frc.chargers.misc.Convert;
 import frc.chargers.misc.Retry;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.drive.OdoThread;
@@ -57,34 +57,23 @@ public class RealModuleHardware extends ModuleHardware {
 
     public RealModuleHardware(
             SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants) {
-        boolean isCanivore = TunerConstants.kCANBus.isNetworkFD();
-        String bus = TunerConstants.DrivetrainConstants.CANBusName;
+        var bus = TunerConstants.kCANBus;
         this.constants = constants;
         driveTalon = new TalonFX(constants.DriveMotorId, bus);
         steerTalon = new TalonFX(constants.SteerMotorId, bus);
         cancoder = new CANcoder(constants.EncoderId, bus);
         // Custom utility classes for data updating
-        driveSignals = new TalonSignals(isCanivore, driveTalon);
-        steerSignals = new TalonSignals(isCanivore, steerTalon);
-
-        configureDevices();
-
+        driveSignals = new TalonSignals(driveTalon);
+        steerSignals = new TalonSignals(steerTalon);
         // We use queues for multithreaded odometry, since advantagekit forces a 0.02 sec cycle time for data updates
         drivePositionQueue = OdoThread.getInstance().register(driveSignals.position);
         steerPositionQueue = OdoThread.getInstance().register(steerSignals.position);
         steerAbsPos = cancoder.getAbsolutePosition();
-        SignalBatchRefresher.register(isCanivore, steerAbsPos);
+        SignalBatchRefresher.register(bus.isNetworkFD(), steerAbsPos);
 
-        // Configure periodic frames
-        driveSignals.setUpdateFrequency(50.0);
-        steerSignals.setUpdateFrequency(50.0);
-        Retry.ctreConfig(
-            4, "Position signals were not set to 250hz",
-            () -> BaseStatusSignal.setUpdateFrequencyForAll(
-                ODO_FREQUENCY_HZ, driveSignals.position, steerSignals.position
-            )
-        );
-        ParentDevice.optimizeBusUtilizationForAll(driveTalon, steerTalon);
+        // Configuration
+        configureDevices();
+        configureUpdateFrequencies();
     }
 
     @Override
@@ -93,11 +82,11 @@ public class RealModuleHardware extends ModuleHardware {
         steerSignals.refresh(inputs.steer);
         inputs.steerAbsolutePos = Rotation2d.fromRotations(steerAbsPos.getValueAsDouble());
         inputs.cachedDrivePositionsRad = drivePositionQueue.stream()
-                .mapToDouble(Units::rotationsToRadians)
-                .toArray();
+            .mapToDouble(it -> it * Convert.ROTATIONS_TO_RADIANS)
+            .toArray();
         inputs.cachedSteerPositions = steerPositionQueue.stream()
-                .map(Rotation2d::fromRotations)
-                .toArray(Rotation2d[]::new);
+            .map(Rotation2d::fromRotations)
+            .toArray(Rotation2d[]::new);
         drivePositionQueue.clear();
         steerPositionQueue.clear();
     }
@@ -105,38 +94,38 @@ public class RealModuleHardware extends ModuleHardware {
     @Override
     public void setDriveOpenLoop(double voltsOrAmps) {
         driveTalon.setControl(
-                switch (constants.DriveMotorClosedLoopOutput) {
-                    case Voltage -> voltageReq.withOutput(voltsOrAmps);
-                    case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
-                });
+            switch (constants.DriveMotorClosedLoopOutput) {
+                case Voltage -> voltageReq.withOutput(voltsOrAmps);
+                case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
+            });
     }
 
     @Override
     public void setSteerOpenLoop(double voltsOrAmps) {
         steerTalon.setControl(
-                switch (constants.SteerMotorClosedLoopOutput) {
-                    case Voltage -> voltageReq.withOutput(voltsOrAmps);
-                    case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
-                });
+            switch (constants.SteerMotorClosedLoopOutput) {
+                case Voltage -> voltageReq.withOutput(voltsOrAmps);
+                case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
+            });
     }
 
     @Override
     public void setDriveVelocity(double radPerSec) {
-        double velocityRotPerSec = Units.radiansToRotations(radPerSec);
+        double vel = radPerSec * Convert.RADIANS_TO_ROTATIONS;
         driveTalon.setControl(
-                switch (constants.DriveMotorClosedLoopOutput) {
-                    case Voltage -> velocityVoltageReq.withVelocity(velocityRotPerSec);
-                    case TorqueCurrentFOC -> velocityTorqueCurrentReq.withVelocity(velocityRotPerSec);
-                });
+            switch (constants.DriveMotorClosedLoopOutput) {
+                case Voltage -> velocityVoltageReq.withVelocity(vel);
+                case TorqueCurrentFOC -> velocityTorqueCurrentReq.withVelocity(vel);
+            });
     }
 
     @Override
     public void setSteerPosition(Rotation2d rotation) {
         steerTalon.setControl(
-                switch (constants.SteerMotorClosedLoopOutput) {
-                    case Voltage -> positionVoltageReq.withPosition(rotation.getRotations());
-                    case TorqueCurrentFOC -> positionTorqueCurrentReq.withPosition(rotation.getRotations());
-                });
+            switch (constants.SteerMotorClosedLoopOutput) {
+                case Voltage -> positionVoltageReq.withPosition(rotation.getRotations());
+                case TorqueCurrentFOC -> positionTorqueCurrentReq.withPosition(rotation.getRotations());
+            });
     }
 
     private void configureDevices() {
@@ -147,7 +136,7 @@ public class RealModuleHardware extends ModuleHardware {
         if (driveConfig.Slot0.kV == 0) {
             // Use a calculated optimistic default if no KV set
             double driveRatio = TunerConstants.FrontLeft.DriveMotorGearRatio;
-            driveConfig.Slot0.kV = 1 / (DRIVE_MOTOR_TYPE.KvRadPerSecPerVolt / (2 * Math.PI) / driveRatio);
+            driveConfig.Slot0.kV = 1 / (DRIVE_MOTOR_TYPE.KvRadPerSecPerVolt * Convert.RADIANS_TO_ROTATIONS / driveRatio);
         }
         driveConfig.Feedback.SensorToMechanismRatio = constants.DriveMotorGearRatio;
         driveConfig.TorqueCurrent.PeakForwardTorqueCurrent = constants.SlipCurrent;
@@ -188,6 +177,19 @@ public class RealModuleHardware extends ModuleHardware {
         Retry.ctreConfig(
             5, "Cancoder didn't configure", 
             () -> cancoder.getConfigurator().apply(cancoderConfig)
+        );
+    }
+
+    private void configureUpdateFrequencies() {
+        driveSignals.setUpdateFrequency(50.0);
+        steerSignals.setUpdateFrequency(50.0);
+        steerAbsPos.setUpdateFrequency(50.0);
+        BaseStatusSignal.setUpdateFrequencyForAll(
+            ODO_FREQUENCY_HZ, driveSignals.position, steerSignals.position
+        );
+        Retry.ctreConfig(
+            5, "Bus Util wasn't optimized for swerve",
+            () -> ParentDevice.optimizeBusUtilizationForAll(driveTalon, steerTalon, cancoder)
         );
     }
 }

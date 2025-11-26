@@ -21,6 +21,8 @@ public class Gyro {
     public static class GyroData {
         public boolean connected = true;
         public Rotation2d yaw = Rotation2d.kZero;
+        public double pitchRad = 0.0;
+        public double rollRad = 0.0;
         public double yawVelocityRadPerSec = 0.0;
         public double[] cachedTimestamps = new double[] {};
         public Rotation2d[] cachedYawValues = new Rotation2d[] {};

@@ -14,7 +14,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -22,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.chargers.data.CurrAlliance;
 import frc.chargers.data.InputStream;
 import frc.chargers.data.RobotMode;
+import frc.chargers.misc.Convert;
 import frc.chargers.misc.RepulsorFieldPlanner;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.gyro.Gyro;
@@ -45,10 +45,7 @@ import java.util.function.Supplier;
 
 import static choreo.util.ChoreoAllianceFlipUtil.flip;
 import static edu.wpi.first.math.MathUtil.angleModulus;
-import static edu.wpi.first.math.util.Units.metersToInches;
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
-import static frc.chargers.commands.TriggerUtil.bind;
 import static frc.robot.subsystems.drive.SwerveConsts.*;
 
 /**
@@ -70,9 +67,8 @@ public class SwerveDrive extends ChargerSubsystem {
     private final SwerveDriveSimulation mapleSim =
         new SwerveDriveSimulation(MAPLESIM_CONFIG, Pose2d.kZero);
     private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
-    private final SwerveSetpointGenerator setpointGen = new SwerveSetpointGenerator(
-        PATH_PLANNER_CONFIG, STEER_MOTOR_TYPE.freeSpeedRadPerSec
-    );
+    private final SwerveSetpointGenerator setpointGen =
+            new SwerveSetpointGenerator(PATH_PLANNER_CONFIG, STEER_MOTOR_TYPE.freeSpeedRadPerSec);
     private final PIDController
         xPoseController = new PIDController(TRANSLATION_KP, 0, 0),
         yPoseController = new PIDController(TRANSLATION_KP, 0, 0),
@@ -129,10 +125,9 @@ public class SwerveDrive extends ChargerSubsystem {
             SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
         }
         OdoThread.getInstance().start();
-
-        bind(new Alert("Gyro has error", kError), () -> !gyroInputs.connected);
     }
 
+    // Drives at the provided ChassisSpeeds.
     private void driveCallback(ChassisSpeeds speeds, boolean useSetpointGen) {
         Logger.recordOutput(key("DesiredSpeeds"), speeds);
         Logger.recordOutput(key("SetpointGenUsed"), useSetpointGen);
@@ -155,7 +150,7 @@ public class SwerveDrive extends ChargerSubsystem {
         }
     }
 
-    /** Obtains desired module states from a choreo trajectory sample. */
+    // Obtains desired module states from a choreo trajectory sample.
     private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample, double linearVelMultiplier) {
         var vx = trajSample.vx + xPoseController.calculate(poseEstimate().getX(), trajSample.x);
         var vy = trajSample.vy + yPoseController.calculate(poseEstimate().getY(), trajSample.y);
@@ -250,13 +245,6 @@ public class SwerveDrive extends ChargerSubsystem {
         }
     }
 
-    public Pose2d getDemoPose() {
-        return new Pose2d(
-            DEMO_POSE_X.get(), DEMO_POSE_Y.get(),
-            Rotation2d.fromDegrees(DEMO_POSE_HEADING_DEG.get())
-        );
-    }
-
     /**
      * Creates a Command that, when scheduled,
      * drives the robot forever at the requested forward, strafe, and rotation powers.
@@ -270,7 +258,7 @@ public class SwerveDrive extends ChargerSubsystem {
         InputStream rotationOutput,
         boolean fieldRelative
     ) {
-        var maxSpeedMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+        double maxSpeedMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
         return this.run(() -> {
             var rotation = Rotation2d.kZero;
             if (fieldRelative) {
@@ -292,29 +280,26 @@ public class SwerveDrive extends ChargerSubsystem {
      * @return a Command
      */
     public Command pathfindCmd(Supplier<Pose2d> targetPoseSupplier) {
-        double maxVelocityMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-        return this.run(() -> {
-            Tracer.startTrace("Repulsor Pathfinding");
-            goalToAlign = targetPoseSupplier.get();
-            repulsor.setGoal(goalToAlign);
-            var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxVelocityMps * .8, 1.5);
-            var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
-            driveCallback(desiredSpeeds, true);
-            Tracer.endTrace();
-        })
-            .until(() -> repulsor.atGoal(0.017))
-            .withName("PathfindCmd");
+        double maxSpeedMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * .8;
+        return Tracer.trace(
+            "Repulsor Pathfind Cmd",
+            this.run(() -> {
+                goalToAlign = targetPoseSupplier.get();
+                repulsor.setGoal(goalToAlign);
+                var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxSpeedMps, 1.5);
+                var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
+                driveCallback(desiredSpeeds, true);
+            }).until(() -> repulsor.atGoal(0.017))
+        );
     }
 
     @Override
-    public void periodic() {
-        Tracer.trace("Drivetrain Data Refresh", () -> {
-            OdoThread.getInstance().updatesLock.lock(); // Prevents odometry updates while reading data
-            gyro.refreshData(gyroInputs);
-            Logger.processInputs(key("Gyro"), gyroInputs);
-            for (var module : swerveModules) module.periodic();
-            OdoThread.getInstance().updatesLock.unlock();
-        });
+    public void loggedPeriodic() {
+        OdoThread.getInstance().updatesLock.lock(); // Prevents odometry updates while reading data
+        gyro.refreshData(gyroInputs);
+        Logger.processInputs("Gyro", gyroInputs);
+        for (var module : swerveModules) module.periodic();
+        OdoThread.getInstance().updatesLock.unlock();
 
         // Stop moving when disabled
         if (DriverStation.isDisabled()) {
@@ -384,16 +369,15 @@ public class SwerveDrive extends ChargerSubsystem {
     }
 
     /** Measures the robot's wheel radius by spinning in a circle. */
-    public Command wheelRadiusCharacterization() {
+    public Command wheelRadiusCharacterizeCmd() {
         var limiter = new SlewRateLimiter(0.05);
-        var state = new WheelRadiusCharacterizationState();
+        var state = new WheelRadiusCharState();
 
         return Commands.parallel(
             // Drive control sequence
             Commands.sequence(
                 // Reset acceleration limiter
                 Commands.runOnce(() -> limiter.reset(0.0)),
-
                 // Turn in place, accelerating up to full speed
                 this.run(() -> driveCallback(
                     new ChassisSpeeds(0, 0, limiter.calculate(0.25)),
@@ -405,65 +389,53 @@ public class SwerveDrive extends ChargerSubsystem {
                 // Wait for modules to fully orient before starting measurement
                 Commands.waitSeconds(1.0),
                 // Record starting measurement
-                Commands.runOnce(
-                    () -> {
-                        for (int i = 0; i < 4; i++) {
-                            state.positions[i] = swerveModules[i].getDistTraveledAngular();
-                        }
-                        state.lastAngle = gyroInputs.yaw;
-                        state.gyroDelta = 0.0;
-                    }),
-
+                Commands.runOnce(() -> {
+                    for (int i = 0; i < 4; i++) {
+                        state.positions[i] = swerveModules[i].getDistTraveledAngular();
+                    }
+                    state.lastAngle = gyroInputs.yaw;
+                    state.gyroDelta = 0.0;
+                }),
                 // Update gyro delta
                 Commands.run(() -> {
                     state.gyroDelta += Math.abs(gyroInputs.yaw.minus(state.lastAngle).getRadians());
                     state.lastAngle = gyroInputs.yaw;
-
-                    double[] positions = new double[4];
-                    for (int i = 0; i < 4; i++) {
-                        positions[i] = swerveModules[i].getDistTraveledAngular();
-                    }
-                    double wheelDelta = 0.0;
-                    for (int i = 0; i < 4; i++) {
-                        wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
-                    }
-                    double wheelRadius =
-                        (state.gyroDelta * DRIVEBASE_RADIUS.in(Meters)) / wheelDelta;
-
-                    Logger.recordOutput("WheelRadiusCharacterization/delta", wheelDelta);
+                    double wheelRadius = getWheelRadius(state);
                     Logger.recordOutput("WheelRadiusCharacterization/found wheel radius(meters)", wheelRadius);
                 })
                     .finallyDo(() -> {
-                        double[] positions = new double[4];
-                        for (int i = 0; i < 4; i++) {
-                            positions[i] = swerveModules[i].getDistTraveledAngular();
-                        }
-                        double wheelDelta = 0.0;
-                        for (int i = 0; i < 4; i++) {
-                            wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
-                        }
-                        double wheelRadius =
-                            (state.gyroDelta * DRIVEBASE_RADIUS.in(Meters)) / wheelDelta;
-
+                        double wheelRadius = getWheelRadius(state);
                         NumberFormat formatter = new DecimalFormat("#0.000000000000000000000000000");
                         System.out.println(
                             "********** Wheel Radius Characterization Results **********");
-                        System.out.println(
-                            "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
                         System.out.println(
                             "\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
                         System.out.println(
                             "\tWheel Radius: "
                                 + formatter.format(wheelRadius)
                                 + " meters, "
-                                + formatter.format(metersToInches(wheelRadius))
+                                + formatter.format(wheelRadius * Convert.METERS_TO_INCHES)
                                 + " inches");
-                    })));
+                    })
+            )
+        );
     }
 
-    private static class WheelRadiusCharacterizationState {
+    private static class WheelRadiusCharState {
         double[] positions = new double[4];
         Rotation2d lastAngle = Rotation2d.kZero;
         double gyroDelta = 0.0;
+    }
+
+    private double getWheelRadius(WheelRadiusCharState state) {
+        double[] positions = new double[4];
+        for (int i = 0; i < 4; i++) {
+            positions[i] = swerveModules[i].getDistTraveledAngular();
+        }
+        double wheelDelta = 0.0;
+        for (int i = 0; i < 4; i++) {
+            wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
+        }
+        return (state.gyroDelta * DRIVEBASE_RADIUS.in(Meters)) / wheelDelta;
     }
 }

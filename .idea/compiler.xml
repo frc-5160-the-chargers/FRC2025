@@ -12,8 +12,8 @@
       <profile name="Gradle Imported" enabled="true">
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
-          <entry name="$PROJECT_DIR$/../../../Public/wpilib/2025/maven/edu/wpi/first/epilogue/epilogue-processor-java/2025.3.2/epilogue-processor-java-2025.3.2.jar" />
-          <entry name="$PROJECT_DIR$/../../../Public/wpilib/2025/maven/edu/wpi/first/epilogue/epilogue-runtime-java/2025.3.2/epilogue-runtime-java-2025.3.2.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-processor-java/2026.1.1-beta-1/fb15dfaa643caedf2c63e9be5e16b9c5266ac504/epilogue-processor-java-2026.1.1-beta-1.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/edu.wpi.first.epilogue/epilogue-runtime-java/2026.1.1-beta-1/6ff33d686582597a947e3e4b4ae94981ced0930/epilogue-runtime-java-2026.1.1-beta-1.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.littletonrobotics.akit/akit-autolog/4.1.2/2e632674c8b3df1b22e93fa7f6010cdbaf959529/akit-autolog-4.1.2.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.squareup/javapoet/1.13.0/d6562d385049f35eb50403fa86bb11cce76b866a/javapoet-1.13.0.jar" />
