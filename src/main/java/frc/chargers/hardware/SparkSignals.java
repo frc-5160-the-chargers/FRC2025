@@ -37,10 +37,10 @@ public class SparkSignals {
     public void refresh(MotorData inputs) {
         inputs.setNumMotors(motors.size());
         inputs.errorAsString = "";
-        inputs.appliedVolts = motors.get(0).getAppliedOutput() * motors.get(0).getBusVoltage();
+        inputs.volts = motors.get(0).getAppliedOutput() * motors.get(0).getBusVoltage();
         for (int i = 0; i < motors.size(); i++) {
             var motor = motors.get(i);
-            inputs.supplyCurrent[i] = motor.getOutputCurrent();
+            inputs.supplyAmps[i] = motor.getOutputCurrent();
             inputs.tempCelsius[i] = motor.getMotorTemperature();
             var err = motor.getLastError();
             if (err != REVLibError.kOk) {
@@ -48,11 +48,11 @@ public class SparkSignals {
             }
         }
         if (encoder instanceof RelativeEncoder e) {
-            inputs.positionRad = e.getPosition() * Convert.ROTATIONS_TO_RADIANS;
-            inputs.velocityRadPerSec = e.getVelocity() * Convert.RPM_TO_RADIANS_PER_SECOND;
+            inputs.radians = e.getPosition() * Convert.ROTATIONS_TO_RADIANS;
+            inputs.radiansPerSec = e.getVelocity() * Convert.RPM_TO_RADIANS_PER_SECOND;
         } else if (encoder instanceof AbsoluteEncoder e) {
-            inputs.positionRad = e.getPosition() * Convert.ROTATIONS_TO_RADIANS;
-            inputs.velocityRadPerSec = e.getVelocity() * Convert.ROTATIONS_TO_RADIANS;
+            inputs.radians = e.getPosition() * Convert.ROTATIONS_TO_RADIANS;
+            inputs.radiansPerSec = e.getVelocity() * Convert.ROTATIONS_TO_RADIANS;
         }
     }
 }

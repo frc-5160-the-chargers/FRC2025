@@ -53,13 +53,13 @@ public class TalonSignals {
         int numMotors = motorTemp.size();
         inputs.setNumMotors(numMotors);
         inputs.errorAsString = "";
-        inputs.appliedVolts = voltage.getValueAsDouble();
-        inputs.positionRad = position.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
-        inputs.velocityRadPerSec = velocity.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
+        inputs.volts = voltage.getValueAsDouble();
+        inputs.radians = position.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
+        inputs.radiansPerSec = velocity.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
         for (int i = 0; i < numMotors; i++) {
-            inputs.supplyCurrent[i] = supplyCurrent.get(i).getValueAsDouble();
+            inputs.supplyAmps[i] = supplyCurrent.get(i).getValueAsDouble();
             inputs.tempCelsius[i] = motorTemp.get(i).getValueAsDouble();
-            inputs.torqueCurrent[i] = torqueCurrent.get(i).getValueAsDouble();
+            inputs.appliedAmps[i] = torqueCurrent.get(i).getValueAsDouble();
         }
         for (var signal: all) {
             if (signal.getStatus().isOK()) continue;

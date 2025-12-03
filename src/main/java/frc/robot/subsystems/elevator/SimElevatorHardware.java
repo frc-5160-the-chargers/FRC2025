@@ -13,21 +13,16 @@ public class SimElevatorHardware extends ElevatorHardware {
         MIN_HEIGHT.in(Meters), MAX_HEIGHT.in(Meters),
         false, 0
     );
-    private final PIDController pidController = new PIDController(0, 0, 0);
+    private final PIDController pidController = new PIDController(KP, 0, KD);
     private double inputV = 0;
-
-    @Override
-    public void setPDGains(double p, double d) {
-        pidController.setPID(p, 0, d);
-    }
 
     @Override
     public void refreshData(ElevatorDataAutoLogged inputs) {
         sim.update(0.02);
-        inputs.positionRad = sim.getPositionMeters() / RADIUS.in(Meters);
-        inputs.velocityRadPerSec = sim.getVelocityMetersPerSecond() / RADIUS.in(Meters);
-        inputs.supplyCurrent[0] = sim.getCurrentDrawAmps();
-        inputs.appliedVolts = inputV;
+        inputs.radians = sim.getPositionMeters() / RADIUS.in(Meters);
+        inputs.radiansPerSec = sim.getVelocityMetersPerSecond() / RADIUS.in(Meters);
+        inputs.supplyAmps[0] = sim.getCurrentDrawAmps();
+        inputs.volts = inputV;
     }
 
     @Override

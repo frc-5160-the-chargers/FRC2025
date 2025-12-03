@@ -96,7 +96,7 @@ public class SwerveModule {
     /** Returns the module position (turn angle and drive position). */
     public SwerveModulePosition getPosition() {
         return new SwerveModulePosition(
-            inputs.drive.positionRad * constants.WheelRadius,
+            inputs.drive.radians * constants.WheelRadius,
             getAngle()
         );
     }
@@ -104,13 +104,13 @@ public class SwerveModule {
     /** Returns the module state (turn angle and drive velocity). */
     public SwerveModuleState getState() {
         return new SwerveModuleState(
-            inputs.drive.velocityRadPerSec * constants.WheelRadius,
+            inputs.drive.radiansPerSec * constants.WheelRadius,
             getAngle()
         );
     }
 
     /** Fetches the raw angular position of the drive motor. */
     public double getDistTraveledAngular() {
-        return inputs.drive.positionRad;
+        return inputs.drive.radians;
     }
 }

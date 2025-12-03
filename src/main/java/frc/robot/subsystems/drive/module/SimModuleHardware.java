@@ -13,11 +13,11 @@ import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.ironmaple.simulation.motorsims.SimulatedBattery;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
+import org.littletonrobotics.junction.Logger;
 
 import java.util.Arrays;
 
 import static edu.wpi.first.units.Units.Radians;
-import static edu.wpi.first.units.Units.Volts;
 
 /**
  * A simulation of module hardware. This class uses MapleSim, a framework
@@ -38,8 +38,6 @@ public class SimModuleHardware extends RealModuleHardware {
                 .withDriveMotorInverted(false)
                 .withSteerMotorInverted(false)
                 .withEncoderInverted(false)
-                .withDriveFrictionVoltage(Volts.of(0.1))
-                .withSteerFrictionVoltage(Volts.of(0.05))
         );
         this.simulation = simulation;
         super.steerTalon.getSimState().setMotorType(TalonFXSimState.MotorType.KrakenX44);
@@ -66,7 +64,6 @@ public class SimModuleHardware extends RealModuleHardware {
      * you're sure that you'll be using TalonFX motors on a mechanism.
      */
     private record TalonFXSim(TalonFX motor, @Nullable CANcoder encoder) implements SimulatedMotorController {
-        // This method is repeatedly called by maplesim with the appropriate
         @Override
         public Voltage updateControlSignal(
             Angle mechanismAngle,
@@ -74,13 +71,13 @@ public class SimModuleHardware extends RealModuleHardware {
             Angle encoderAngle,
             AngularVelocity encoderVelocity
         ) {
-            motor.getSimState().setSupplyVoltage(SimulatedBattery.getBatteryVoltage());
             motor.getSimState().setRawRotorPosition(encoderAngle);
             motor.getSimState().setRotorVelocity(encoderVelocity);
             if (encoder != null) {
                 encoder.getSimState().setRawPosition(mechanismAngle);
                 encoder.getSimState().setVelocity(mechanismVelocity);
             }
+            Logger.recordOutput("VoltTest", motor.getSimState().getMotorVoltage());
             return motor.getSimState().getMotorVoltageMeasure();
         }
     }

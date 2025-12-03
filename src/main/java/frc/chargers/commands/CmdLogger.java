@@ -12,6 +12,7 @@ import java.util.Set;
  * The "Flowchart" field should be dragged into the "discrete fields" section on AdvantageScope's line graph,
  * while the "InterruptMsgs" and "DuplicateNameMsgs" fields should be dragged into the console section
  * (click +, then "Console", then drag the field in).
+ * Green commands are default commands, while yellow commands are non-default ones.
  */
 public class CmdLogger {
     private static boolean hasStarted = false, logDupeNames = false;

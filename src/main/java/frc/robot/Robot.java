@@ -1,7 +1,9 @@
 package frc.robot;
 
+import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.net.PortForwarder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.chargers.commands.CmdLogger;
@@ -14,6 +16,7 @@ import frc.robot.components.vision.VisionConsts;
 import frc.robot.constants.BuildConstants;
 import frc.robot.subsystems.drive.SwerveDrive;
 import frc.robot.subsystems.elevator.Elevator;
+import frc.teaching.intake.Intake;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -32,13 +35,15 @@ public class Robot extends LoggedRobot {
     private final SwerveDrive drive = new SwerveDrive();
     private final Elevator elevator = new Elevator();
     private final DriverController controller = new DriverController();
+    private final Intake intake = new Intake();
 
     private final List<Camera> cameras = List.of(
-        new Camera(VisionConsts.FL_CONSTS, drive::bestPose),
-        new Camera(VisionConsts.FR_CONSTS, drive::bestPose)
+//        new Camera(VisionConsts.FL_CONSTS, drive::bestPose),
+//        new Camera(VisionConsts.FR_CONSTS, drive::bestPose)
     );
 
     public Robot() {
+        // A / (m/s)
         initLogging();
         drive.setDefaultCommand(
             drive.driveCmd(controller.forwardOutput, controller.strafeOutput, controller.rotationOutput, false)
@@ -46,9 +51,10 @@ public class Robot extends LoggedRobot {
         drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
         DriverStation.silenceJoystickConnectionWarning(true);
         autonomous().whileTrue(
-            elevator.moveToHeightCmd(Meters.of(1.2))
+            drive.runDriveMotors()
         );
         elevator.setDefaultCommand(elevator.idleCmd());
+        PortForwarder.add(5800, "photonvision.local", 5800);
     }
 
     private void initLogging() {

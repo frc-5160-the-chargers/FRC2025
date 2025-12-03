@@ -14,6 +14,7 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.elevator.ElevatorConsts.*;
@@ -31,6 +32,7 @@ public class Elevator extends ChargerSubsystem {
         case SIM -> new SimElevatorHardware();
         case REAL, REPLAY -> new ElevatorHardware();
     };
+    /** Data originating from ElevatorHardware. */
     private final ElevatorDataAutoLogged inputs = new ElevatorDataAutoLogged();
 
     @AutoLogOutput
@@ -39,47 +41,41 @@ public class Elevator extends ChargerSubsystem {
     /** Triggers that correspond to various elevator states. */
     @AutoLogOutput
     public final Trigger
-        movingUp = new Trigger(() -> inputs.velocityRadPerSec > 0.1),
-        cogLow = new Trigger(() -> heightMeters() < COG_LOW_BOUNDARY.in(Meters)),
+        movingUp = new Trigger(() -> inputs.radiansPerSec > 0.1),
+        cogLow = new Trigger(() -> heightMeters() < COG_LOW_BOUNDARY.get().in(Meters)),
         hittingLowLimit = new Trigger(
-            () -> heightMeters() < MIN_HEIGHT.in(Meters) && inputs.appliedVolts < 0
+            () -> heightMeters() < MIN_HEIGHT.in(Meters) && inputs.volts < 0
         ),
         hittingHighLimit = new Trigger(
-            () -> heightMeters() > MAX_HEIGHT.in(Meters) && inputs.appliedVolts > 0
+            () -> heightMeters() > MAX_HEIGHT.in(Meters) && inputs.volts > 0
         );
-
-    public Elevator() {
-        io.setPDGains(KP.get(), KD.get());
-        KP.onChange(p -> io.setPDGains(p, KD.get()));
-        KD.onChange(d -> io.setPDGains(KP.get(), d));
-    }
 
     /**
      * Returns a trigger that is true when the elevator is at the target height,
      * with the default tolerance.
      */
     public Trigger atHeight(Distance height) {
-        return atHeight(height, TOLERANCE);
+        return atHeight(height, TOLERANCE::get);
     }
 
     /**
      * Returns a trigger that is true when the elevator is at the target height,
      * with a given tolerance.
      */
-    public Trigger atHeight(Distance height, Distance tolerance) {
+    public Trigger atHeight(Distance height, Supplier<Distance> tolerance) {
         return new Trigger(
-            () -> Math.abs(heightMeters() - height.in(Meters)) < tolerance.in(Meters)
+            () -> Math.abs(heightMeters() - height.in(Meters)) < tolerance.get().in(Meters)
         );
     }
 
     @AutoLogOutput
     public double heightMeters() {
-        return inputs.positionRad * RADIUS.in(Meters);
+        return inputs.radians * RADIUS.in(Meters);
     }
 
     @AutoLogOutput
     public double velocityMPS() {
-        return inputs.velocityRadPerSec * RADIUS.in(Meters);
+        return inputs.radiansPerSec * RADIUS.in(Meters);
     }
 
     public Command idleCmd() {
@@ -95,8 +91,8 @@ public class Elevator extends ChargerSubsystem {
         // deferred command re-computes the command at runtime
         return Commands.defer(() -> {
             var demoHeight = DEMO_HEIGHT.get();
-            if (demoHeight < 0) return Commands.print("Height < 0; demo request ignored.");
-            return moveToHeightCmd(Meters.of(demoHeight));
+            if (demoHeight.magnitude() < 0) return Commands.print("Height < 0; demo request ignored.");
+            return moveToHeightCmd(demoHeight);
         }, Set.of(this));
     }
 
@@ -121,7 +117,7 @@ public class Elevator extends ChargerSubsystem {
 
     public Command currentZeroCmd() {
         return this.run(() -> io.setVolts(-0.5))
-            .until(() -> inputs.supplyCurrent[0] > 20)
+            .until(() -> inputs.supplyAmps[0] > 20)
             .finallyDo((interrupted) -> {
                 if (!interrupted) {
                     io.zeroEncoder();

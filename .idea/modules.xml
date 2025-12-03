@@ -5,7 +5,6 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/FRC2025.iml" filepath="$PROJECT_DIR$/.idea/modules/FRC2025.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/FRC2025.main.iml" filepath="$PROJECT_DIR$/.idea/modules/FRC2025.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/FRC2025.test.iml" filepath="$PROJECT_DIR$/.idea/modules/FRC2025.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/scripts/scripts.iml" filepath="$PROJECT_DIR$/scripts/scripts.iml" />
     </modules>
   </component>
 </project>

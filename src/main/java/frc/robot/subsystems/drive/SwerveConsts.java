@@ -42,7 +42,10 @@ public class SwerveConsts {
         DEMO_DRIVE_VOLTS = new TunableNum("Swerve/demoDriveVolts", 3),
         DEMO_STEER_VOLTS = new TunableNum("Swerve/demoSteerVolts", 3);
 
-    static final double FORCE_KT = 0;
+    static final double KT_AMPS_PER_NM = 1 / (
+        DRIVE_MOTOR_TYPE.KtNMPerAmp / TunerConstants.FrontLeft.DriveMotorGearRatio
+    );
+
     static final double TRANSLATION_KP = 8;
     static final double TRANSLATION_TOLERANCE = 0.014;
     static final double ROTATION_KP = 8;

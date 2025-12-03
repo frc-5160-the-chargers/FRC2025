@@ -5,4 +5,9 @@
       <excludeFolder url="file://$MODULE_DIR$/../../scripts/venv" />
     </content>
   </component>
+  <component name="FacetManager">
+    <facet type="Python" name="Python">
+      <configuration sdkName="Python 3.12 (scripts)" />
+    </facet>
+  </component>
 </module>

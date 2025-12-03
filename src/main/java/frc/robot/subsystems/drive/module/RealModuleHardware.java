@@ -12,6 +12,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.hardware.TalonSignals;
@@ -19,6 +20,7 @@ import frc.chargers.misc.Convert;
 import frc.chargers.misc.Retry;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.drive.OdoThread;
+import org.littletonrobotics.junction.Logger;
 
 import java.util.Queue;
 
@@ -32,7 +34,7 @@ import static frc.robot.subsystems.drive.SwerveConsts.ODO_FREQUENCY_HZ;
  * <p>Device configuration and other behaviors not exposed by TunerConstants can be customized here.
  */
 public class RealModuleHardware extends ModuleHardware {
-    private final SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants;
+    private final SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> consts;
 
     // Hardware objects
     protected final TalonFX driveTalon, steerTalon;
@@ -53,15 +55,21 @@ public class RealModuleHardware extends ModuleHardware {
 
     // Signals
     private final TalonSignals driveSignals, steerSignals;
-    private final BaseStatusSignal steerAbsPos;
+    private final BaseStatusSignal steerAbsPos, velocityErr;
+
+    private final double kTAmpsPerNm;
 
     public RealModuleHardware(
-            SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constants) {
+        SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> consts
+    ) {
         var bus = TunerConstants.kCANBus;
-        this.constants = constants;
-        driveTalon = new TalonFX(constants.DriveMotorId, bus);
-        steerTalon = new TalonFX(constants.SteerMotorId, bus);
-        cancoder = new CANcoder(constants.EncoderId, bus);
+        this.consts = consts;
+        kTAmpsPerNm = 1 / (
+            DRIVE_MOTOR_TYPE.KtNMPerAmp / consts.DriveMotorGearRatio
+        );
+        driveTalon = new TalonFX(consts.DriveMotorId, bus);
+        steerTalon = new TalonFX(consts.SteerMotorId, bus);
+        cancoder = new CANcoder(consts.EncoderId, bus);
         // Custom utility classes for data updating
         driveSignals = new TalonSignals(driveTalon);
         steerSignals = new TalonSignals(steerTalon);
@@ -69,7 +77,8 @@ public class RealModuleHardware extends ModuleHardware {
         drivePositionQueue = OdoThread.getInstance().register(driveSignals.position);
         steerPositionQueue = OdoThread.getInstance().register(steerSignals.position);
         steerAbsPos = cancoder.getAbsolutePosition();
-        SignalBatchRefresher.register(bus.isNetworkFD(), steerAbsPos);
+        velocityErr = driveTalon.getClosedLoopError();
+        SignalBatchRefresher.register(bus.isNetworkFD(), steerAbsPos, velocityErr);
 
         // Configuration
         configureDevices();
@@ -80,6 +89,7 @@ public class RealModuleHardware extends ModuleHardware {
     public void refreshData(ModuleDataAutoLogged inputs) {
         driveSignals.refresh(inputs.drive);
         steerSignals.refresh(inputs.steer);
+        inputs.velocityErrRadPerSec = velocityErr.getValueAsDouble() * Convert.ROTATIONS_TO_RADIANS;
         inputs.steerAbsolutePos = Rotation2d.fromRotations(steerAbsPos.getValueAsDouble());
         inputs.cachedDrivePositionsRad = drivePositionQueue.stream()
             .mapToDouble(it -> it * Convert.ROTATIONS_TO_RADIANS)
@@ -93,8 +103,9 @@ public class RealModuleHardware extends ModuleHardware {
 
     @Override
     public void setDriveOpenLoop(double voltsOrAmps) {
+        Logger.recordOutput("OutputLol", voltsOrAmps);
         driveTalon.setControl(
-            switch (constants.DriveMotorClosedLoopOutput) {
+            switch (consts.DriveMotorClosedLoopOutput) {
                 case Voltage -> voltageReq.withOutput(voltsOrAmps);
                 case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
             });
@@ -103,26 +114,28 @@ public class RealModuleHardware extends ModuleHardware {
     @Override
     public void setSteerOpenLoop(double voltsOrAmps) {
         steerTalon.setControl(
-            switch (constants.SteerMotorClosedLoopOutput) {
+            switch (consts.SteerMotorClosedLoopOutput) {
                 case Voltage -> voltageReq.withOutput(voltsOrAmps);
                 case TorqueCurrentFOC -> torqueCurrentReq.withOutput(voltsOrAmps);
             });
     }
 
     @Override
-    public void setDriveVelocity(double radPerSec) {
+    public void setDriveVelocity(double radPerSec, double torqueFeedforwardNm) {
         double vel = radPerSec * Convert.RADIANS_TO_ROTATIONS;
         driveTalon.setControl(
-            switch (constants.DriveMotorClosedLoopOutput) {
+            switch (consts.DriveMotorClosedLoopOutput) {
                 case Voltage -> velocityVoltageReq.withVelocity(vel);
-                case TorqueCurrentFOC -> velocityTorqueCurrentReq.withVelocity(vel);
+                case TorqueCurrentFOC -> velocityTorqueCurrentReq
+                    .withVelocity(vel)
+                    .withFeedForward(torqueFeedforwardNm * kTAmpsPerNm);
             });
     }
 
     @Override
     public void setSteerPosition(Rotation2d rotation) {
         steerTalon.setControl(
-            switch (constants.SteerMotorClosedLoopOutput) {
+            switch (consts.SteerMotorClosedLoopOutput) {
                 case Voltage -> positionVoltageReq.withPosition(rotation.getRotations());
                 case TorqueCurrentFOC -> positionTorqueCurrentReq.withPosition(rotation.getRotations());
             });
@@ -130,20 +143,23 @@ public class RealModuleHardware extends ModuleHardware {
 
     private void configureDevices() {
         // Configure drive motor
-        var driveConfig = constants.DriveMotorInitialConfigs;
+        var driveConfig = consts.DriveMotorInitialConfigs;
         driveConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-        driveConfig.Slot0 = constants.DriveMotorGains;
-        if (driveConfig.Slot0.kV == 0) {
+        if (consts.DriveMotorGains.kV == 0 && consts.DriveMotorClosedLoopOutput == ClosedLoopOutputType.Voltage) {
             // Use a calculated optimistic default if no KV set
-            double driveRatio = TunerConstants.FrontLeft.DriveMotorGearRatio;
-            driveConfig.Slot0.kV = 1 / (DRIVE_MOTOR_TYPE.KvRadPerSecPerVolt * Convert.RADIANS_TO_ROTATIONS / driveRatio);
+            consts.DriveMotorGains.kV = 1 / (
+                DRIVE_MOTOR_TYPE.KvRadPerSecPerVolt
+                    * Convert.RADIANS_TO_ROTATIONS
+                    / TunerConstants.FrontLeft.DriveMotorGearRatio
+            );
         }
-        driveConfig.Feedback.SensorToMechanismRatio = constants.DriveMotorGearRatio;
-        driveConfig.TorqueCurrent.PeakForwardTorqueCurrent = constants.SlipCurrent;
-        driveConfig.TorqueCurrent.PeakReverseTorqueCurrent = -constants.SlipCurrent;
-        driveConfig.CurrentLimits.StatorCurrentLimit = constants.SlipCurrent;
+        driveConfig.Slot0 = consts.DriveMotorGains;
+        driveConfig.Feedback.SensorToMechanismRatio = consts.DriveMotorGearRatio;
+        driveConfig.TorqueCurrent.PeakForwardTorqueCurrent = consts.SlipCurrent;
+        driveConfig.TorqueCurrent.PeakReverseTorqueCurrent = -consts.SlipCurrent;
+        driveConfig.CurrentLimits.StatorCurrentLimit = consts.SlipCurrent;
         driveConfig.CurrentLimits.StatorCurrentLimitEnable = true;
-        driveConfig.MotorOutput.Inverted = constants.DriveMotorInverted
+        driveConfig.MotorOutput.Inverted = consts.DriveMotorInverted
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
         Retry.ctreConfig(5, driveTalon, driveConfig);
@@ -152,26 +168,26 @@ public class RealModuleHardware extends ModuleHardware {
         // Configure steer motor
         var steerConfig = new TalonFXConfiguration();
         steerConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-        steerConfig.Slot0 = constants.SteerMotorGains;
-        steerConfig.Feedback.FeedbackRemoteSensorID = constants.EncoderId;
-        steerConfig.Feedback.FeedbackSensorSource = switch (constants.FeedbackSource) {
+        steerConfig.Slot0 = consts.SteerMotorGains;
+        steerConfig.Feedback.FeedbackRemoteSensorID = consts.EncoderId;
+        steerConfig.Feedback.FeedbackSensorSource = switch (consts.FeedbackSource) {
             case RemoteCANcoder -> FeedbackSensorSourceValue.RemoteCANcoder;
             case FusedCANcoder -> FeedbackSensorSourceValue.FusedCANcoder;
             case SyncCANcoder -> FeedbackSensorSourceValue.SyncCANcoder;
             default -> throw new RuntimeException(
                 "You are using an unsupported swerve configuration, which this template does not support without manual customization. \n"
                     + "The 2025 release of Phoenix supports some swerve configurations which were not available during 2025 beta testing, preventing any development and support from the AdvantageKit developers.");};
-        steerConfig.Feedback.RotorToSensorRatio = constants.SteerMotorGearRatio;
+        steerConfig.Feedback.RotorToSensorRatio = consts.SteerMotorGearRatio;
         steerConfig.ClosedLoopGeneral.ContinuousWrap = true;
-        steerConfig.MotorOutput.Inverted = constants.SteerMotorInverted
+        steerConfig.MotorOutput.Inverted = consts.SteerMotorInverted
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
         Retry.ctreConfig(5, steerTalon, steerConfig);
 
         // Configure CANCoder
-        var cancoderConfig = constants.EncoderInitialConfigs;
-        cancoderConfig.MagnetSensor.MagnetOffset = constants.EncoderOffset;
-        cancoderConfig.MagnetSensor.SensorDirection = constants.EncoderInverted
+        var cancoderConfig = consts.EncoderInitialConfigs;
+        cancoderConfig.MagnetSensor.MagnetOffset = consts.EncoderOffset;
+        cancoderConfig.MagnetSensor.SensorDirection = consts.EncoderInverted
             ? SensorDirectionValue.Clockwise_Positive
             : SensorDirectionValue.CounterClockwise_Positive;
         Retry.ctreConfig(

@@ -97,12 +97,6 @@
     "transitory": {
       "AdvantageKit": {
         "RealOutputs": {
-          "DriverController": {
-            "open": true
-          },
-          "Elevator": {
-            "open": true
-          },
           "SwerveDrive": {
             "open": true
           },
@@ -111,8 +105,7 @@
           },
           "Tracer": {
             "open": true
-          },
-          "open": true
+          }
         },
         "SwerveDrive": {
           "Modules": {
@@ -137,6 +130,22 @@
             "open": true
           },
           "open": true
+        }
+      },
+      "CameraPublisher": {
+        "Chargers-FrontLeft-processed": {
+          "open": true,
+          "string[]##v_/CameraPublisher/Chargers-FrontLeft-processed/streams": {
+            "open": true
+          }
+        },
+        "Chargers-FrontLeft-raw": {
+          "open": true
+        },
+        "Chargers-FrontRight-processed": {
+          "string[]##v_/CameraPublisher/Chargers-FrontRight-processed/streams": {
+            "open": true
+          }
         },
         "open": true
       },
@@ -332,6 +341,12 @@
         }
       },
       "SystemStats": {
+        "open": true
+      },
+      "Tuning": {
+        "Elevator": {
+          "open": true
+        },
         "open": true
       },
       "photonvision": {

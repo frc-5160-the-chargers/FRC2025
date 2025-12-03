@@ -13,7 +13,7 @@ public class ElevatorHardware {
     private double posRequest = 0;
 
     public void refreshData(ElevatorDataAutoLogged inputs) {
-        inputs.positionRad = posRequest;
+        inputs.radians = posRequest;
     }
 
     public void setRadians(double radians, double feedforwardV) {
@@ -21,8 +21,6 @@ public class ElevatorHardware {
     }
 
     public void setVolts(double volts) {}
-
-    public void setPDGains(double p, double d) {}
 
     public void zeroEncoder() {}
 }

@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NonBlockingCmds {
+    /**
+     * A command that runs the given commands one after another,
+     * while running the default commands of non-active subsystems.
+     */
     public static Command sequence(Command... commands) {
         var allReqs = new HashSet<Subsystem>();
         for (var command: commands) {
@@ -30,6 +34,13 @@ public class NonBlockingCmds {
         return group.withName("NonBlockingSequence");
     }
 
+    /**
+     * A command that runs the given commands in parallel,
+     * finishing when all commands finish,
+     * while running the default commands of non-active subsystems. <br />
+     * Deadline groups should be made with <code>NonBlockingCmds.parallel(a,b).withDeadline(c)</code>,
+     * while race groups can just be made with <code>Commands.race()</code>.
+     */
     public static Command parallel(Command... commands) {
         var group = new ParallelCommandGroup();
         var numEnded = new AtomicInteger();
@@ -45,13 +56,8 @@ public class NonBlockingCmds {
             .withName("NonBlockingParallelGroup");
     }
 
-    public static Command deadline(Command... commands) {
-        var otherCmds = new Command[commands.length - 1];
-        System.arraycopy(commands, 1, otherCmds, 1, commands.length - 1);
-        return parallel(otherCmds)
-            .withDeadline(CmdLogger.logNestedCmd(commands[0]))
-            .withName("NonBlockingDeadlineGroup");
-    }
+    /** This is a utility class. */
+    private NonBlockingCmds() {}
 
     private static class IdleAll extends Command {
         private final Collection<Subsystem> subsystems;
@@ -66,7 +72,7 @@ public class NonBlockingCmds {
             for (var s: subsystems) {
                 var defaultCmd = s.getDefaultCommand();
                 if (defaultCmd != null) {
-                    defaultCmds.add(defaultCmd);
+                    defaultCmds.add(CmdLogger.logNestedCmd(defaultCmd));
                     defaultCmd.initialize();
                 }
             }

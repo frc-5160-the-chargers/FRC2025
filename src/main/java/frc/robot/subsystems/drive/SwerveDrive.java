@@ -185,7 +185,7 @@ public class SwerveDrive extends ChargerSubsystem {
     public Command runDriveMotors() {
         return this.run(() -> {
             for (var mod: swerveModules) {
-                mod.driveStraight(0.1);
+                mod.driveStraight(12);
             }
         }).withName("RunDriveMotors");
     }

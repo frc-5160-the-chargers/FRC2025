@@ -12,6 +12,7 @@ public class ModuleHardware {
         public Rotation2d steerAbsolutePos = Rotation2d.kZero;
         public double[] cachedDrivePositionsRad = {};
         public Rotation2d[] cachedSteerPositions = {};
+        public double velocityErrRadPerSec = 0.0;
     }
 
     /** Updates the data related to the swerve module hardware. */
@@ -23,9 +24,14 @@ public class ModuleHardware {
     /** Run the turn motor at the specified open loop value. */
     public void setSteerOpenLoop(double voltsOrAmps) {}
 
-    /** Run the drive motor at the specified velocity. */
-    public void setDriveVelocity(double radPerSec) {}
+    /** Run the drive motor at the specified velocity, with additional torque applied. */
+    public void setDriveVelocity(double radPerSec, double torqueFeedforwardNm) {}
 
     /** Run the turn motor to the specified rotation. */
     public void setSteerPosition(Rotation2d rotation) {}
+
+    /** Run the drive motor at the specified velocity. */
+    public final void setDriveVelocity(double radPerSec) {
+        setDriveVelocity(radPerSec, 0.0);
+    }
 }

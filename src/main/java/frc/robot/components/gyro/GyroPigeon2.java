@@ -56,7 +56,7 @@ public class GyroPigeon2 extends Gyro {
 
     @Override
     public void refreshData(GyroDataAutoLogged inputs) {
-        inputs.connected = BaseStatusSignal.isAllGood(yaw, yawVelocity);
+        inputs.connected = BaseStatusSignal.isAllGood(yaw, yawVelocity, roll, pitch);
         inputs.yaw = Rotation2d.fromDegrees(yaw.getValueAsDouble());
         inputs.rollRad = roll.getValueAsDouble() * Convert.DEGREES_TO_RADIANS;
         inputs.pitchRad = pitch.getValueAsDouble() * Convert.DEGREES_TO_RADIANS;

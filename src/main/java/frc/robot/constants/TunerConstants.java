@@ -29,7 +29,7 @@ public class TunerConstants {
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     private static final Slot0Configs driveGains = new Slot0Configs()
-        .withKP(0).withKI(0).withKD(0)
+        .withKP(10).withKI(0).withKD(0.0)
         .withKS(0).withKV(0);
 
     // The closed-loop output type to use for the steer motors;
@@ -75,7 +75,7 @@ public class TunerConstants {
 
     // CAN bus that the devices are located on;
     // All swerve devices must share the same CAN bus
-    public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot");
+    public static final CANBus kCANBus = new CANBus("Swerve Bus");
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
@@ -98,7 +98,7 @@ public class TunerConstants {
     private static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.004);
     private static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.025);
     // Simulated voltage necessary to overcome friction
-    private static final Voltage kSteerFrictionVoltage = Volts.of(0);
+    private static final Voltage kSteerFrictionVoltage = Volts.of(0.05);
     private static final Voltage kDriveFrictionVoltage = Volts.of(0);
 
     public static final SwerveDrivetrainConstants DrivetrainConstants = new SwerveDrivetrainConstants()

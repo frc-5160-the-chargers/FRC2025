@@ -22,12 +22,12 @@ import org.littletonrobotics.junction.AutoLog;
 @AutoLog
 public class MotorData {
     public String errorAsString = "";
-    public double positionRad = 0;
-    public double velocityRadPerSec = 0;
-    public double appliedVolts = 0;
+    public double radians = 0;
+    public double radiansPerSec = 0;
+    public double volts = 0;
     public double[] tempCelsius = new double[1];
-    public double[] supplyCurrent = new double[1];
-    public double[] torqueCurrent = new double[1];
+    public double[] supplyAmps = new double[1];
+    public double[] appliedAmps = new double[1];
 
     public boolean hasErr() {
         return !errorAsString.isEmpty();
@@ -36,8 +36,8 @@ public class MotorData {
     public void setNumMotors(int length) {
         if (tempCelsius.length == length) return;
         tempCelsius = new double[length];
-        supplyCurrent = new double[length];
-        torqueCurrent = new double[length];
+        supplyAmps = new double[length];
+        appliedAmps = new double[length];
     }
 
     /** Use {@link MotorDataAutoLogged}, unless if you are inheriting from this class. */
