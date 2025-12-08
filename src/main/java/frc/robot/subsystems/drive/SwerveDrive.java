@@ -18,11 +18,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.chargers.data.CurrAlliance;
-import frc.chargers.data.InputStream;
-import frc.chargers.data.RobotMode;
+import frc.chargers.misc.CurrAlliance;
+import frc.chargers.misc.RobotMode;
 import frc.chargers.misc.Convert;
-import frc.chargers.misc.RepulsorFieldPlanner;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.gyro.Gyro;
 import frc.robot.components.gyro.GyroDataAutoLogged;
@@ -41,6 +39,7 @@ import org.littletonrobotics.junction.Logger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
+import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import static choreo.util.ChoreoAllianceFlipUtil.flip;
@@ -70,9 +69,9 @@ public class SwerveDrive extends ChargerSubsystem {
     private final SwerveSetpointGenerator setpointGen =
             new SwerveSetpointGenerator(PATH_PLANNER_CONFIG, STEER_MOTOR_TYPE.freeSpeedRadPerSec);
     private final PIDController
-        xPoseController = new PIDController(TRANSLATION_KP, 0, 0),
-        yPoseController = new PIDController(TRANSLATION_KP, 0, 0),
-        rotationController = new PIDController(ROTATION_KP, 0, ROTATION_KD);
+        xPoseController = new PIDController(0, 0, 0),
+        yPoseController = new PIDController(0, 0, 0),
+        rotationController = new PIDController(ROTATION_KP.get(), 0, ROTATION_KD.get());
 
     private final SwerveModule[] swerveModules = {
         new SwerveModule("FL", mapleSim.getModules()[0], TunerConstants.FrontLeft),
@@ -116,10 +115,13 @@ public class SwerveDrive extends ChargerSubsystem {
         Arrays.fill(measuredModulePositions, new SwerveModulePosition());
         poseEstimator = new SwerveDrivePoseEstimator(kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero);
 
-        this.rotationController.enableContinuousInput(-Math.PI, Math.PI);
-        this.xPoseController.setTolerance(TRANSLATION_TOLERANCE);
-        this.yPoseController.setTolerance(TRANSLATION_TOLERANCE);
-        this.rotationController.setTolerance(ROTATION_TOLERANCE);
+        rotationController.enableContinuousInput(-Math.PI, Math.PI);
+        AUTO_KP.onChange(kP -> {
+            xPoseController.setP(kP);
+            yPoseController.setP(kP);
+        });
+        ROTATION_KP.onChange(rotationController::setP);
+        ROTATION_KD.onChange(rotationController::setD);
 
         if (RobotMode.isSim()) {
             SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
@@ -127,40 +129,54 @@ public class SwerveDrive extends ChargerSubsystem {
         OdoThread.getInstance().start();
     }
 
-    // Drives at the provided ChassisSpeeds.
-    private void driveCallback(ChassisSpeeds speeds, boolean useSetpointGen) {
-        Logger.recordOutput(key("DesiredSpeeds"), speeds);
-        Logger.recordOutput(key("SetpointGenUsed"), useSetpointGen);
-        SwerveModuleState[] desiredStates;
+    // Converts target speed into
+    private SwerveModuleState[] toDesiredStates(ChassisSpeeds speeds, boolean useSetpointGen) {
         if (useSetpointGen) {
             setpoint = setpointGen.generateSetpoint(setpoint, speeds, 0.02);
-            desiredStates = setpoint.moduleStates();
         } else {
             speeds = ChassisSpeeds.discretize(speeds, 0.02);
-            desiredStates = kinematics.toSwerveModuleStates(speeds);
+            var desiredStates = kinematics.toSwerveModuleStates(speeds);
             SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, TunerConstants.kSpeedAt12Volts);
             setpoint = new SwerveSetpoint(speeds, desiredStates, NULL_SETPOINT.feedforwards());
         }
         Logger.recordOutput(key("DesiredStates"), setpoint.moduleStates());
+        Logger.recordOutput(key("DesiredSpeeds"), setpoint.robotRelativeSpeeds());
+        Logger.recordOutput(key("UsedSetpointGen"), useSetpointGen);
         for (int i = 0; i < 4; i++) {
-            var currentAngle = swerveModules[i].getAngle();
-            desiredStates[i].optimize(currentAngle);
-            desiredStates[i].cosineScale(currentAngle);
+            var direction = swerveModules[i].getAngle();
+            setpoint.moduleStates()[i].optimize(direction);
+            setpoint.moduleStates()[i].cosineScale(direction);
+        }
+        return setpoint.moduleStates();
+    }
+
+    private void driveCallback(ChassisSpeeds speeds) {
+        var desiredStates = toDesiredStates(speeds, false);
+        for (int i = 0; i < 4; i++) {
             swerveModules[i].runSetpoint(desiredStates[i]);
         }
     }
 
-    // Obtains desired module states from a choreo trajectory sample.
-    private ChassisSpeeds toDesiredSpeeds(SwerveSample trajSample, double linearVelMultiplier) {
-        var vx = trajSample.vx + xPoseController.calculate(poseEstimate().getX(), trajSample.x);
-        var vy = trajSample.vy + yPoseController.calculate(poseEstimate().getY(), trajSample.y);
-        var rotationV = trajSample.omega + rotationController.calculate(
+    private void driveCallback(SwerveSample sample, boolean useSetpointGen, double translationKP) {
+        xPoseController.setP(translationKP);
+        yPoseController.setP(translationKP);
+        var vx = sample.vx + xPoseController.calculate(poseEstimate().getX(), sample.x);
+        var vy = sample.vy + yPoseController.calculate(poseEstimate().getY(), sample.y);
+        var rotationV = sample.omega + rotationController.calculate(
             angleModulus(bestPose().getRotation().getRadians()),
-            angleModulus(trajSample.heading)
+            angleModulus(sample.heading)
         );
-        vx *= linearVelMultiplier;
-        vy *= linearVelMultiplier;
-        return ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, bestPose().getRotation());
+        var desiredStates = toDesiredStates(
+            ChassisSpeeds.fromFieldRelativeSpeeds(vx, vy, rotationV, bestPose().getRotation()),
+            useSetpointGen
+        );
+        for (int i = 0; i < 4; i++) {
+            swerveModules[i].runSetpoint(
+                desiredStates[i],
+                sample.moduleForcesX()[i],
+                sample.moduleForcesY()[i]
+            );
+        }
     }
 
     /** Creates a choreo AutoFactory. You should cache this in your Robot or AutoCommands class. */
@@ -169,15 +185,18 @@ public class SwerveDrive extends ChargerSubsystem {
             this::poseEstimate,
             this::resetPose,
             // a function that runs trajectory following
-            (SwerveSample trajSample) -> driveCallback(toDesiredSpeeds(trajSample, 1), false),
+            (SwerveSample trajSample) -> driveCallback(trajSample, false, AUTO_KP.get()),
             true,
             this,
             (trajectory, isStart) -> {
+                Logger.recordOutput(key("CurrentTraj/Name"), trajectory.name());
+                if (RobotMode.get() != RobotMode.REPLAY && DriverStation.isFMSAttached()) {
+                    return;
+                }
                 Logger.recordOutput(
                     key("CurrentTraj/Samples"),
                     trajectory.samples().toArray(new SwerveSample[0])
                 );
-                Logger.recordOutput(key("CurrentTraj/Name"), trajectory.name());
             }
         );
     }
@@ -235,14 +254,10 @@ public class SwerveDrive extends ChargerSubsystem {
         return RobotMode.isSim() ? mapleSim.getSimulatedDriveTrainPose() : poseEstimate();
     }
 
+    /** Manually resets the pose of the robot. */
     public void resetPose(Pose2d pose) {
-        if (RobotMode.isSim()) {
-            // don't reset rotation in sim, as maple sim's value has already changed
-            poseEstimator.resetTranslation(pose.getTranslation());
-            mapleSim.setSimulationWorldPose(pose);
-        } else {
-            poseEstimator.resetPose(pose);
-        }
+        poseEstimator.resetPose(pose);
+        if (RobotMode.isSim()) mapleSim.setSimulationWorldPose(pose);
     }
 
     /**
@@ -250,12 +265,11 @@ public class SwerveDrive extends ChargerSubsystem {
      * drives the robot forever at the requested forward, strafe, and rotation powers.
      * Does not move the robot at an exact velocity; so best used in teleop
      * where exact velocities are not important.
-     * @see InputStream
      */
     public Command driveCmd(
-        InputStream forwardOutput,
-        InputStream strafeOutput,
-        InputStream rotationOutput,
+        DoubleSupplier forwardPercentOut,
+        DoubleSupplier strafePercentOut,
+        DoubleSupplier rotationPercentOut,
         boolean fieldRelative
     ) {
         double maxSpeedMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
@@ -266,12 +280,12 @@ public class SwerveDrive extends ChargerSubsystem {
                 if (CurrAlliance.red()) rotation = flip(rotation);
             }
             var speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-                forwardOutput.get() * maxSpeedMps,
-                strafeOutput.get() * maxSpeedMps,
-                rotationOutput.get() * maxSpeedMps,
+                forwardPercentOut.getAsDouble() * maxSpeedMps,
+                strafePercentOut.getAsDouble() * maxSpeedMps,
+                rotationPercentOut.getAsDouble() * maxSpeedMps,
                 rotation
             );
-            driveCallback(speeds, false);
+            driveCallback(speeds);
         }).withName("SwerveDriveCmd(Open Loop)");
     }
 
@@ -287,9 +301,8 @@ public class SwerveDrive extends ChargerSubsystem {
                 goalToAlign = targetPoseSupplier.get();
                 repulsor.setGoal(goalToAlign);
                 var sample = repulsor.sampleField(poseEstimate().getTranslation(), maxSpeedMps, 1.5);
-                var desiredSpeeds = toDesiredSpeeds(sample, 1.8);
-                driveCallback(desiredSpeeds, true);
-            }).until(() -> repulsor.atGoal(0.017))
+                driveCallback(sample, true, REPULSOR_KP.get());
+            })
         );
     }
 
@@ -307,39 +320,37 @@ public class SwerveDrive extends ChargerSubsystem {
             setpoint = NULL_SETPOINT;
         }
 
-        Tracer.trace("Odometry Update", () -> {
-            double[] sampleTimestamps = gyroInputs.cachedTimestamps; // All signals are sampled together
-            int sampleCount = sampleTimestamps.length;
-            for (int i = 0; i < sampleCount; i++) {
-                try {
-                    // Read wheel positions and deltas from each module
-                    SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-                    SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
-                    for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
-                        modulePositions[moduleIndex] = swerveModules[moduleIndex].getOdometryFrames()[i];
-                        moduleDeltas[moduleIndex] = new SwerveModulePosition(
-                            modulePositions[moduleIndex].distanceMeters - measuredModulePositions[moduleIndex].distanceMeters,
-                            modulePositions[moduleIndex].angle);
-                        measuredModulePositions[moduleIndex] = modulePositions[moduleIndex];
-                    }
-
-                    // Update gyro angle
-                    if (gyroInputs.connected) {
-                        // Use the real gyro angle
-                        rawGyroRotation = gyroInputs.cachedYawValues[i];
-                    } else {
-                        // Use the angle delta from the kinematics and module deltas
-                        Twist2d twist = kinematics.toTwist2d(moduleDeltas);
-                        rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
-                    }
-
-                    // Apply update
-                    poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    System.out.println("Array out of bounds");
+        double[] sampleTimestamps = gyroInputs.cachedTimestamps; // All signals are sampled together
+        int sampleCount = sampleTimestamps.length;
+        for (int i = 0; i < sampleCount; i++) {
+            try {
+                // Read wheel positions and deltas from each module
+                SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
+                SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
+                for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
+                    modulePositions[moduleIndex] = swerveModules[moduleIndex].getOdometryFrames()[i];
+                    moduleDeltas[moduleIndex] = new SwerveModulePosition(
+                        modulePositions[moduleIndex].distanceMeters - measuredModulePositions[moduleIndex].distanceMeters,
+                        modulePositions[moduleIndex].angle);
+                    measuredModulePositions[moduleIndex] = modulePositions[moduleIndex];
                 }
+
+                // Update gyro angle
+                if (gyroInputs.connected) {
+                    // Use the real gyro angle
+                    rawGyroRotation = gyroInputs.cachedYawValues[i];
+                } else {
+                    // Use the angle delta from the kinematics and module deltas
+                    Twist2d twist = kinematics.toTwist2d(moduleDeltas);
+                    rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
+                }
+
+                // Apply update
+                poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                System.out.println("Array out of bounds");
             }
-        });
+        }
     }
 
     @AutoLogOutput
@@ -380,8 +391,7 @@ public class SwerveDrive extends ChargerSubsystem {
                 Commands.runOnce(() -> limiter.reset(0.0)),
                 // Turn in place, accelerating up to full speed
                 this.run(() -> driveCallback(
-                    new ChassisSpeeds(0, 0, limiter.calculate(0.25)),
-                    false
+                    new ChassisSpeeds(0, 0, limiter.calculate(0.25))
                 ))
             ),
             // Measurement sequence
@@ -436,6 +446,6 @@ public class SwerveDrive extends ChargerSubsystem {
         for (int i = 0; i < 4; i++) {
             wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
         }
-        return (state.gyroDelta * DRIVEBASE_RADIUS.in(Meters)) / wheelDelta;
+        return (state.gyroDelta * DRIVE_BASE_RADIUS.in(Meters)) / wheelDelta;
     }
 }

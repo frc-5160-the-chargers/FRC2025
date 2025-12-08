@@ -22,7 +22,6 @@ public class NonBlockingCmds {
             allReqs.addAll(command.getRequirements());
         }
         var group = new SequentialCommandGroup();
-        group.addRequirements();
         for (var command: commands) {
             var requirementsToIdle = new HashSet<>(allReqs);
             requirementsToIdle.removeAll(command.getRequirements());

@@ -9,7 +9,6 @@ data_lock = threading.Lock()
 topics = []
 
 def on_listen(parent: NetworkTable, key: str, child: NetworkTable):
-    cv2.VideoCapture()
     t = child.getBooleanTopic("connected").subscribe(False)
     with data_lock:
         topics.append(t)

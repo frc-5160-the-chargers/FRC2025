@@ -7,7 +7,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Alert;
-import frc.chargers.data.RobotMode;
+import edu.wpi.first.wpilibj.event.BooleanEvent;
+import frc.chargers.misc.RobotMode;
 import lombok.Getter;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
 import org.littletonrobotics.junction.Logger;
@@ -64,9 +65,16 @@ public class SwerveModule {
         }
     }
 
-    /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */
+    /** Runs the module with the specified setpoint state. */
     public void runSetpoint(SwerveModuleState state) {
-        io.setDriveVelocity(state.speedMetersPerSecond / constants.WheelRadius);
+        runSetpoint(state, 0, 0);
+    }
+
+    /** Runs the module with the specified setpoint state, and with force feedforward. */
+    public void runSetpoint(SwerveModuleState state, double forceX, double forceY) {
+        double forceMagnitude = forceX * state.angle.getCos() + forceY * state.angle.getSin();
+        double torqueNm = constants.WheelRadius * forceMagnitude;
+        io.setDriveVelocity(state.speedMetersPerSecond / constants.WheelRadius, torqueNm);
         io.setSteerPosition(state.angle);
     }
 

@@ -2,7 +2,7 @@ package frc.robot.components.vision;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import frc.chargers.data.RobotMode;
+import frc.chargers.misc.RobotMode;
 import frc.robot.components.vision.Structs.CameraConsts;
 import frc.robot.components.vision.Structs.RawCameraInputs;
 import org.photonvision.PhotonCamera;

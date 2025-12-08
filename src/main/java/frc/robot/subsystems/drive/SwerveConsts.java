@@ -10,11 +10,10 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.LinearVelocity;
-import edu.wpi.first.units.measure.Mass;
-import edu.wpi.first.units.measure.MomentOfInertia;
+import edu.wpi.first.units.measure.*;
+import frc.chargers.misc.TunableValues.Tunable;
 import frc.chargers.misc.TunableValues.TunableNum;
+import frc.robot.constants.ChoreoVars;
 import frc.robot.constants.TunerConstants;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
@@ -24,16 +23,16 @@ import static edu.wpi.first.units.Units.*;
 import static org.ironmaple.simulation.drivesims.COTS.WHEELS.DEFAULT_NEOPRENE_TREAD;
 
 /**
- * Most constants related to swerve are found in the TunerConstants file.
+ * Contains swerve drive constants that aren't already found in the TunerConstants file.
  */
 public class SwerveConsts {
     public static final double ODO_FREQUENCY_HZ = 250.0;
     public static final DCMotor DRIVE_MOTOR_TYPE = DCMotor.getKrakenX60(1);
     public static final DCMotor STEER_MOTOR_TYPE = DCMotor.getKrakenX44(1);
     static final Distance BUMPER_WIDTH = Inches.of(3.5);
-    static final Mass ROBOT_MASS = Pounds.of(116);
-    static final MomentOfInertia ROBOT_BODY_MOI = KilogramSquareMeters.of(6.283);
-    static final LinearVelocity MAX_ANTI_TIP_SPEED = MetersPerSecond.of(0.5);
+    static final double KT_AMPS_PER_NM = 1 / (
+        DRIVE_MOTOR_TYPE.KtNMPerAmp / TunerConstants.FrontLeft.DriveMotorGearRatio
+    );
 
     static final TunableNum
         DEMO_POSE_X = new TunableNum("Swerve/demoPose/x", 0),
@@ -42,15 +41,14 @@ public class SwerveConsts {
         DEMO_DRIVE_VOLTS = new TunableNum("Swerve/demoDriveVolts", 3),
         DEMO_STEER_VOLTS = new TunableNum("Swerve/demoSteerVolts", 3);
 
-    static final double KT_AMPS_PER_NM = 1 / (
-        DRIVE_MOTOR_TYPE.KtNMPerAmp / TunerConstants.FrontLeft.DriveMotorGearRatio
-    );
+    static final TunableNum
+        AUTO_KP = new TunableNum("PathFollowing/AutonomousKP", 9),
+        REPULSOR_KP = new TunableNum("PathFollowing/TeleopKP", 22),
+        ROTATION_KP = new TunableNum("PathFollowing/RotationKP", 8),
+        ROTATION_KD = new TunableNum("PathFollowing/RotationKD", 0.02);
 
-    static final double TRANSLATION_KP = 8;
-    static final double TRANSLATION_TOLERANCE = 0.014;
-    static final double ROTATION_KP = 8;
-    static final double ROTATION_KD = 0.01;
-    static final double ROTATION_TOLERANCE = 0.05;
+    static final Tunable<Distance> REPULSOR_TOLERANCE =
+        new Tunable<>("Swerve/RepulsorTolerance", Centimeters.of(1.7));
 
     static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
         new ChassisSpeeds(),
@@ -68,9 +66,9 @@ public class SwerveConsts {
         new Translation2d(TunerConstants.BackLeft.LocationX, TunerConstants.BackLeft.LocationY),
         new Translation2d(TunerConstants.BackRight.LocationX, TunerConstants.BackRight.LocationY)
     };
-    static final Distance DRIVEBASE_RADIUS = Meters.of(MODULE_TRANSLATIONS[0].getNorm());
+    static final Distance DRIVE_BASE_RADIUS = Meters.of(MODULE_TRANSLATIONS[0].getNorm());
     static final DriveTrainSimulationConfig MAPLESIM_CONFIG = DriveTrainSimulationConfig.Default()
-        .withRobotMass(ROBOT_MASS)
+        .withRobotMass(ChoreoVars.botMass)
         .withCustomModuleTranslations(MODULE_TRANSLATIONS)
         .withGyro(COTS.ofPigeon2())
         .withBumperSize(
@@ -86,11 +84,11 @@ public class SwerveConsts {
             Volts.of(TunerConstants.FrontLeft.SteerFrictionVoltage),
             Meters.of(TunerConstants.FrontLeft.WheelRadius),
             KilogramSquareMeters.of(TunerConstants.FrontLeft.SteerInertia),
-            DEFAULT_NEOPRENE_TREAD.cof
+            ChoreoVars.cof
         ));
     static final RobotConfig PATH_PLANNER_CONFIG = new RobotConfig(
-        ROBOT_MASS.in(Kilograms),
-        ROBOT_BODY_MOI.in(KilogramSquareMeters),
+        ChoreoVars.botMass.in(Kilograms),
+        ChoreoVars.botMOI.in(KilogramSquareMeters),
         new ModuleConfig(
             TunerConstants.FrontLeft.WheelRadius,
             TunerConstants.kSpeedAt12Volts.in(MetersPerSecond),

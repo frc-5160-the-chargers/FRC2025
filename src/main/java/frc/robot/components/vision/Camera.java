@@ -5,7 +5,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import frc.chargers.data.RobotMode;
+import frc.chargers.misc.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.vision.Structs.CameraConsts;
 import frc.robot.components.vision.Structs.PoseEstimate;

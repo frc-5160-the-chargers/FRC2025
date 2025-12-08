@@ -1,26 +1,35 @@
 package frc.chargers.misc;
 
 import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.MutableMeasure;
 import edu.wpi.first.units.Unit;
 import edu.wpi.first.util.function.BooleanConsumer;
 import lombok.Setter;
 import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.Supplier;
 
+import static edu.wpi.first.units.Units.Radians;
+
 /**
  * An API to handle tunable dashboard values.
+ * {@link TunableNum}, {@link TunableBool}, and {@link Tunable<>} are volatile,
+ * meaning that the return value of get() is constantly changing; thus, you should use
+ * the onChange() instance methods accordingly.
  */
 public class TunableValues {
 	@Setter private static boolean tuningMode = false;
 
+	/** Represents a tunable double. */
 	public static class TunableNum extends LoggedNetworkNumber {
 		private double value;
-		private DoubleConsumer onChange = null;
+		private final List<DoubleConsumer> listeners = new ArrayList<>();
 
 		public TunableNum(String key, double value) {
 			super("/Tuning/" + key, value);
@@ -28,7 +37,7 @@ public class TunableValues {
 		}
 
 		public void onChange(DoubleConsumer impl) {
-			onChange = impl;
+			listeners.add(impl);
 		}
 
 		@Override
@@ -39,24 +48,27 @@ public class TunableValues {
 
 		@Override
 		public double get() {
-			return tuningMode ? super.get() : value;
+			return value;
 		}
 
 		@Override
 		public void periodic() {
 			super.periodic();
-			if (tuningMode && onChange != null) {
-				var latest = get();
-				if (latest == value) return;
-				onChange.accept(latest);
-				value = latest;
+			if (!tuningMode) return;
+			double valueFromNt = super.get();
+			if (valueFromNt != value) {
+				value = valueFromNt;
+				for (var listener : listeners) {
+					listener.accept(value);
+				}
 			}
 		}
 	}
 
+	/** Represents a tunable boolean. */
 	public static class TunableBool extends LoggedNetworkBoolean {
 		private boolean value;
-		private BooleanConsumer onChange = null;
+		private final List<BooleanConsumer> listeners = new ArrayList<>();
 
 		public TunableBool(String key, boolean value) {
 			super("/Tuning/" + key, value);
@@ -64,7 +76,7 @@ public class TunableValues {
 		}
 
 		public void onChange(BooleanConsumer impl) {
-			onChange = impl;
+			listeners.add(impl);
 		}
 
 		@Override
@@ -75,17 +87,19 @@ public class TunableValues {
 
 		@Override
 		public boolean get() {
-			return tuningMode ? super.get() : value;
+			return value;
 		}
 
 		@Override
 		public void periodic() {
 			super.periodic();
-			if (tuningMode && onChange != null) {
-				var latest = get();
-				if (latest == value) return;
-				onChange.accept(latest);
-				value = latest;
+			if (!tuningMode) return;
+			boolean valueFromNt = super.get();
+			if (valueFromNt != value) {
+				value = valueFromNt;
+				for (var listener: listeners) {
+					listener.accept(valueFromNt);
+				}
 			}
 		}
 	}
@@ -93,11 +107,11 @@ public class TunableValues {
 	/** Represents a Tunable measure(Distance, Angle, etc.) */
 	public static class Tunable<M extends Measure<?>> {
 		private M value;
-		private Consumer<M> onChange = null;
-		private final Unit unit;
+		private final List<Consumer<M>> listeners = new ArrayList<>();
 		private final LoggedNetworkNumber inner;
 
 		public Tunable(String key, M value) {
+			this.value = value;
 			inner = new LoggedNetworkNumber(
 				"/Tuning/" + key + "(" + value.unit().name() + ")",
 				value.magnitude()
@@ -105,27 +119,29 @@ public class TunableValues {
 				@Override
 				public void periodic() {
 					super.periodic();
-					if (tuningMode && onChange != null) {
-						onChange.accept(Tunable.this.get());
-					}
+					handleOnChange();
 				}
 			};
-			this.value = value;
-			this.unit = value.unit();
-		}
-
-		public void onChange(Consumer<M> impl) {
-			onChange = impl;
-		}
-
-		public void setDefault(M value) {
-			inner.setDefault(value.magnitude());
-			this.value = value;
 		}
 
 		@SuppressWarnings("unchecked")
+		private void handleOnChange() {
+			if (!tuningMode) return;
+			double valueFromNt = inner.get();
+			if (value.magnitude() != valueFromNt) {
+				value = (M) value.unit().of(valueFromNt);
+				for (var listener: listeners) {
+					listener.accept(value);
+				}
+			}
+		}
+
+		public void onChange(Consumer<M> impl) {
+			listeners.add(impl);
+		}
+
 		public M get() {
-			return tuningMode ? (M) unit.of(inner.get()) : value;
+			return value;
 		}
 	}
 }

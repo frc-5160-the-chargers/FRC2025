@@ -2,14 +2,12 @@ package frc.chargers.hardware;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.hardware.traits.CommonTalon;
-import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.DriverStation;
 import frc.chargers.misc.Convert;
 import frc.chargers.misc.Retry;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
 
 /**
  * A utility class that reduces boilerplate around refreshing {@link MotorDataAutoLogged}
@@ -17,8 +15,6 @@ import static edu.wpi.first.wpilibj.Alert.AlertType.kError;
  */
 @SuppressWarnings("StringConcatenationInLoop")
 public class TalonSignals {
-    private static final Alert NO_REFRESH_ALERT = new Alert("You might not be calling SignalBatchRefresher.refreshAll().", kError);
-
     public final BaseStatusSignal position, velocity, voltage;
 
     private final List<BaseStatusSignal>
@@ -65,7 +61,9 @@ public class TalonSignals {
             if (signal.getStatus().isOK()) continue;
             inputs.errorAsString += (signal.getStatus() + ",");
         }
-        NO_REFRESH_ALERT.set(inputs.tempCelsius[0] == 0.0);
+        if (inputs.errorAsString.isEmpty() && inputs.tempCelsius[0] == 0) {
+            DriverStation.reportError("You aren't calling SignalBatchRefresher.refreshAll() in robotPeriodic().", false);
+        }
     }
 
     /**

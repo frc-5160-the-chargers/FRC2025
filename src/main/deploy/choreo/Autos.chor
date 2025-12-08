@@ -1,46 +1,96 @@
 {
  "name":"Autos",
- "version":1,
+ "version":2,
  "type":"Swerve",
  "variables":{
-  "expressions":{},
+  "expressions":{
+   "botMOI":{
+    "dimension":"MoI",
+    "var":{
+     "exp":"5.8 kg * m ^ 2",
+     "val":5.8
+    }
+   },
+   "botMass":{
+    "dimension":"Mass",
+    "var":{
+     "exp":"100 kg",
+     "val":100.0
+    }
+   },
+   "cof":{
+    "dimension":"Number",
+    "var":{
+     "exp":"1.5",
+     "val":1.5
+    }
+   },
+   "gearing":{
+    "dimension":"Number",
+    "var":{
+     "exp":"6.2",
+     "val":6.2
+    }
+   },
+   "moduleX":{
+    "dimension":"Length",
+    "var":{
+     "exp":"13.7 in",
+     "val":0.34797999999999996
+    }
+   },
+   "moduleY":{
+    "dimension":"Length",
+    "var":{
+     "exp":"11 in",
+     "val":0.2794
+    }
+   },
+   "wheelRadius":{
+    "dimension":"Length",
+    "var":{
+     "exp":"2 in",
+     "val":0.0508
+    }
+   }
+  },
   "poses":{}
  },
  "config":{
   "frontLeft":{
    "x":{
-    "exp":"16.25 in",
-    "val":0.41275
+    "exp":"moduleX",
+    "val":0.34797999999999996
    },
    "y":{
-    "exp":"13.5 in",
-    "val":0.3429
+    "exp":"moduleY",
+    "val":0.2794
    }
   },
   "backLeft":{
    "x":{
-    "exp":"-16.25 in",
-    "val":-0.41275
+    "exp":"-moduleX",
+    "val":-0.34797999999999996
    },
    "y":{
-    "exp":"13.5 in",
-    "val":0.3429
+    "exp":"moduleY",
+    "val":0.2794
    }
   },
   "mass":{
-   "exp":"99 kg",
-   "val":99.0
+   "exp":"botMass",
+   "val":100.0
   },
   "inertia":{
-   "exp":"5.8 kg m ^ 2",
+   "exp":"botMOI",
    "val":5.8
   },
   "gearing":{
-   "exp":"6.2",
+   "exp":"gearing",
    "val":6.2
   },
   "radius":{
-   "exp":"2 in",
+   "exp":"wheelRadius",
    "val":0.0508
   },
   "vmax":{
@@ -48,25 +98,25 @@
    "val":628.3185307179587
   },
   "tmax":{
-   "exp":"0.4 N * m",
-   "val":0.4
+   "exp":"0.7 N * m",
+   "val":0.7
   },
   "cof":{
-   "exp":"1.5",
+   "exp":"cof",
    "val":1.5
   },
   "bumper":{
    "front":{
-    "exp":"19.75 in",
-    "val":0.5016499999999999
+    "exp":"moduleX + 3.5 in",
+    "val":0.43688
    },
    "side":{
-    "exp":"17 in",
-    "val":0.4318
+    "exp":"moduleY + 3.5 in",
+    "val":0.3683
    },
    "back":{
-    "exp":"19.75 in",
-    "val":0.5016499999999999
+    "exp":"moduleX + 3.5 in",
+    "val":0.43688
    }
   },
   "differentialTrackWidth":{
@@ -74,5 +124,11 @@
    "val":0.5588
   }
  },
- "generationFeatures":[]
+ "generationFeatures":[],
+ "codegen":{
+  "root":"..\\..\\java\\frc\\robot\\constants",
+  "genVars":true,
+  "genTrajNames":true,
+  "genTrajData":true
+ }
 }

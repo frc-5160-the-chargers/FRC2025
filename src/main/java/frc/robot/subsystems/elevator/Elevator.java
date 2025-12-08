@@ -7,13 +7,13 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.chargers.commands.NonBlockingCmds;
-import frc.chargers.data.InputStream;
-import frc.chargers.data.RobotMode;
+import frc.chargers.misc.RobotMode;
 import frc.robot.subsystems.ChargerSubsystem;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 import java.util.Set;
+import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import static edu.wpi.first.units.Units.*;
@@ -82,8 +82,8 @@ public class Elevator extends ChargerSubsystem {
         return this.run(() -> io.setVolts(0)).withName("Elevator Idle");
     }
 
-    public Command setPowerCmd(InputStream controllerInput) {
-        return this.run(() -> io.setVolts(controllerInput.get() * 12))
+    public Command setPowerCmd(DoubleSupplier controllerInput) {
+        return this.run(() -> io.setVolts(controllerInput.getAsDouble() * 12))
                 .withName("set power (elevator)");
     }
 

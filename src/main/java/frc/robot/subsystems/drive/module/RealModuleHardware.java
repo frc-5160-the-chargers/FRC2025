@@ -103,7 +103,6 @@ public class RealModuleHardware extends ModuleHardware {
 
     @Override
     public void setDriveOpenLoop(double voltsOrAmps) {
-        Logger.recordOutput("OutputLol", voltsOrAmps);
         driveTalon.setControl(
             switch (consts.DriveMotorClosedLoopOutput) {
                 case Voltage -> voltageReq.withOutput(voltsOrAmps);

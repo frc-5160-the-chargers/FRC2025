@@ -1,4 +1,4 @@
-package frc.chargers.data;
+package frc.chargers.misc;
 
 import edu.wpi.first.wpilibj.DriverStation;
 

@@ -10,10 +10,8 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import org.ironmaple.simulation.drivesims.SwerveModuleSimulation;
-import org.ironmaple.simulation.motorsims.SimulatedBattery;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
-import org.littletonrobotics.junction.Logger;
 
 import java.util.Arrays;
 
@@ -77,7 +75,6 @@ public class SimModuleHardware extends RealModuleHardware {
                 encoder.getSimState().setRawPosition(mechanismAngle);
                 encoder.getSimState().setVelocity(mechanismVelocity);
             }
-            Logger.recordOutput("VoltTest", motor.getSimState().getMotorVoltage());
             return motor.getSimState().getMotorVoltageMeasure();
         }
     }

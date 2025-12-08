@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package frc.chargers.misc;
+package frc.robot.subsystems.drive;
 
 import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.MathUtil;
@@ -17,6 +17,11 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Assists the robot in pathfinding to a pose on the field, while avoiding obstacles.
+ * This is accomplished by simulating a "force" around every obstacle, effectively
+ * pusing the robot away from them.
+ */
 public class RepulsorFieldPlanner {
 	private abstract static class Obstacle {
 		double strength;

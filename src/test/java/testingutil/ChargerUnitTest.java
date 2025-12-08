@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import static edu.wpi.first.units.Units.Seconds;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public abstract class StandardUnitTest {
+public abstract class ChargerUnitTest {
 	@BeforeEach
 	void requiredSetup() {
 		assertTrue(HAL.initialize(500, 0));
