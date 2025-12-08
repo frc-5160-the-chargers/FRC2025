@@ -71,7 +71,7 @@ public class Robot extends LoggedRobot {
 
         Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
         Logger.recordMetadata("GitBranch", BuildConstants.GIT_BRANCH);
-        Logger.recordMetadata("GitDate", BuildConstants.GIT_DATE);
+        Logger.recordMetadata("Timestamp", BuildConstants.BUILD_DATE);
         Logger.recordMetadata("GitDirty", switch (BuildConstants.DIRTY) {
             case 0 -> "All changes commited";
             case 1 -> "Uncommited changes";
@@ -86,7 +86,6 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void robotPeriodic() {
-        // dkfjd
         // TODO Disable setCurrentThreadPriority() if loop times are consistently over 20 ms
         Threads.setCurrentThreadPriority(true, 99);
         SignalBatchRefresher.refreshAll();
