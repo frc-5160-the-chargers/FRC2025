@@ -86,6 +86,7 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void robotPeriodic() {
+        // dkfjd
         // TODO Disable setCurrentThreadPriority() if loop times are consistently over 20 ms
         Threads.setCurrentThreadPriority(true, 99);
         SignalBatchRefresher.refreshAll();
