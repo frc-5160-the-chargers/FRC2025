@@ -1,5 +1,10 @@
+"""
+Mirrors choreo trajectories. Adds the "mirrored_" prefix to these new trajectories.
+Using the -exclude option can exclude certain trajectories from being mirrored.
+"""
 import json
 import os
+import sys
 
 field_width = 57.573 / 3.281
 field_height = 26.417 / 3.281
@@ -61,7 +66,14 @@ def main():
 
     # Find only .traj files that do not contain the word "mirrored"
     traj_files = [file for file in choreo_files if file.endswith(".traj") and "mirrored" not in file]
-
+    if "-exclude" in sys.argv:
+        for filename in sys.argv[sys.argv.index("-exclude") + 1:]:
+            if not filename.endswith(".traj"):
+                filename += ".traj"
+            try:
+                traj_files.remove(filename)
+            except ValueError:
+                print("Not excluding " + filename + ", trajectory doesnt exist")
     for file in traj_files:
         traj = load_traj(choreo_dir + "\\" + file)
         snapshot_waypoints = traj["snapshot"]["waypoints"]

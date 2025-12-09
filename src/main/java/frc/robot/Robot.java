@@ -11,6 +11,8 @@ import frc.chargers.misc.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.DriverController;
+import frc.robot.components.vision.Camera;
+import frc.robot.components.vision.VisionConsts;
 import frc.robot.constants.BuildConstants;
 import frc.robot.constants.ChoreoTrajNames;
 import frc.robot.subsystems.drive.SwerveDrive;
@@ -21,6 +23,8 @@ import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 import org.littletonrobotics.urcl.URCL;
+
+import java.util.List;
 
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 
