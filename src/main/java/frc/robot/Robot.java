@@ -11,10 +11,7 @@ import frc.chargers.misc.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.DriverController;
-import frc.robot.components.vision.Camera;
-import frc.robot.components.vision.VisionConsts;
 import frc.robot.constants.BuildConstants;
-import frc.robot.constants.ChoreoTrajNames;
 import frc.robot.subsystems.drive.SwerveDrive;
 import frc.robot.subsystems.elevator.Elevator;
 import org.ironmaple.simulation.SimulatedArena;
@@ -24,9 +21,8 @@ import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 import org.littletonrobotics.urcl.URCL;
 
-import java.util.List;
-
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
+import static frc.robot.constants.ChoreoTraj.*;
 
 public class Robot extends LoggedRobot {
     private final SwerveDrive drive = new SwerveDrive();
@@ -51,8 +47,14 @@ public class Robot extends LoggedRobot {
 
         var autoFactory = drive.createAutoFactory();
         autonomous().whileTrue(
-            autoFactory.resetOdometry(ChoreoTrajNames.TestPath)
-                .andThen(autoFactory.trajectoryCmd(ChoreoTrajNames.TestPath))
+            autoFactory.resetOdometry(NewPath.name())
+                .andThen(autoFactory.trajectoryCmd(NewPath.name()))
+        );
+//        autonomous().whileTrue(
+//            drive.pathfindCmd(() -> new Pose2d(5, 7, Rotation2d.k180deg))
+//        );
+        autonomous().whileTrue(
+            drive.wheelRadiusCharacterizeCmd()
         );
     }
 

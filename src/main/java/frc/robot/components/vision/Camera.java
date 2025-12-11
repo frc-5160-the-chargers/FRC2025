@@ -103,9 +103,9 @@ public class Camera {
             var timestamp = poseEstimate.get().timestampSeconds;
             if (Math.abs(pose.getZ()) > MAX_Z_ERROR.in(Meters)
                 || pose.getX() < 0.0
-                || pose.getX() > ALL_TAGS.getFieldLength()
+                || pose.getX() > FIELD_LAYOUT.getFieldLength()
                 || pose.getY() < 0.0
-                || pose.getY() > ALL_TAGS.getFieldWidth()) {
+                || pose.getY() > FIELD_LAYOUT.getFieldWidth()) {
                 errHighCount++;
                 continue;
             }

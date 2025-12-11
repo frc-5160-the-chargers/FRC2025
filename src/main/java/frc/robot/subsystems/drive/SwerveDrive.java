@@ -9,7 +9,6 @@ import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -56,7 +55,7 @@ import static frc.robot.subsystems.drive.SwerveConsts.*;
  * in robotPeriodic or through an addPeriodic() call for higher frequency.
  */
 public class SwerveDrive extends ChargerSubsystem {
-    private final SwerveModulePosition[] measuredModulePositions = new SwerveModulePosition[4];
+    private final SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
 
     // kinematics and pose estimator
     private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(MODULE_TRANSLATIONS);
@@ -69,8 +68,8 @@ public class SwerveDrive extends ChargerSubsystem {
     private final SwerveSetpointGenerator setpointGen =
             new SwerveSetpointGenerator(PATH_PLANNER_CONFIG, STEER_MOTOR_TYPE.freeSpeedRadPerSec);
     private final PIDController
-        xPoseController = new PIDController(0, 0, 0),
-        yPoseController = new PIDController(0, 0, 0),
+        xPoseController = new PIDController(0, 0, 0.1),
+        yPoseController = new PIDController(0, 0, 0.1),
         rotationController = new PIDController(ROTATION_KP.get(), 0, ROTATION_KD.get());
 
     private final SwerveModule[] swerveModules = {
@@ -88,7 +87,6 @@ public class SwerveDrive extends ChargerSubsystem {
 
     // Persistent State
     private Pose2d goalToAlign = Pose2d.kZero;
-    private Rotation2d rawGyroRotation = new Rotation2d();
     private SwerveSetpoint setpoint = NULL_SETPOINT;
 
     /** A SysId routine for characterization translational velocity/accel. */
@@ -112,8 +110,8 @@ public class SwerveDrive extends ChargerSubsystem {
 
     public SwerveDrive() {
         // module states & positions
-        Arrays.fill(measuredModulePositions, new SwerveModulePosition());
-        poseEstimator = new SwerveDrivePoseEstimator(kinematics, Rotation2d.kZero, measuredModulePositions, Pose2d.kZero);
+        Arrays.fill(modulePositions, new SwerveModulePosition());
+        poseEstimator = new SwerveDrivePoseEstimator(kinematics, Rotation2d.kZero, modulePositions, Pose2d.kZero);
 
         rotationController.enableContinuousInput(-Math.PI, Math.PI);
         AUTO_KP.onChange(kP -> {
@@ -151,7 +149,7 @@ public class SwerveDrive extends ChargerSubsystem {
     }
 
     private void driveCallback(ChassisSpeeds speeds) {
-        var desiredStates = toDesiredStates(speeds, false);
+        var desiredStates = toDesiredStates(speeds, true);
         for (int i = 0; i < 4; i++) {
             swerveModules[i].runSetpoint(desiredStates[i]);
         }
@@ -286,15 +284,15 @@ public class SwerveDrive extends ChargerSubsystem {
                 rotation
             );
             driveCallback(speeds);
-        }).withName("SwerveDriveCmd(Open Loop)");
+        }).withName("Joystick Drive Cmd");
     }
 
     /**
      * Returns a command that pathfinds the drivetrain to the correct pose.
-     * @return a Command
+     * Will not stp
      */
     public Command pathfindCmd(Supplier<Pose2d> targetPoseSupplier) {
-        double maxSpeedMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * .8;
+        double maxSpeedMps = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
         return Tracer.trace(
             "Repulsor Pathfind Cmd",
             this.run(() -> {
@@ -314,7 +312,9 @@ public class SwerveDrive extends ChargerSubsystem {
         for (var module : swerveModules) module.periodic();
         OdoThread.getInstance().updatesLock.unlock();
 
-        // Stop moving when disabled
+        if (RobotMode.get() != RobotMode.REAL) {
+            Logger.recordOutput("RepulsorFieldPlanner/Arrows", repulsor.getArrows());
+        }
         if (DriverStation.isDisabled()) {
             for (var module: swerveModules) module.stop();
             setpoint = NULL_SETPOINT;
@@ -324,31 +324,12 @@ public class SwerveDrive extends ChargerSubsystem {
         int sampleCount = sampleTimestamps.length;
         for (int i = 0; i < sampleCount; i++) {
             try {
-                // Read wheel positions and deltas from each module
-                SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-                SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
                 for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
                     modulePositions[moduleIndex] = swerveModules[moduleIndex].getOdometryFrames()[i];
-                    moduleDeltas[moduleIndex] = new SwerveModulePosition(
-                        modulePositions[moduleIndex].distanceMeters - measuredModulePositions[moduleIndex].distanceMeters,
-                        modulePositions[moduleIndex].angle);
-                    measuredModulePositions[moduleIndex] = modulePositions[moduleIndex];
                 }
-
-                // Update gyro angle
-                if (gyroInputs.connected) {
-                    // Use the real gyro angle
-                    rawGyroRotation = gyroInputs.cachedYawValues[i];
-                } else {
-                    // Use the angle delta from the kinematics and module deltas
-                    Twist2d twist = kinematics.toTwist2d(moduleDeltas);
-                    rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
-                }
-
-                // Apply update
-                poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+                poseEstimator.updateWithTime(sampleTimestamps[i], gyroInputs.cachedYawValues[i], modulePositions);
             } catch (ArrayIndexOutOfBoundsException e) {
-                System.out.println("Array out of bounds");
+                DriverStation.reportError("Array out of bounds for odometry", false);
             }
         }
     }

@@ -128,7 +128,6 @@
  "codegen":{
   "root":"..\\..\\java\\frc\\robot\\constants",
   "genVars":true,
-  "genTrajNames":true,
   "genTrajData":true
  }
 }

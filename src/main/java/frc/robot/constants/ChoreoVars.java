@@ -8,8 +8,7 @@ import static edu.wpi.first.units.Units.*;
 
 /**
  * Generated file containing variables defined in Choreo.
- * DO NOT MODIFY THIS FILE YOURSELF; instead, change these values
- * in the Choreo GUI.
+ * DO NOT MODIFY THIS FILE YOURSELF; instead, change these values in the Choreo GUI.
  */
 public final class ChoreoVars {
     public static final MomentOfInertia botMOI = KilogramSquareMeters.of(5.8);

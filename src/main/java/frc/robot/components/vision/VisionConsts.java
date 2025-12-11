@@ -8,7 +8,6 @@ import edu.wpi.first.units.measure.Distance;
 import frc.robot.components.vision.Structs.CameraConsts;
 import frc.robot.constants.TunerConstants;
 
-import java.util.List;
 import java.util.Optional;
 
 import static edu.wpi.first.units.Units.*;
@@ -16,24 +15,16 @@ import static edu.wpi.first.units.Units.*;
 public class VisionConsts {
     static boolean DEBUG_LOGS = true;
 
-    public static final AprilTagFieldLayout ALL_TAGS = AprilTagFieldLayout.loadField(
+    public static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(
         AprilTagFields.k2025ReefscapeAndyMark
     );
-    public static final AprilTagFieldLayout REEF_TAGS = new AprilTagFieldLayout(
-        ALL_TAGS.getTags()
+    public static final AprilTagFieldLayout REEF_ONLY_LAYOUT = new AprilTagFieldLayout(
+        FIELD_LAYOUT.getTags()
             .stream()
             .filter(it -> (it.ID >= 17 && it.ID <= 22) || (it.ID >= 6 && it.ID <= 11))
             .toList(),
-        ALL_TAGS.getFieldLength(),
-        ALL_TAGS.getFieldWidth()
-    );
-    public static final AprilTagFieldLayout SOURCE_TAGS = new AprilTagFieldLayout(
-        ALL_TAGS.getTags()
-            .stream()
-            .filter(it -> List.of(1, 2, 12, 13).contains(it.ID))
-            .toList(),
-        ALL_TAGS.getFieldLength(),
-        ALL_TAGS.getFieldWidth()
+        FIELD_LAYOUT.getFieldLength(),
+        FIELD_LAYOUT.getFieldWidth()
     );
 
     public static final CameraConsts FL_CONSTS = new CameraConsts(
@@ -48,7 +39,7 @@ public class VisionConsts {
                 Degrees.of(48) // measured as: 46, previously working: 48
             )
         ),
-        REEF_TAGS, 1.0, Optional.empty()
+        REEF_ONLY_LAYOUT, 1.0, Optional.empty()
     );
     public static final CameraConsts FR_CONSTS = new CameraConsts(
         "Chargers-FrontRight",
@@ -62,7 +53,7 @@ public class VisionConsts {
                 Degrees.of(-48) // prob correct - another value -56
             )
         ),
-        REEF_TAGS, 1.0, Optional.empty()
+        REEF_ONLY_LAYOUT, 1.0, Optional.empty()
     );
 
     static final double MAX_AMBIGUITY = 0.2;

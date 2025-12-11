@@ -17,13 +17,53 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import java.util.ArrayList;
 import java.util.List;
 
+import static frc.robot.components.vision.VisionConsts.FIELD_LAYOUT;
+
 /**
  * Assists the robot in pathfinding to a pose on the field, while avoiding obstacles.
  * This is accomplished by simulating a "force" around every obstacle, effectively
- * pusing the robot away from them.
+ * "repulsing" the robot away from them.
  */
 public class RepulsorFieldPlanner {
-	private abstract static class Obstacle {
+	private static final double FIELD_WIDTH = FIELD_LAYOUT.getFieldWidth();
+	private static final double FIELD_LENGTH = FIELD_LAYOUT.getFieldLength();
+
+	private static final double SOURCE_X = 1.75;
+	private static final double SOURCE_Y = 1.25;
+
+	private static final List<Obstacle> FIELD_OBSTACLES =
+		List.of(
+			// Reef
+			new TeardropObstacle(new Translation2d(4.495, 4), 0.9, 2.5, .83, 3.2, 2),
+			new TeardropObstacle(new Translation2d(13.08, 4), 0.9, 2.5, .83, 3.2, 2),
+			// Walls
+			new HorizontalObstacle(0.0, 0.5, .5, true),
+			new HorizontalObstacle(FIELD_WIDTH, 0.5, .5, false),
+			new VerticalObstacle(0.0, 0.5, .5, true),
+			new VerticalObstacle(FIELD_LENGTH, 0.5, .5, false),
+			// Sources
+			new LineObstacle(new Translation2d(0, SOURCE_Y), new Translation2d(SOURCE_X, 0), .5, .5),
+			new LineObstacle(
+				new Translation2d(0, FIELD_WIDTH - SOURCE_Y),
+				new Translation2d(SOURCE_X, FIELD_WIDTH),
+				.5,
+				.5
+			),
+			new LineObstacle(
+				new Translation2d(FIELD_LENGTH, SOURCE_Y),
+				new Translation2d(FIELD_LENGTH - SOURCE_X, 0),
+				.5,
+				.5
+			),
+			new LineObstacle(
+				new Translation2d(FIELD_LENGTH, FIELD_WIDTH - SOURCE_Y),
+				new Translation2d(FIELD_LENGTH - SOURCE_X, FIELD_WIDTH),
+				.5,
+				.5
+			)
+		);
+
+	abstract static class Obstacle {
 		double strength;
 		boolean positive;
 		
@@ -48,7 +88,7 @@ public class RepulsorFieldPlanner {
 		}
 	}
 	
-	private static class TeardropObstacle extends Obstacle {
+	static class TeardropObstacle extends Obstacle {
 		final Translation2d loc;
 		final double primaryMaxRange;
 		final double primaryRadius;
@@ -147,7 +187,7 @@ public class RepulsorFieldPlanner {
 		}
 	}
 	
-	private static class VerticalObstacle extends Obstacle {
+	static class VerticalObstacle extends Obstacle {
 		final double x;
 		final double maxRange;
 		
@@ -166,7 +206,7 @@ public class RepulsorFieldPlanner {
 		}
 	}
 	
-	private static class LineObstacle extends Obstacle {
+	static class LineObstacle extends Obstacle {
 		final Translation2d startPoint;
 		final Translation2d endPoint;
 		final double length;
@@ -205,39 +245,6 @@ public class RepulsorFieldPlanner {
 		}
 	}
 	
-	static final double FIELD_LENGTH = 17.6022;
-	static final double FIELD_WIDTH = 8.1026;
-	
-	static final double SOURCE_X = 1.75;
-	static final double SOURCE_Y = 1.25;
-	static final List<Obstacle> FIELD_OBSTACLES =
-		List.of(
-			// Reef
-			new TeardropObstacle(new Translation2d(4.495, 4), 0.9, 2.5, .83, 3.2, 2),
-			new TeardropObstacle(new Translation2d(13.08, 4), 0.9, 2.5, .83, 3.2, 2),
-			// Walls
-			new HorizontalObstacle(0.0, 0.5, .5, true),
-			new HorizontalObstacle(FIELD_WIDTH, 0.5, .5, false),
-			new VerticalObstacle(0.0, 0.5, .5, true),
-			new VerticalObstacle(FIELD_LENGTH, 0.5, .5, false),
-			// Sources
-			new LineObstacle(new Translation2d(0, SOURCE_Y), new Translation2d(SOURCE_X, 0), .5, .5),
-			new LineObstacle(
-				new Translation2d(0, FIELD_WIDTH - SOURCE_Y),
-				new Translation2d(SOURCE_X, FIELD_WIDTH),
-				.5,
-				.5),
-			new LineObstacle(
-				new Translation2d(FIELD_LENGTH, SOURCE_Y),
-				new Translation2d(FIELD_LENGTH - SOURCE_X, 0),
-				.5,
-				.5),
-			new LineObstacle(
-				new Translation2d(FIELD_LENGTH, FIELD_WIDTH - SOURCE_Y),
-				new Translation2d(FIELD_LENGTH - SOURCE_X, FIELD_WIDTH),
-				.5,
-				.5));
-	
 	@AutoLogOutput private Translation2d goal = new Translation2d(1, 1);
 	@AutoLogOutput private Rotation2d targetHeading = Rotation2d.kZero;
 	private Translation2d currentTranslation = Translation2d.kZero;
@@ -249,8 +256,7 @@ public class RepulsorFieldPlanner {
 	private Pose2d[] arrowList;
 	
 	// A grid of arrows drawn in AScope
-	@AutoLogOutput
-	Pose2d[] getArrows() {
+	public Pose2d[] getArrows() {
 		if (goal.equals(lastGoal)) {
 			return arrowList;
 		}

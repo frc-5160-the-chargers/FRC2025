@@ -11,7 +11,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.*;
-import frc.chargers.misc.TunableValues.Tunable;
 import frc.chargers.misc.TunableValues.TunableNum;
 import frc.robot.constants.ChoreoVars;
 import frc.robot.constants.TunerConstants;
@@ -44,12 +43,9 @@ public class SwerveConsts {
 
     static final TunableNum
         AUTO_KP = new TunableNum("PathFollowing/AutonomousKP", 9),
-        REPULSOR_KP = new TunableNum("PathFollowing/TeleopKP", 22),
+        REPULSOR_KP = new TunableNum("PathFollowing/TeleopKP", 25),
         ROTATION_KP = new TunableNum("PathFollowing/RotationKP", 8),
         ROTATION_KD = new TunableNum("PathFollowing/RotationKD", 0.02);
-
-    static final Tunable<Distance> REPULSOR_TOLERANCE =
-        new Tunable<>("Swerve/RepulsorTolerance", Centimeters.of(1.7));
 
     static final SwerveSetpoint NULL_SETPOINT = new SwerveSetpoint(
         new ChassisSpeeds(),
