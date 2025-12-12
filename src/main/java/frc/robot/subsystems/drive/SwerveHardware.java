@@ -1,41 +1,24 @@
-package frc.robot.subsystems.drivev3;
+package frc.robot.subsystems.drive;
 
 import com.ctre.phoenix6.Utils;
-import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
-import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.wpilibj.Notifier;
-import edu.wpi.first.wpilibj.RobotController;
-import frc.robot.subsystems.drivev3.SwerveData.PoseEstimationFrame;
+import frc.robot.subsystems.drive.SwerveData.PoseEstimationFrame;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/** A class that wraps CTRE's {@link SwerveDrivetrain} with replay support. */
 public class SwerveHardware {
-    public static SwerveHardware from(
-        SwerveDrivetrainConstants driveConsts,
-        SwerveModuleConstants<?, ?, ?>... moduleConsts
-    ) {
-        var impl = new SwerveDrivetrain<>(
-            TalonFX::new, TalonFX::new, CANcoder::new,
-            driveConsts, moduleConsts
-        );
-        new Notifier(() -> impl.updateSimState(0.02 / 5, RobotController.getBatteryVoltage()))
-            .startPeriodic(0.02 / 5);
-        return new SwerveHardware(impl);
-    }
-
+    // The underlying CTRE swerve drivetrain that we are wrapping.
     protected final SwerveDrivetrain<?, ?, ?> drivetrain;
     private final Lock stateLock = new ReentrantLock();
     private final List<PoseEstimationFrame> poseEstBuffer = new ArrayList<>();
@@ -44,7 +27,10 @@ public class SwerveHardware {
     public SwerveHardware(SwerveDrivetrain<?, ?, ?> drivetrain) {
         this.drivetrain = drivetrain;
         latest = drivetrain.getStateCopy();
+        // registerTelemetry() technically means "register a function that logs the data",
+        // but here we abuse it for data-gathering purposes.
         drivetrain.registerTelemetry(state -> {
+            if (poseEstBuffer.size() > 20) return;
             try {
                 stateLock.lock();
                 latest = state;

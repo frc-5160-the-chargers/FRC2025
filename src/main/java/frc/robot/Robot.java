@@ -1,7 +1,5 @@
 package frc.robot;
 
-import com.ctre.phoenix6.swerve.SwerveModule;
-import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.PortForwarder;
@@ -26,10 +24,9 @@ import org.littletonrobotics.urcl.URCL;
 
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
-import static frc.robot.constants.ChoreoTraj.*;
 
 public class Robot extends LoggedRobot {
-    private final frc.robot.subsystems.drivev3.SwerveDrive drive = new frc.robot.subsystems.drivev3.SwerveDrive();
+    private final SwerveDrive drive = new SwerveDrive();
     private final Elevator elevator = new Elevator();
     private final DriverController controller = new DriverController();
 
@@ -69,7 +66,7 @@ public class Robot extends LoggedRobot {
                 ntPublisher.putTable(data);
             });
         }
-        if (true) {
+        if (!RobotMode.isSim()) {
             Logger.addDataReceiver(new WPILOGWriter());
         }
         Logger.registerURCL(URCL.startExternal());

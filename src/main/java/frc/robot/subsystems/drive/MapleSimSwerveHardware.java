@@ -1,4 +1,4 @@
-package frc.robot.subsystems.drivev3;
+package frc.robot.subsystems.drive;
 
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -20,7 +20,7 @@ import org.littletonrobotics.junction.Logger;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
 public class MapleSimSwerveHardware extends SwerveHardware {
-    private final Pigeon2SimState pigeonSim;
+    private final Pigeon2SimState gyroSim;
     private final SwerveDriveSimulation mapleSim;
 
     private MapleSimSwerveHardware(
@@ -28,9 +28,10 @@ public class MapleSimSwerveHardware extends SwerveHardware {
     ) {
         super(drivetrain);
         this.mapleSim = mapleSim;
-        this.pigeonSim = drivetrain.getPigeon2().getSimState();
+        this.gyroSim = drivetrain.getPigeon2().getSimState();
     }
 
+    /** Creates a variant of SwerveHardware that supports collisions in sim. */
     public static MapleSimSwerveHardware from(
         SwerveDriveSimulation mapleSim,
         SwerveDrivetrainConstants driveConsts,
@@ -64,11 +65,12 @@ public class MapleSimSwerveHardware extends SwerveHardware {
     public void refreshData(SwerveDataAutoLogged data) {
         super.refreshData(data);
         if (!RobotMode.isSim()) return;
-        // The pose of the robot without any odometry drift.
+        // The pose of the robot without any pose estimation inaccuracy.
         var truePose = mapleSim.getSimulatedDriveTrainPose();
         Logger.recordOutput("SwerveDrive/TrueRobotPose", truePose);
-        pigeonSim.setRawYaw(truePose.getRotation().getMeasure());
-        pigeonSim.setAngularVelocityZ(
+        // "Injects" data into the gyro, effectively overriding the value of getRotation3d().
+        gyroSim.setRawYaw(truePose.getRotation().getMeasure());
+        gyroSim.setAngularVelocityZ(
             RadiansPerSecond.of(mapleSim.getDriveTrainSimulatedChassisSpeedsRobotRelative().omegaRadiansPerSecond)
         );
     }

@@ -1,4 +1,4 @@
-package frc.robot.subsystems.drivev3;
+package frc.robot.subsystems.drive;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -9,6 +9,7 @@ import org.littletonrobotics.junction.AutoLog;
 
 /**
  * Data received from a swerve drivetrain every 0.02 seconds.
+ * Use {@link SwerveDataAutoLogged} in place of this class.
  */
 @AutoLog
 public class SwerveData {

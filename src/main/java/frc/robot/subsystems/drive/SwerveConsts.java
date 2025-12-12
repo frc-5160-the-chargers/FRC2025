@@ -10,7 +10,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.measure.*;
+import edu.wpi.first.units.measure.Distance;
 import frc.chargers.misc.TunableValues.TunableNum;
 import frc.robot.constants.ChoreoVars;
 import frc.robot.constants.TunerConstants;
@@ -42,8 +42,7 @@ public class SwerveConsts {
         DEMO_STEER_VOLTS = new TunableNum("Swerve/demoSteerVolts", 3);
 
     static final TunableNum
-        AUTO_KP = new TunableNum("PathFollowing/AutonomousKP", 9),
-        REPULSOR_KP = new TunableNum("PathFollowing/TeleopKP", 25),
+        TRANSLATION_KP = new TunableNum("PathFollowing/TranslationKP", 8),
         ROTATION_KP = new TunableNum("PathFollowing/RotationKP", 8),
         ROTATION_KD = new TunableNum("PathFollowing/RotationKD", 0.02);
 
