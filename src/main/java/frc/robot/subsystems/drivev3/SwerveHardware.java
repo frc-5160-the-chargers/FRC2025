@@ -2,9 +2,7 @@ package frc.robot.subsystems.drivev3;
 
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.hardware.traits.CommonTalon;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
@@ -15,11 +13,12 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.util.CircularBuffer;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.subsystems.drivev3.SwerveData.PoseEstimationFrame;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -32,15 +31,14 @@ public class SwerveHardware {
             TalonFX::new, TalonFX::new, CANcoder::new,
             driveConsts, moduleConsts
         );
-        new Notifier(() -> impl.updateSimState(0.005, RobotController.getBatteryVoltage()))
-            .startPeriodic(0.005);
+        new Notifier(() -> impl.updateSimState(0.02 / 5, RobotController.getBatteryVoltage()))
+            .startPeriodic(0.02 / 5);
         return new SwerveHardware(impl);
     }
 
     protected final SwerveDrivetrain<?, ?, ?> drivetrain;
     private final Lock stateLock = new ReentrantLock();
-    private final CircularBuffer<PoseEstimationFrame> poseEstBuffer =
-        new CircularBuffer<>(20);
+    private final List<PoseEstimationFrame> poseEstBuffer = new ArrayList<>();
     private SwerveDriveState latest;
 
     public SwerveHardware(SwerveDrivetrain<?, ?, ?> drivetrain) {
@@ -55,7 +53,7 @@ public class SwerveHardware {
                     state.ModulePositions[0], state.ModulePositions[1],
                     state.ModulePositions[2], state.ModulePositions[3]
                 );
-                poseEstBuffer.addFirst(latestFrame);
+                poseEstBuffer.add(latestFrame);
             } finally {
                 stateLock.unlock();
             }

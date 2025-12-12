@@ -51,7 +51,7 @@ public class SwerveDrive extends ChargerSubsystem {
         rotationController = new PIDController(0, 0, 0);
 
     // Persistent State
-    private final SwerveModulePosition[] positions = new SwerveModulePosition[4];
+    private final SwerveModulePosition[] replayPosCache = new SwerveModulePosition[4];
     private Pose2d goalToAlign = Pose2d.kZero;
     private SwerveSetpoint setpoint = NULL_SETPOINT;
     private boolean poseEstInit = false;
@@ -75,11 +75,11 @@ public class SwerveDrive extends ChargerSubsystem {
 
     public SwerveDrive() {
         for (int i = 0; i < 4; i++) {
-            positions[i] = new SwerveModulePosition();
+            replayPosCache[i] = new SwerveModulePosition();
         }
         replayPoseEst = new SwerveDrivePoseEstimator(
             new SwerveDriveKinematics(MODULE_TRANSLATIONS),
-            Rotation2d.kZero, positions, Pose2d.kZero
+            Rotation2d.kZero, replayPosCache, Pose2d.kZero
         );
         rotationController.enableContinuousInput(-Math.PI, Math.PI);
     }
@@ -111,26 +111,22 @@ public class SwerveDrive extends ChargerSubsystem {
         io.setControl(fieldRelativeReq);
     }
 
-    private void updatePositions(SwerveData.PoseEstimationFrame frame) {
-        positions[0] = frame.tl();
-        positions[1] = frame.tr();
-        positions[2] = frame.bl();
-        positions[3] = frame.br();
-    }
-
     @Override
     public void loggedPeriodic() {
         io.refreshData(inputs);
         Logger.processInputs("SwerveDrive", inputs);
 
-        for (var frame: inputs.poseEstFrames) {
-            updatePositions(frame);
-            replayPoseEst.updateWithTime(
-                frame.timestampSecs(), frame.heading(), positions
-            );
-        }
         Logger.recordOutput(key("ManualPose"), replayPoseEst.getEstimatedPosition());
         if (RobotMode.get() == RobotMode.REPLAY) {
+            for (var frame: inputs.poseEstFrames) {
+                replayPosCache[0] = frame.tl();
+                replayPosCache[1] = frame.tr();
+                replayPosCache[2] = frame.bl();
+                replayPosCache[3] = frame.br();
+                replayPoseEst.updateWithTime(
+                    frame.timestampSecs(), frame.heading(), replayPosCache
+                );
+            }
             pose = replayPoseEst.getEstimatedPosition();
         } else {
             pose = inputs.notReplayedPose;
