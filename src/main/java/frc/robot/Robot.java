@@ -1,9 +1,12 @@
 package frc.robot;
 
+import com.ctre.phoenix6.swerve.SwerveModule;
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.PortForwarder;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.chargers.commands.CmdLogger;
@@ -21,41 +24,38 @@ import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 import org.littletonrobotics.urcl.URCL;
 
+import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 import static frc.robot.constants.ChoreoTraj.*;
 
 public class Robot extends LoggedRobot {
-    private final SwerveDrive drive = new SwerveDrive();
+    private final frc.robot.subsystems.drivev3.SwerveDrive drive = new frc.robot.subsystems.drivev3.SwerveDrive();
     private final Elevator elevator = new Elevator();
     private final DriverController controller = new DriverController();
 
     public Robot() {
         // A / (m/s)
         initLogging();
+
         drive.setDefaultCommand(
-            drive.driveCmd(
-                controller::forwardOutput,
-                controller::strafeOutput,
-                controller::rotationOutput,
-                true
-            )
+            drive.driveCmd(controller::getSwerveRequest)
         );
-        drive.resetPose(new Pose2d(5, 7, Rotation2d.kZero));
         DriverStation.silenceJoystickConnectionWarning(true);
         elevator.setDefaultCommand(elevator.idleCmd());
         PortForwarder.add(5800, "photonvision.local", 5800);
 
         var autoFactory = drive.createAutoFactory();
-        autonomous().whileTrue(
-            autoFactory.resetOdometry(NewPath.name())
-                .andThen(autoFactory.trajectoryCmd(NewPath.name()))
+        autonomous().onTrue(
+            drive.runOnce(() -> drive.resetPose(new Pose2d(5.0, 7.0, Rotation2d.kZero)))
         );
 //        autonomous().whileTrue(
 //            drive.pathfindCmd(() -> new Pose2d(5, 7, Rotation2d.k180deg))
 //        );
-        autonomous().whileTrue(
-            drive.wheelRadiusCharacterizeCmd()
-        );
+        if (RobotMode.isSim()) {
+            SimulatedArena.overrideSimulationTimings(Seconds.of(0.002), 1);
+            new Notifier(SimulatedArena.getInstance()::simulationPeriodic)
+                .startPeriodic(0.002);
+        }
     }
 
     private void initLogging() {
@@ -69,7 +69,7 @@ public class Robot extends LoggedRobot {
                 ntPublisher.putTable(data);
             });
         }
-        if (!RobotMode.isSim()) {
+        if (true) {
             Logger.addDataReceiver(new WPILOGWriter());
         }
         Logger.registerURCL(URCL.startExternal());
@@ -97,9 +97,6 @@ public class Robot extends LoggedRobot {
         SignalBatchRefresher.refreshAll();
         CmdLogger.periodic(true);
         Tracer.trace("Command Scheduler", CommandScheduler.getInstance()::run);
-        if (RobotMode.isSim()) {
-            Tracer.trace("MapleSim", SimulatedArena.getInstance()::simulationPeriodic);
-        }
         Threads.setCurrentThreadPriority(false, 10);
     }
 }
