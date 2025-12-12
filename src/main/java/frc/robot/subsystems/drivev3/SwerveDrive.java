@@ -54,14 +54,15 @@ public class SwerveDrive extends ChargerSubsystem {
     private final SwerveModulePosition[] positions = new SwerveModulePosition[4];
     private Pose2d goalToAlign = Pose2d.kZero;
     private SwerveSetpoint setpoint = NULL_SETPOINT;
+    private boolean poseEstInit = false;
 
     // Drive Requests
     private final SwerveRequest.ApplyFieldSpeeds fieldRelativeReq =
         new SwerveRequest.ApplyFieldSpeeds().withDriveRequestType(DriveRequestType.Velocity);
 
     // Hardware & Low-Level data
-    private final SwerveHardware io = MapleSimSwerveHardware.from(
-        mapleSim, TunerConstants.DrivetrainConstants,
+    private final SwerveHardware io = SwerveHardware.from(
+        TunerConstants.DrivetrainConstants,
         TunerConstants.FrontLeft, TunerConstants.FrontRight,
         TunerConstants.BackLeft, TunerConstants.BackRight
     );
@@ -110,16 +111,20 @@ public class SwerveDrive extends ChargerSubsystem {
         io.setControl(fieldRelativeReq);
     }
 
+    private void updatePositions(SwerveData.PoseEstimationFrame frame) {
+        positions[0] = frame.tl();
+        positions[1] = frame.tr();
+        positions[2] = frame.bl();
+        positions[3] = frame.br();
+    }
+
     @Override
     public void loggedPeriodic() {
         io.refreshData(inputs);
         Logger.processInputs("SwerveDrive", inputs);
 
         for (var frame: inputs.poseEstFrames) {
-            positions[0] = frame.tl();
-            positions[1] = frame.tr();
-            positions[2] = frame.bl();
-            positions[3] = frame.br();
+            updatePositions(frame);
             replayPoseEst.updateWithTime(
                 frame.timestampSecs(), frame.heading(), positions
             );
