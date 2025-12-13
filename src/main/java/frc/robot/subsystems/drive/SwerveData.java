@@ -3,6 +3,7 @@ package frc.robot.subsystems.drive;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import org.littletonrobotics.junction.AutoLog;
@@ -13,21 +14,24 @@ import org.littletonrobotics.junction.AutoLog;
  */
 @AutoLog
 public class SwerveData {
-    public PoseEstimationFrame[] poseEstFrames = {};
+    public OdometryFrame[] poseEstFrames = {};
     public SwerveModuleState[] currentStates = new SwerveModuleState[4];
     public SwerveModuleState[] desiredStates = new SwerveModuleState[4];
+    public ChassisSpeeds speeds = new ChassisSpeeds();
     public Rotation3d heading = Rotation3d.kZero;
     public Pose2d notReplayedPose = Pose2d.kZero;
-    // Phoenix 6 uses a custom timestamp, so we have to log and replay it here.
-    public double timeOffsetSecs = 0.0;
 
     /** Data used for estimating pose in replay mode. */
-    public record PoseEstimationFrame(
+    public record OdometryFrame(
         Rotation2d heading,
         double timestampSecs,
         SwerveModulePosition tl,
         SwerveModulePosition tr,
         SwerveModulePosition bl,
         SwerveModulePosition br
-    ) {}
+    ) {
+        public SwerveModulePosition[] positions() {
+            return new SwerveModulePosition[] {tl, tr, bl, br};
+        }
+    }
 }

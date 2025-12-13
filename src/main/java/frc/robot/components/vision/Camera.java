@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import frc.chargers.misc.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.vision.Structs.CameraConsts;
-import frc.robot.components.vision.Structs.PoseEstimate;
+import frc.robot.components.vision.Structs.CamPoseEstimate;
 import frc.robot.components.vision.Structs.RawCameraInputs;
 import org.littletonrobotics.junction.Logger;
 import org.photonvision.PhotonPoseEstimator;
@@ -48,7 +48,7 @@ public class Camera {
      * Fetches the latest pose estimates from this camera,
      * using single-tag estimation if applicable.
      */
-    public List<PoseEstimate> update(Rotation2d heading, double headingTimestampSecs) {
+    public List<CamPoseEstimate> update(Rotation2d heading, double headingTimestampSecs) {
         poseEst.setMultiTagFallbackStrategy(
             DriverStation.isDisabled()
                 ? PoseStrategy.LOWEST_AMBIGUITY
@@ -59,13 +59,13 @@ public class Camera {
     }
 
     /** Fetches the latest pose estimates from this camera. */
-    public List<PoseEstimate> update() {
+    public List<CamPoseEstimate> update() {
         Tracer.startTrace("Vision Update (" + consts.name() + ")");
 
         io.refreshData(inputs);
         Logger.processInputs(key(""), inputs);
 
-        var poseEstimates = new ArrayList<PoseEstimate>();
+        var poseEstimates = new ArrayList<CamPoseEstimate>();
         if (RobotMode.get() == RobotMode.REAL && !inputs.connected) {
             return poseEstimates;
         }
@@ -120,7 +120,7 @@ public class Camera {
 
             if (DEBUG_LOGS) poses.add(pose);
             var stdDevs = VecBuilder.fill(linearStdDev, linearStdDev, ANGULAR_STD_DEV);
-            poseEstimates.add(new PoseEstimate(pose.toPose2d(), timestamp, stdDevs));
+            poseEstimates.add(new CamPoseEstimate(pose.toPose2d(), timestamp, stdDevs));
         }
         Tracer.endTrace();
 

@@ -15,7 +15,6 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
-import org.littletonrobotics.junction.Logger;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
@@ -65,20 +64,16 @@ public class MapleSimSwerveHardware extends SwerveHardware {
     public void refreshData(SwerveDataAutoLogged data) {
         super.refreshData(data);
         if (!RobotMode.isSim()) return;
-        // The pose of the robot without any pose estimation inaccuracy.
-        var truePose = mapleSim.getSimulatedDriveTrainPose();
-        Logger.recordOutput("SwerveDrive/TrueRobotPose", truePose);
         // "Injects" data into the gyro, effectively overriding the value of getRotation3d().
-        gyroSim.setRawYaw(truePose.getRotation().getMeasure());
-        gyroSim.setAngularVelocityZ(
-            RadiansPerSecond.of(mapleSim.getDriveTrainSimulatedChassisSpeedsRobotRelative().omegaRadiansPerSecond)
-        );
+        gyroSim.setRawYaw(mapleSim.getSimulatedDriveTrainPose().getRotation().getMeasure());
+        var vel = mapleSim.getDriveTrainSimulatedChassisSpeedsRobotRelative();
+        gyroSim.setAngularVelocityZ(RadiansPerSecond.of(vel.omegaRadiansPerSecond));
     }
 
     @Override
     public void resetNotReplayedPose(Pose2d pose) {
-        super.resetNotReplayedPose(pose);
         mapleSim.setSimulationWorldPose(pose);
+        drivetrain.resetTranslation(pose.getTranslation());
     }
 
     /**
@@ -93,9 +88,9 @@ public class MapleSimSwerveHardware extends SwerveHardware {
     private record TalonFXSim(TalonFX motor, @Nullable CANcoder encoder) implements SimulatedMotorController {
         @Override
         public Voltage updateControlSignal(
-            Angle mechanismAngle,
+            Angle mechanismAngle, // position w/ gearing
             AngularVelocity mechanismVelocity,
-            Angle encoderAngle,
+            Angle encoderAngle, // position without gearing
             AngularVelocity encoderVelocity
         ) {
             if (encoder != null) {

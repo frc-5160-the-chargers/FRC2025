@@ -29,12 +29,8 @@ public class Structs {
         Optional<CameraIntrinsics> intrinsics
     ) {}
 
-    /** A pose estimate. */
-    public record PoseEstimate(
-        Pose2d pose,
-        double timestampSecs,
-        Vector<N3> stdDevs
-    ) {}
+    /** A pose estimate originating from the vision cameras. */
+    public record CamPoseEstimate(Pose2d pose, double timestampSecs, Vector<N3> deviations) {}
 
     /** Represents raw camera inputs from a photon camera. */
     public static class RawCameraInputs implements LoggableInputs {
