@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.subsystems.elevator.ElevatorConsts.*;
 
 public class Elevator extends ChargerSubsystem {

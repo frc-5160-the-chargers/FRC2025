@@ -1,23 +1,25 @@
 package frc.robot;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.PortForwarder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.chargers.commands.CmdLogger;
-import frc.chargers.misc.RobotMode;
 import frc.chargers.hardware.SignalBatchRefresher;
+import frc.chargers.misc.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.DriverController;
 import frc.robot.components.vision.Camera;
-import frc.robot.components.vision.VisionConsts;
 import frc.robot.constants.BuildConstants;
-import frc.robot.constants.ChoreoTraj;
 import frc.robot.subsystems.drive.SwerveDrive;
 import frc.robot.subsystems.elevator.Elevator;
 import org.ironmaple.simulation.SimulatedArena;
-import org.littletonrobotics.junction.*;
+import org.littletonrobotics.junction.LogFileUtil;
+import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
@@ -30,13 +32,15 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 
 @SuppressWarnings({"FieldCanBeLocal", "DataFlowIssue"})
 public class Robot extends LoggedRobot {
+    private static final double SIM_UPDATE_PERIOD = 0.002;
+
     private final SwerveDrive drive = new SwerveDrive();
     private final Elevator elevator = new Elevator();
     private final DriverController controller = new DriverController();
 
     private final List<Camera> cameras = List.of(
-        new Camera(VisionConsts.FR_CONSTS, drive::truePose),
-        new Camera(VisionConsts.FL_CONSTS, drive::truePose)
+//        new Camera(VisionConsts.FR_CONSTS, drive::truePose),
+//        new Camera(VisionConsts.FL_CONSTS, drive::truePose)
     );
 
     public Robot() {
@@ -46,22 +50,17 @@ public class Robot extends LoggedRobot {
         drive.setDefaultCommand(
             drive.driveCmd(controller::getSwerveRequest)
         );
-        DriverStation.silenceJoystickConnectionWarning(true);
         elevator.setDefaultCommand(elevator.idleCmd());
+        DriverStation.silenceJoystickConnectionWarning(true);
         PortForwarder.add(5800, "photonvision.local", 5800);
+        SimulatedArena.overrideSimulationTimings(Seconds.of(SIM_UPDATE_PERIOD), 1);
+        new Notifier(SimulatedArena.getInstance()::simulationPeriodic)
+            .startPeriodic(SIM_UPDATE_PERIOD); // Updates MapleSim periodically.
 
-        var autoFactory = drive.createAutoFactory();
-        autonomous().onTrue(
-            autoFactory.resetOdometry(ChoreoTraj.NewPath.name())
+        drive.resetPose(new Pose2d(5, 7, Rotation2d.fromDegrees(0)));
+        autonomous().whileTrue(
+            drive.wheelRadiusCharacterization()
         );
-//        autonomous().whileTrue(
-//            drive.pathfindCmd(() -> new Pose2d(5, 7, Rotation2d.k180deg))
-//        );
-        if (RobotMode.isSim()) {
-            SimulatedArena.overrideSimulationTimings(Seconds.of(0.002), 1);
-            new Notifier(SimulatedArena.getInstance()::simulationPeriodic)
-                .startPeriodic(0.002);
-        }
     }
 
     private void initLogging() {

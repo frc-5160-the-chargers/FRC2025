@@ -1,8 +1,6 @@
 package frc.chargers.misc;
 
 import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.MutableMeasure;
-import edu.wpi.first.units.Unit;
 import edu.wpi.first.util.function.BooleanConsumer;
 import lombok.Setter;
 import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
@@ -10,12 +8,8 @@ import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
-import java.util.function.Supplier;
-
-import static edu.wpi.first.units.Units.Radians;
 
 /**
  * An API to handle tunable dashboard values.

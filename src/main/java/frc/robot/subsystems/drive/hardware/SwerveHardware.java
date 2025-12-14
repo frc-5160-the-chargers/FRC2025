@@ -1,4 +1,4 @@
-package frc.robot.subsystems.drive;
+package frc.robot.subsystems.drive.hardware;
 
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
@@ -9,8 +9,9 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import frc.chargers.misc.CurrAlliance;
+import frc.chargers.misc.RobotMode;
 import frc.robot.components.vision.Structs.CamPoseEstimate;
-import frc.robot.subsystems.drive.SwerveData.OdometryFrame;
+import frc.robot.subsystems.drive.hardware.SwerveData.OdometryFrame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,22 +20,23 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /** A class that wraps CTRE's {@link SwerveDrivetrain} with replay support. */
 public class SwerveHardware {
-    protected final SwerveDrivetrain<?, ?, ?> drivetrain;
-    // prevents the poseEstBuffer from having items added & polled at the same time.
-    private final Lock stateLock = new ReentrantLock();
+    protected final SwerveDrivetrain<?, ?, ?> drivetrain; // CTRE's built-in Swerve API.
+    private final Lock stateLock = new ReentrantLock(); // prevents simultaneous modification of the poseEstBuffer
     private final List<OdometryFrame> poseEstBuffer = new ArrayList<>();
     private SwerveDrivetrain.SwerveDriveState latest;
 
     public SwerveHardware(SwerveDrivetrain<?, ?, ?> drivetrain) {
         this.drivetrain = drivetrain;
         latest = drivetrain.getStateCopy();
-        // registerTelemetry() technically means "register a function that logs the data",
+        if (RobotMode.get() == RobotMode.REPLAY) drivetrain.getOdometryThread().stop();
+        // registerTelemetry() technically means "register a function that logs data",
         // but here we abuse it for data-gathering purposes.
         drivetrain.registerTelemetry(state -> {
             if (poseEstBuffer.size() > 20) return;
             try {
                 stateLock.lock();
                 latest = state;
+                // phoenix 6 measures time differently, so we use currentTimeToFPGATime() to correct the timestamp.
                 var latestFrame = new OdometryFrame(
                     state.RawHeading, Utils.currentTimeToFPGATime(state.Timestamp),
                     state.ModulePositions[0], state.ModulePositions[1],
@@ -52,18 +54,14 @@ public class SwerveHardware {
         drivetrain.setOperatorPerspectiveForward(
             CurrAlliance.red() ? Rotation2d.k180deg : Rotation2d.kZero
         );
-        inputs.heading = drivetrain.getRotation3d();
         try {
             stateLock.lock();
-            inputs.poseEstFrames = new OdometryFrame[poseEstBuffer.size()];
-            for (int i = 0; i < poseEstBuffer.size(); i++) {
-                inputs.poseEstFrames[i] = poseEstBuffer.get(i);
-            }
+            inputs.poseEstFrames = poseEstBuffer.toArray(new OdometryFrame[0]);
             poseEstBuffer.clear();
             inputs.currentStates = latest.ModuleStates;
             inputs.desiredStates = latest.ModuleTargets;
             inputs.notReplayedPose = latest.Pose;
-            inputs.speeds = latest.Speeds;
+            inputs.robotRelativeSpeeds = latest.Speeds;
         } finally {
             stateLock.unlock();
         }
@@ -83,6 +81,7 @@ public class SwerveHardware {
     public void addVisionMeasurement(CamPoseEstimate estimate) {
         drivetrain.addVisionMeasurement(
             estimate.pose(),
+            // phoenix 6 measures time differently, so we use fpgaToCurrentTime() to correct the timestamp.
             Utils.fpgaToCurrentTime(estimate.timestampSecs()),
             estimate.deviations()
         );

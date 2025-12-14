@@ -4,8 +4,7 @@ import choreo.auto.AutoFactory;
 import choreo.trajectory.SwerveSample;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-import com.pathplanner.lib.util.swerve.SwerveSetpoint;
-import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+import com.ctre.phoenix6.swerve.utility.WheelForceCalculator;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.filter.SlewRateLimiter;
@@ -20,8 +19,11 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.chargers.misc.RobotMode;
 import frc.chargers.misc.Tracer;
 import frc.robot.components.vision.Structs.CamPoseEstimate;
-import frc.robot.constants.TunerConstants;
+import frc.robot.constants.ChoreoVars;
 import frc.robot.subsystems.ChargerSubsystem;
+import frc.robot.subsystems.drive.hardware.MapleSimSwerveHardware;
+import frc.robot.subsystems.drive.hardware.SwerveDataAutoLogged;
+import frc.robot.subsystems.drive.hardware.SwerveHardware;
 import lombok.Getter;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -34,12 +36,16 @@ import static edu.wpi.first.math.MathUtil.angleModulus;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.drive.SwerveConsts.*;
 
+/**
+ * A subsystem that controls the driving of the robot. In each corner of the robot, there is
+ * one motor responsible for spinning the wheel, and another for changing the direction of the wheel.
+ */
 public class SwerveDrive extends ChargerSubsystem {
     private final SwerveDriveSimulation mapleSim =
         new SwerveDriveSimulation(MAPLESIM_CONFIG, Pose2d.kZero);
     private final SwerveDrivePoseEstimator replayPoseEst;
-    private final SwerveSetpointGenerator setpointGen =
-        new SwerveSetpointGenerator(PATH_PLANNER_CONFIG, STEER_MOTOR_TYPE.freeSpeedRadPerSec);
+    private final WheelForceCalculator forceCalc =
+        new WheelForceCalculator(MODULE_TRANSLATIONS, ChoreoVars.botMass, ChoreoVars.botMOI);
     private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
     private final PIDController
         xPoseController = new PIDController(0, 0, 0.1),
@@ -49,7 +55,6 @@ public class SwerveDrive extends ChargerSubsystem {
     // Persistent State
     private boolean replayPoseEstInitialized = false;
     private Pose2d goalToAlign = Pose2d.kZero;
-    private SwerveSetpoint setpoint = NULL_SETPOINT;
 
     // Drive Requests
     private final SwerveRequest.ApplyFieldSpeeds fieldRelativeReq =
@@ -84,26 +89,25 @@ public class SwerveDrive extends ChargerSubsystem {
         return inputs.poseEstFrames[inputs.poseEstFrames.length - 1].positions();
     }
 
-    private void driveWithSample(SwerveSample sample, boolean useSetpointGen) {
+    private void driveWithSample(SwerveSample sample, boolean deriveModuleForces) {
         xPoseController.setP(TRANSLATION_KP.get());
         yPoseController.setP(TRANSLATION_KP.get());
         rotationController.setPID(ROTATION_KP.get(), 0, ROTATION_KD.get());
-        var speeds = sample.getChassisSpeeds();
-        speeds.vxMetersPerSecond += xPoseController.calculate(pose.getX(), sample.x);
-        speeds.vyMetersPerSecond += yPoseController.calculate(pose.getY(), sample.y);
-        speeds.omegaRadiansPerSecond += rotationController.calculate(
-            angleModulus(inputs.heading.getZ()),
+        var target = sample.getChassisSpeeds();
+        target.vxMetersPerSecond += xPoseController.calculate(pose.getX(), sample.x);
+        target.vyMetersPerSecond += yPoseController.calculate(pose.getY(), sample.y);
+        target.omegaRadiansPerSecond += rotationController.calculate(
+            angleModulus(pose.getRotation().getRadians()),
             angleModulus(sample.heading)
         );
-        fieldRelativeReq.Speeds = speeds;
-        if (useSetpointGen) {
-            var robotRelativeSpeeds =
-                ChassisSpeeds.fromFieldRelativeSpeeds(speeds, inputs.heading.toRotation2d());
-            setpoint = setpointGen.generateSetpoint(setpoint, robotRelativeSpeeds, 0.02);
-            fieldRelativeReq.WheelForceFeedforwardsX =
-                setpoint.feedforwards().robotRelativeForcesXNewtons();
-            fieldRelativeReq.WheelForceFeedforwardsY =
-                setpoint.feedforwards().robotRelativeForcesYNewtons();
+        fieldRelativeReq.Speeds = target;
+        if (deriveModuleForces) {
+            var currFieldSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
+                inputs.robotRelativeSpeeds, pose.getRotation()
+            );
+            var forces = forceCalc.calculate(0.02, currFieldSpeeds, target);
+            fieldRelativeReq.WheelForceFeedforwardsX = forces.x_newtons;
+            fieldRelativeReq.WheelForceFeedforwardsY = forces.y_newtons;
         } else {
             fieldRelativeReq.WheelForceFeedforwardsX = sample.moduleForcesX();
             fieldRelativeReq.WheelForceFeedforwardsY = sample.moduleForcesY();
@@ -134,7 +138,6 @@ public class SwerveDrive extends ChargerSubsystem {
         } else {
             pose = inputs.notReplayedPose;
         }
-        if (RobotMode.isSim()) Logger.recordOutput(key("TruePose"), truePose());
     }
 
     /** In sim, returns the true pose of the robot without odometry drift. */
@@ -150,6 +153,15 @@ public class SwerveDrive extends ChargerSubsystem {
         io.resetNotReplayedPose(pose);
         if (RobotMode.get() != RobotMode.REPLAY) return;
         replayPoseEst.resetPosition(pose.getRotation(), getModPositions(), pose);
+    }
+
+    /** Resets to the pose configured in the dashboard. */
+    public void resetToDemoPose() {
+        var pose = new Pose2d(
+            DEMO_POSE_X.get(), DEMO_POSE_Y.get(),
+            Rotation2d.fromDegrees(DEMO_POSE_HEADING_DEG.get())
+        );
+        resetPose(pose);
     }
 
     /** Returns a command that applies the given request repeatedly. */
@@ -168,7 +180,7 @@ public class SwerveDrive extends ChargerSubsystem {
                 repulsor.setGoal(goalToAlign);
                 var sample = repulsor.sampleField(pose.getTranslation(), maxSpeedMps, 1.5);
                 driveWithSample(sample, true);
-            }).beforeStarting(() -> setpoint = NULL_SETPOINT)
+            }).until(() -> repulsor.atGoal(0.01))
         );
     }
 
@@ -219,34 +231,35 @@ public class SwerveDrive extends ChargerSubsystem {
             // Reset acceleration limiter
             Commands.runOnce(() -> limiter.reset(0.0)),
             // Turn in place, accelerating up to full speed
-            driveCmd(() -> req.withRotationalRate(limiter.calculate(0.25)))
+            driveCmd(() -> req.withRotationalRate(limiter.calculate(2)))
         );
         var measurementCmd = Commands.sequence(
-            Commands.waitSeconds(1.0),
+            Commands.waitSeconds(2.0),
             Commands.runOnce(() -> {
                 state.positions = getModPositions();
                 state.gyroDelta = 0.0;
-                state.lastAngle = inputs.heading.toRotation2d();
+                state.lastAngle = pose.getRotation();
             }),
             Commands.run(() -> {
-                var rotation = inputs.heading.toRotation2d();
-                state.gyroDelta += Math.abs(rotation.minus(state.lastAngle).getRotations());
-                state.lastAngle = rotation;
+                state.gyroDelta += Math.abs(pose.getRotation().minus(state.lastAngle).getRadians());
+                state.lastAngle = pose.getRotation();
             })
         ).finallyDo(() -> {
             var currPositions = getModPositions();
-            double wheelDeltaRots = 0.0;
+            double wheelDeltaM = 0.0;
             for (int i = 0; i < 4; i++) {
-                wheelDeltaRots += Math.abs(
+                wheelDeltaM += Math.abs(
                     currPositions[i].distanceMeters - state.positions[i].distanceMeters
                 ) / 4.0;
             }
-            double wheelRadius = (state.gyroDelta * DRIVE_BASE_RADIUS.in(Meter)) / wheelDeltaRots;
+            double wheelDeltaRad = wheelDeltaM / TunerConstants.FrontLeft.WheelRadius;
+            double wheelRadius = (state.gyroDelta * DRIVE_BASE_RADIUS.in(Meters)) / wheelDeltaRad;
+            double wheelRadiusIn = Meters.of(wheelRadius).in(Inches);
             var formatter = new DecimalFormat("#0.000000000000000000000000000");
             System.out.println("********** Wheel Radius Characterization Results **********");
-            System.out.println("\tWheel Delta: " + formatter.format(wheelDeltaRots) + " rotations");
+            System.out.println("\tWheel Delta: " + formatter.format(wheelDeltaM) + " rotations");
             System.out.println("\tGyro Delta: " + formatter.format(state.gyroDelta) + " rotations");
-            System.out.println("\tWheel Radius: " + formatter.format(wheelRadius) + " meters");
+            System.out.println("\tWheel Radius: " + formatter.format(wheelRadiusIn) + " inches");
         });
         return Commands.parallel(movementCmd, measurementCmd);
     }

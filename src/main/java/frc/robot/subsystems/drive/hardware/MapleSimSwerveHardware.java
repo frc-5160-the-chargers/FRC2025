@@ -1,8 +1,9 @@
-package frc.robot.subsystems.drive;
+package frc.robot.subsystems.drive.hardware;
 
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.Pigeon2SimState;
+import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
@@ -15,6 +16,7 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
+import org.littletonrobotics.junction.Logger;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
@@ -53,6 +55,7 @@ public class MapleSimSwerveHardware extends SwerveHardware {
             for (int i = 0; i < 4; i++) {
                 var mod = impl.getModule(i);
                 var sim = mapleSim.getModules()[i];
+                mod.getSteerMotor().getSimState().setMotorType(MotorType.KrakenX44);
                 sim.useDriveMotorController(new TalonFXSim(mod.getDriveMotor(), null));
                 sim.useSteerMotorController(new TalonFXSim(mod.getSteerMotor(), mod.getEncoder()));
             }
@@ -64,9 +67,12 @@ public class MapleSimSwerveHardware extends SwerveHardware {
     public void refreshData(SwerveDataAutoLogged data) {
         super.refreshData(data);
         if (!RobotMode.isSim()) return;
-        // "Injects" data into the gyro, effectively overriding the value of getRotation3d().
-        gyroSim.setRawYaw(mapleSim.getSimulatedDriveTrainPose().getRotation().getMeasure());
+        // The "true" pose of the robot, without odometry drift.
+        var truePose = mapleSim.getSimulatedDriveTrainPose();
         var vel = mapleSim.getDriveTrainSimulatedChassisSpeedsRobotRelative();
+        Logger.recordOutput("SwerveDrive/TruePose", truePose);
+        // "Injects" data into the gyro, overriding the value of getYaw().
+        gyroSim.setRawYaw(truePose.getRotation().getMeasure());
         gyroSim.setAngularVelocityZ(RadiansPerSecond.of(vel.omegaRadiansPerSecond));
     }
 

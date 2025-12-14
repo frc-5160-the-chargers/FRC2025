@@ -6,7 +6,7 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.components.vision.Structs.CameraConsts;
-import frc.robot.constants.TunerConstants;
+import frc.robot.subsystems.drive.TunerConstants;
 
 import java.util.Optional;
 

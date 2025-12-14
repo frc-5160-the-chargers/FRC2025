@@ -5,7 +5,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
-import frc.robot.constants.TunerConstants;
+import frc.robot.subsystems.drive.TunerConstants;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
@@ -31,7 +31,6 @@ public class DriverController extends CommandPS5Controller {
     }
 
     private double modifyDriveAxis(double output) {
-        output = MathUtil.applyDeadband(output, 0.2, 1);
         output *= slowModeOutput();
         return output * -1;
     }
@@ -47,6 +46,8 @@ public class DriverController extends CommandPS5Controller {
         return request
             .withVelocityX(x * maxSpeed)
             .withVelocityY(y * maxSpeed)
-            .withRotationalRate(rot * maxSpeed);
+            .withRotationalRate(rot * maxSpeed)
+            .withDeadband(0.1 * maxSpeed)
+            .withRotationalDeadband(0.1 * maxSpeed);
     }
 }
