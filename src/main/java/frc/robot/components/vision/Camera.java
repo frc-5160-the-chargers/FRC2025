@@ -81,7 +81,7 @@ public class Camera {
                 continue;
             }
             boolean ambiguityExceeded = true;
-            // Computes the standard deviations of the pose pose,
+            // Computes the standard deviations of the pose,
             // scaling off distance from the target, z error, and # of targets.
             double tagDistSum = 0.0;
             double tagAreaSum = 0.0;

@@ -1,6 +1,8 @@
 package frc.robot.subsystems.drive.hardware;
 
 import com.ctre.phoenix6.Utils;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.Matrix;
@@ -18,21 +20,26 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static frc.robot.subsystems.drive.SwerveConsts.DRIVE_CONSTS_CHOICE;
+import static frc.robot.subsystems.drive.SwerveConsts.MODULE_CONSTS_CHOICES;
+
 /** A class that wraps CTRE's {@link SwerveDrivetrain} with replay support. */
 public class SwerveHardware {
-    protected final SwerveDrivetrain<?, ?, ?> drivetrain; // CTRE's built-in Swerve API.
+    protected final SwerveDrivetrain<TalonFX, TalonFX, CANcoder> drivetrain =
+        new SwerveDrivetrain<>(
+            TalonFX::new, TalonFX::new, CANcoder::new,
+            DRIVE_CONSTS_CHOICE, MODULE_CONSTS_CHOICES
+        );
     private final Lock stateLock = new ReentrantLock(); // prevents simultaneous modification of the poseEstBuffer
     private final List<OdometryFrame> poseEstBuffer = new ArrayList<>();
-    private SwerveDrivetrain.SwerveDriveState latest;
+    private SwerveDrivetrain.SwerveDriveState latest = drivetrain.getStateCopy();
 
-    public SwerveHardware(SwerveDrivetrain<?, ?, ?> drivetrain) {
-        this.drivetrain = drivetrain;
-        latest = drivetrain.getStateCopy();
+    public SwerveHardware() {
         if (RobotMode.get() == RobotMode.REPLAY) drivetrain.getOdometryThread().stop();
         // registerTelemetry() technically means "register a function that logs data",
         // but here we abuse it for data-gathering purposes.
         drivetrain.registerTelemetry(state -> {
-            if (poseEstBuffer.size() > 20) return;
+            if (poseEstBuffer.size() > 30) return;
             try {
                 stateLock.lock();
                 latest = state;
@@ -87,7 +94,7 @@ public class SwerveHardware {
         );
     }
 
-    /** Sets the pose estimation standard deviations for the encoder measurements. */
+    /** Sets the standard deviations of the encoder measurements; a.k.a how noisy they are. */
     public void setStateStdDevs(Matrix<N3, N1> stdDevs) {
         drivetrain.setStateStdDevs(stdDevs);
     }

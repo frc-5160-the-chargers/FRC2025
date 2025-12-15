@@ -1,5 +1,7 @@
 package frc.robot.subsystems.drive;
 
+import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
@@ -15,6 +17,11 @@ import static edu.wpi.first.units.Units.*;
  * Contains swerve drive constants that aren't already found in the TunerConstants file.
  */
 public class SwerveConsts {
+    public static final SwerveDrivetrainConstants DRIVE_CONSTS_CHOICE = TunerConstants.DrivetrainConstants;
+    public static final SwerveModuleConstants<?, ?, ?>[] MODULE_CONSTS_CHOICES = {
+        TunerConstants.FrontLeft, TunerConstants.FrontRight,
+        TunerConstants.BackLeft, TunerConstants.BackRight
+    };
     public static final DCMotor DRIVE_MOTOR_TYPE = DCMotor.getKrakenX60(1);
     public static final DCMotor STEER_MOTOR_TYPE = DCMotor.getKrakenX44(1);
     static final Distance BUMPER_WIDTH = Inches.of(3.5);

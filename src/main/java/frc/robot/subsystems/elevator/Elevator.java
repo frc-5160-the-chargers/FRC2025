@@ -136,7 +136,7 @@ public class Elevator extends ChargerSubsystem {
         io.refreshData(inputs);
         // If real/sim mode, log the data.
         // If replay mode, overrides the data with data from the log file instead.
-        Logger.processInputs("Elevator", inputs);
+        Logger.processInputs(getName(), inputs);
 
         if (hittingHighLimit.getAsBoolean() || hittingLowLimit.getAsBoolean()) {
             io.setVolts(0);

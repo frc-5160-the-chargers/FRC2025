@@ -61,11 +61,9 @@ public class SwerveDrive extends ChargerSubsystem {
         new SwerveRequest.ApplyFieldSpeeds().withDriveRequestType(DriveRequestType.Velocity);
 
     // Hardware & Low-Level data
-    private final SwerveHardware io = MapleSimSwerveHardware.from(
-        mapleSim, TunerConstants.DrivetrainConstants,
-        TunerConstants.FrontLeft, TunerConstants.FrontRight,
-        TunerConstants.BackLeft, TunerConstants.BackRight
-    );
+    private final SwerveHardware io = RobotMode.isSim()
+        ? MapleSimSwerveHardware.create(mapleSim)
+        : new SwerveHardware();
     private final SwerveDataAutoLogged inputs = new SwerveDataAutoLogged();
 
     /** A pose estimate that will be replayed correctly. */
@@ -73,7 +71,8 @@ public class SwerveDrive extends ChargerSubsystem {
     @AutoLogOutput
     private Pose2d pose = Pose2d.kZero;
 
-    public SwerveDrive() {
+    public SwerveDrive(String name) {
+        setName(name);
         var defaultPositions = new SwerveModulePosition[4];
         for (int i = 0; i < 4; i++) {
             defaultPositions[i] = new SwerveModulePosition();
@@ -120,7 +119,7 @@ public class SwerveDrive extends ChargerSubsystem {
         io.refreshData(inputs);
         // If not in replay mode, logs every value.
         // If in replay mode, overrides every variable with values from the log file.
-        Logger.processInputs("SwerveDrive", inputs);
+        Logger.processInputs(getName(), inputs);
 
         if (RobotMode.get() == RobotMode.REPLAY) {
             for (var frame: inputs.poseEstFrames) {
@@ -188,7 +187,8 @@ public class SwerveDrive extends ChargerSubsystem {
     public void addVisionMeasurement(CamPoseEstimate estimate) {
         if (RobotMode.get() == RobotMode.REPLAY) {
             replayPoseEst.addVisionMeasurement(
-                estimate.pose(), estimate.timestampSecs(), estimate.deviations()
+                estimate.pose(), estimate.timestampSecs(),
+                estimate.deviations()
             );
         }
         io.addVisionMeasurement(estimate);
