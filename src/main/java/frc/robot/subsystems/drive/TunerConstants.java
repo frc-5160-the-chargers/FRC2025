@@ -2,6 +2,7 @@ package frc.robot.subsystems.drive;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.*;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
@@ -10,6 +11,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.*;
 import frc.chargers.misc.RobotMode;
 
@@ -29,7 +31,7 @@ public class TunerConstants {
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     private static final Slot0Configs driveGains = new Slot0Configs()
-        .withKP(250.0).withKI(0).withKD(0)
+        .withKP(50.0).withKI(0).withKD(1.0)
         .withKS(0).withKV(0);
 
     // The closed-loop output type to use for the steer motors;
@@ -50,22 +52,22 @@ public class TunerConstants {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    private static final Current kSlipCurrent = Amps.of(100.0);
+    private static final Current kSlipCurrent = Amps.of(120.0);
 
     // Initial configs for the drive and steer motors and the azimuth encoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
     private static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
-    private static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration()
-        .withCurrentLimits(
-            new CurrentLimitsConfigs()
-                // Swerve azimuth does not require much torque output, so we can set a relatively low
-                // stator current limit to help avoid brownouts without impacting performance.
-                .withStatorCurrentLimit(Amps.of(60))
-                .withStatorCurrentLimitEnable(true)
-        );
+    private static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration();
     private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
     private static final Pigeon2Configuration pigeonConfigs = null;
+
+    static {
+        steerInitialConfigs.CurrentLimits.StatorCurrentLimit = 60;
+        steerInitialConfigs.CurrentLimits.StatorCurrentLimitEnable = true;
+        driveInitialConfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        steerInitialConfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    }
 
     // CAN bus that the devices are located on;
     // All swerve devices must share the same CAN bus

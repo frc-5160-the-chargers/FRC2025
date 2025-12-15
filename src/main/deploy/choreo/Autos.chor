@@ -14,8 +14,8 @@
    "botMass":{
     "dimension":"Mass",
     "var":{
-     "exp":"100 kg",
-     "val":100.0
+     "exp":"63.5 kg",
+     "val":63.5
     }
    },
    "cof":{

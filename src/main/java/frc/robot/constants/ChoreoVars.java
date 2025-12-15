@@ -12,7 +12,7 @@ import static edu.wpi.first.units.Units.*;
  */
 public final class ChoreoVars {
     public static final MomentOfInertia botMOI = KilogramSquareMeters.of(5.8);
-    public static final Mass botMass = Kilograms.of(100);
+    public static final Mass botMass = Pounds.of(140);
     public static final double cof = 1.5;
     public static final double gearing = 6.2;
     public static final Distance moduleX = Meters.of(0.348);

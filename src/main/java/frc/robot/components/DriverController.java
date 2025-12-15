@@ -19,6 +19,10 @@ public class DriverController extends CommandPS5Controller {
 
     public DriverController() {
         super(0);
+    }
+
+    public DriverController(int port) {
+        super(port);
         bind(new Alert("Driver Disconnected", kWarning), () -> !super.isConnected());
     }
 

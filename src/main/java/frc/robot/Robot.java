@@ -53,10 +53,11 @@ public class Robot extends LoggedRobot {
         elevator.setDefaultCommand(elevator.idleCmd());
         DriverStation.silenceJoystickConnectionWarning(true);
         PortForwarder.add(5800, "photonvision.local", 5800);
-        SimulatedArena.overrideSimulationTimings(Seconds.of(SIM_UPDATE_PERIOD), 1);
-        new Notifier(SimulatedArena.getInstance()::simulationPeriodic)
-            .startPeriodic(SIM_UPDATE_PERIOD); // Updates MapleSim periodically.
-
+        if (RobotMode.isSim()) {
+            SimulatedArena.overrideSimulationTimings(Seconds.of(SIM_UPDATE_PERIOD), 1);
+            new Notifier(SimulatedArena.getInstance()::simulationPeriodic)
+                .startPeriodic(SIM_UPDATE_PERIOD); // Updates MapleSim periodically.
+        }
         drive.resetPose(new Pose2d(5, 7, Rotation2d.fromDegrees(0)));
         autonomous().whileTrue(
             drive.wheelRadiusCharacterization()
