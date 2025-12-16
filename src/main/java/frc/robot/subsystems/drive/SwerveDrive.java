@@ -28,7 +28,6 @@ import frc.robot.subsystems.drive.hardware.SwerveDataAutoLogged;
 import frc.robot.subsystems.drive.hardware.SwerveHardware;
 import lombok.Getter;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
-import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 import java.text.DecimalFormat;
@@ -45,7 +44,10 @@ import static frc.robot.subsystems.drive.SwerveConsts.*;
 public class SwerveDrive extends ChargerSubsystem {
     private final SwerveDriveSimulation mapleSim =
         new SwerveDriveSimulation(MAPLESIM_CONFIG, Pose2d.kZero);
-    private final SwerveDrivePoseEstimator replayPoseEst;
+    private final SwerveDrivePoseEstimator replayPoseEst = new SwerveDrivePoseEstimator(
+        new SwerveDriveKinematics(MODULE_TRANSLATIONS),
+        Rotation2d.kZero, EMPTY_POSITIONS, Pose2d.kZero
+    );
     private final WheelForceCalculator forceCalc =
         new WheelForceCalculator(MODULE_TRANSLATIONS, ChoreoVars.botMass, ChoreoVars.botMOI);
     private final RepulsorFieldPlanner repulsor = new RepulsorFieldPlanner();
@@ -69,24 +71,14 @@ public class SwerveDrive extends ChargerSubsystem {
     private final SwerveDataAutoLogged inputs = new SwerveDataAutoLogged();
 
     /** A pose estimate that will be replayed correctly. */
-    @Getter
-    @AutoLogOutput
-    private Pose2d pose = Pose2d.kZero;
+    @Getter private Pose2d pose = Pose2d.kZero;
 
-    public SwerveDrive(String name) {
-        setName(name);
-        var defaultPositions = new SwerveModulePosition[4];
-        for (int i = 0; i < 4; i++) {
-            defaultPositions[i] = new SwerveModulePosition();
-        }
-        replayPoseEst = new SwerveDrivePoseEstimator(
-            new SwerveDriveKinematics(MODULE_TRANSLATIONS),
-            Rotation2d.kZero, defaultPositions, Pose2d.kZero
-        );
+    public SwerveDrive() {
         rotationController.enableContinuousInput(-Math.PI, Math.PI);
     }
 
     private SwerveModulePosition[] getModPositions() {
+        if (inputs.poseEstFrames.length == 0) return EMPTY_POSITIONS;
         return inputs.poseEstFrames[inputs.poseEstFrames.length - 1].positions();
     }
 
@@ -123,6 +115,10 @@ public class SwerveDrive extends ChargerSubsystem {
         // If in replay mode, overrides every variable with values from the log file.
         Logger.processInputs(getName(), inputs);
 
+        // CTRE's SwerveDrivetrain calculates a pose for us(inputs.notReplayedPose),
+        // however, it won't change if a vision algorithm changes during replay mode
+        // (because it is logged as-is). In replay, we instead feed the module positions
+        // we logged on the real robot into a replay-compatible pose estimator.
         if (RobotMode.get() == RobotMode.REPLAY) {
             for (var frame: inputs.poseEstFrames) {
                 if (!replayPoseEstInitialized) {
@@ -139,6 +135,9 @@ public class SwerveDrive extends ChargerSubsystem {
         } else {
             pose = inputs.notReplayedPose;
         }
+
+        Logger.recordOutput(key("Pose"), pose);
+        if (RobotMode.isSim()) Logger.recordOutput(key("TruePose"), truePose());
     }
 
     /** In sim, returns the true pose of the robot without odometry drift. */
@@ -266,26 +265,8 @@ public class SwerveDrive extends ChargerSubsystem {
         return Commands.parallel(movementCmd, measurementCmd);
     }
 
-    /** SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
-    public final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
-        new SysIdRoutine.Config(
-            null, // Use default ramp rate (1 V/s)
-            Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
-            null, // Use default timeout (10 s)
-            // Log state with SignalLogger class
-            state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
-        ),
-        new SysIdRoutine.Mechanism(
-            output -> io.setControl(
-                new SwerveRequest.SysIdSwerveTranslation().withVolts(output)
-            ),
-            null,
-            this
-        )
-    );
-
     /** SysId routine for characterizing steer. This is used to find PID gains for the steer motors. */
-    public final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
+    public final SysIdRoutine steerSysIdRoutine = new SysIdRoutine(
         new SysIdRoutine.Config(
             null, // Use default ramp rate (1 V/s)
             Volts.of(7), // Use dynamic voltage of 7 V
@@ -307,7 +288,7 @@ public class SwerveDrive extends ChargerSubsystem {
      * This is used to find PID gains for the FieldCentricFacingAngle HeadingController.
      * See the documentation of SwerveRequest.SysIdSwerveRotation for info on importing the log to SysId.
      */
-    public final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
+    public final SysIdRoutine rotationSysIdRoutine = new SysIdRoutine(
         new SysIdRoutine.Config(
             /* This is in radians per second², but SysId only supports "volts per second" */
             Volts.of(Math.PI / 6).per(Second),

@@ -117,11 +117,18 @@ task(replayWatch, type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
 }
 
+// Simulation configuration (e.g. environment variables).
+var simGui = wpi.sim.addGui()
+simGui.defaultEnabled = true
+wpi.sim.addDriverstation()
+
 simulateJavaRelease {
     project.logger.lifecycle('Checking if replay mode...')
     if (frc.project.hasProperty("replay")) {
         project.logger.lifecycle('Replay mode activated!')
         systemProperties "replayMode": "enabled"
+        // This line is very important; the sim GUI can cause race conditions w/ replay
+        simGui.defaultEnabled = false
     } else {
         dependsOn(test)
     }
@@ -131,10 +138,6 @@ test {
     useJUnitPlatform()
     systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
 }
-
-// Simulation configuration (e.g. environment variables).
-wpi.sim.addGui().defaultEnabled = true
-wpi.sim.addDriverstation()
 
 // Setting up my Jar File. In this case, adding all libraries into the main jar ('fat jar')
 // in order to make them all available at runtime. Also adding the manifest so WPILib

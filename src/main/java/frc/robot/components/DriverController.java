@@ -39,7 +39,7 @@ public class DriverController extends CommandPS5Controller {
         return output * -1;
     }
 
-    public SwerveRequest getSwerveRequest() {
+    public SwerveRequest.FieldCentric getSwerveRequest() {
         double maxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
         double x = modifyDriveAxis(getLeftY());
         double y = modifyDriveAxis(getLeftX());

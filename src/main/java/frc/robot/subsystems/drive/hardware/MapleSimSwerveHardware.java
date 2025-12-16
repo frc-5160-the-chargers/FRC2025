@@ -12,7 +12,6 @@ import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.drivesims.SwerveDriveSimulation;
 import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.jetbrains.annotations.Nullable;
-import org.littletonrobotics.junction.Logger;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.drive.SwerveConsts.MODULE_CONSTS_CHOICES;
@@ -26,11 +25,11 @@ public class MapleSimSwerveHardware extends SwerveHardware {
         this.gyroSim = super.drivetrain.getPigeon2().getSimState();
         SimulatedArena.getInstance().addDriveTrainSimulation(mapleSim);
         for (int i = 0; i < 4; i++) {
-            var mod = super.drivetrain.getModule(i);
+            var module = super.drivetrain.getModule(i);
             var sim = mapleSim.getModules()[i];
-            mod.getSteerMotor().getSimState().setMotorType(MotorType.KrakenX44);
-            sim.useDriveMotorController(new TalonFXSim(mod.getDriveMotor(), null));
-            sim.useSteerMotorController(new TalonFXSim(mod.getSteerMotor(), mod.getEncoder()));
+            module.getSteerMotor().getSimState().setMotorType(MotorType.KrakenX44);
+            sim.useDriveMotorController(new TalonFXSim(module.getDriveMotor(), null));
+            sim.useSteerMotorController(new TalonFXSim(module.getSteerMotor(), module.getEncoder()));
         }
     }
 
@@ -49,12 +48,9 @@ public class MapleSimSwerveHardware extends SwerveHardware {
     @Override
     public void refreshData(SwerveDataAutoLogged data) {
         super.refreshData(data);
-        // The "true" pose of the robot, without odometry drift.
-        var truePose = mapleSim.getSimulatedDriveTrainPose();
+        // "Injects" data into the gyro, overriding the value of getYaw() and getAngularVelocity().
+        gyroSim.setRawYaw(mapleSim.getSimulatedDriveTrainPose().getRotation().getMeasure());
         var vel = mapleSim.getDriveTrainSimulatedChassisSpeedsRobotRelative();
-        Logger.recordOutput("SwerveDrive/TruePose", truePose);
-        // "Injects" data into the gyro, overriding the value of getYaw().
-        gyroSim.setRawYaw(truePose.getRotation().getMeasure());
         gyroSim.setAngularVelocityZ(RadiansPerSecond.of(vel.omegaRadiansPerSecond));
     }
 

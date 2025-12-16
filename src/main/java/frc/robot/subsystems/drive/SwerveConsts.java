@@ -3,6 +3,7 @@ package frc.robot.subsystems.drive;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
 import frc.chargers.misc.TunableValues.TunableNum;
@@ -28,6 +29,10 @@ public class SwerveConsts {
     static final double KT_AMPS_PER_NM = 1 / (
         DRIVE_MOTOR_TYPE.KtNMPerAmp / TunerConstants.FrontLeft.DriveMotorGearRatio
     );
+    static final SwerveModulePosition[] EMPTY_POSITIONS = {
+        new SwerveModulePosition(), new SwerveModulePosition(),
+        new SwerveModulePosition(), new SwerveModulePosition()
+    };
 
     static final TunableNum
         DEMO_POSE_X = new TunableNum("Swerve/demoPose/x", 0),

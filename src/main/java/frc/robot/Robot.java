@@ -34,7 +34,7 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 public class Robot extends LoggedRobot {
     private static final double SIM_UPDATE_PERIOD = 0.002;
 
-    private final SwerveDrive drive = new SwerveDrive("SwerveDrive");
+    private final SwerveDrive drive = new SwerveDrive();
     private final Elevator elevator = new Elevator();
     private final DriverController controller = new DriverController();
 
