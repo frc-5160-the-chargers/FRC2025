@@ -88,7 +88,7 @@ dependencies {
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
     implementation 'gov.nist.math:jama:1.0.3'
-    implementation 'org.jetbrains:annotations:16.0.2'
+    implementation 'org.jetbrains:annotations:16.0.3'
     annotationProcessor wpi.java.deps.wpilibAnnotations()
 
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
