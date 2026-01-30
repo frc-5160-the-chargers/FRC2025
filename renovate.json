@@ -1,0 +1,14 @@
+{
+  "customManagers": [{
+    "customType": "jsonata",
+    "datasourceTemplate": "custom.wpilib-vendordep",
+    "managerFilePatterns": ["**/vendordeps/*.json"],
+    "fileFormat": "json",
+    "matchStrings": ["jsonUrl ? { \"depName\": name, \"currentValue\": version, \"registryUrl\": jsonUrl }"]
+  }],
+  "customDatasources": {"wpilib-vendordep": {
+    "defaultRegistryUrlTemplate": "{{registryUrl}}",
+    "format": "json",
+    "transformTemplates": ["{ \"releases\": [{ \"version\": version }] }"]
+  }}
+}
